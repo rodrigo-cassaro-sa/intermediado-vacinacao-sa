@@ -56,7 +56,7 @@ Domínio com SSL. Sem framework e sem OO por padrão.
 # 3. Etapa atual
 
 ```txt
-Etapa atual: EXECUÇÃO — SQL/migrations + scaffold do backend PHP escritos (config, conexão PDO, helpers, middlewares, front controller, health/login). NÃO executados (sem PHP/MySQL no ambiente). Próximo: provisionar dev e implementar endpoints de domínio.
+Etapa atual: PREPARO DE DEPLOY — Docker (Dockerfile+Apache docroot public/), scripts/migrar.php, docs/13 (EasyPanel) e Git iniciado (branch main, commit inicial ac5a892). Próximo: subir no EasyPanel (app+mysql+phpmyadmin), aplicar migrations e rodar checklist pós-deploy. Nada executado/validado ainda.
 Protocolo em uso: protocolo-criacao-projeto-zero.md
 Especialista principal: especialista-produto-planejamento.md
 Especialistas de apoio: especialista-negocio-saas.md, especialista-seguranca-auditoria.md, especialista-banco-dados.md, especialista-engajamento-integracoes.md, especialista-documentacao-memoria.md
@@ -80,8 +80,8 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | Segurança/auditoria | em andamento | doc 10 preenchido (auth, escopo, auditoria, LGPD, criptografia); implementação nos middlewares pendente |
 | QA/testes | pendente |  |
 | Documentação | em andamento | fase 1 documentada |
-| Git/GitHub | pendente |  |
-| Docker/EasyPanel | pendente |  |
+| Git/GitHub | feito | repo público no GitHub (intermediado-vacinacao-sa), branch main, push do commit inicial 7071c6c |
+| Docker/EasyPanel | em andamento | Dockerfile + vhost + php.ini + scripts/migrar.php + docs/13; falta configurar serviços no painel |
 | Homologação | pendente |  |
 | Produção | pendente |  |
 | Monitoramento | pendente |  |
@@ -115,6 +115,7 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | 2026-07-06 | Segurança/LGPD (doc 10) | docs/10 | arquivo gerado | Auth, escopo por campanha, auditoria, criptografia, consentimento |
 | 2026-07-06 | SQL/migrations reais (000..008 + seeds) | database/migrations/*, database/seeds/*, database/README.md | arquivos gerados | 13 tabelas + VIEW; não executados ainda |
 | 2026-07-06 | Scaffold backend PHP | app/*, api/v1/*, public/index.php, .env.example, .gitignore | arquivos gerados | Fundação procedural; health + login; não executado (sem PHP/MySQL) |
+| 2026-07-06 | Docker + deploy EasyPanel + Git | Dockerfile, docker/*, public/.htaccess, .dockerignore, scripts/migrar.php, docs/13 | commit ac5a892 | docroot public/; health em /api/v1/health; repo local (main) |
 | 2026-07-06 | Atualização do checkpoint | controle-projeto.md | este arquivo | — |
 
 ---
@@ -124,21 +125,21 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 ## Próxima ação imediata
 
 ```txt
-Scaffold do backend pronto (não executado). Próximo: (a) provisionar PHP + MySQL de dev,
-rodar as migrations/seeds e validar o health + login; (b) implementar os endpoints de domínio
-do doc 09 — criar campanha, importar elegíveis (upload e API parceiro), consultar elegíveis,
-registrar aplicação, tabela verdade/dashboard — reutilizando os middlewares já criados.
+Repo local pronto (commit ac5a892). Falta: (1) criar o repositório remoto no GitHub e dar push;
+(2) no EasyPanel, criar projeto com 3 serviços (imz-app via Dockerfile, imz-mysql, imz-phpmyadmin),
+configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deploy; (4) aplicar migrations
+(php scripts/migrar.php --seeds); (5) rodar checklist pós-deploy validando /api/v1/health e login.
 ```
 
 ## Lista de próximos passos
 
 | Ordem | Próximo passo | Responsável | Prioridade | Status |
 |---:|---|---|---|---|
-| 1 | Provisionar PHP+MySQL de dev; rodar migrations/seeds; validar health e login | especialista-deploy / banco | alta | pendente |
-| 2 | Endpoint criar/editar campanha + campanha_vacina | especialista-backend | alta | pendente |
-| 3 | Endpoint importar elegíveis (upload interno) + ingestão API parceiro | especialista-backend | alta | pendente |
-| 4 | Endpoint registrar aplicação (interno + parceiro) com validações RN-003/009/010 | especialista-backend | alta | pendente |
-| 5 | Endpoint tabela verdade + dashboard + exportação CSV | especialista-backend | média | pendente |
+| 1 | ~~Criar repo GitHub + push~~ | usuário/deploy | alta | feito (commit 7071c6c) |
+| 2 | EasyPanel: criar imz-mysql, imz-app (Dockerfile), imz-phpmyadmin + variáveis/volumes/SSL | usuário/deploy | alta | pendente |
+| 3 | Deploy do imz-app e aplicar migrations (scripts/migrar.php --seeds) | deploy | alta | pendente |
+| 4 | Checklist pós-deploy (doc 13 §10): health, login, banco, logs, phpMyAdmin | QA/deploy | alta | pendente |
+| 5 | Implementar endpoints de domínio do doc 09 (campanha, elegíveis, aplicação, tabela verdade) | especialista-backend | alta | pendente |
 | 6 | (paralelo) Guia visual/UX (doc 06) ao iniciar frontend | especialista-design | média | pendente |
 
 ---
@@ -234,15 +235,15 @@ Administração visual: phpMyAdmin (planejado)
 # 12. Deploy e produção
 
 ```txt
-Painel: EasyPanel (planejado)
+Painel: EasyPanel
 Servidor: [a definir]
-Repositório: [a definir]
+Repositório: https://github.com/rodrigo-cassaro-sa/intermediado-vacinacao-sa (branch main, push feito, commit 7071c6c)
 Branch desenvolvimento: [a definir]
-Branch homologação: [a definir]
-Branch produção: [a definir]
+Branch homologação: main (proposto para o 1º ambiente)
+Branch produção: producao (criar após validar homologação)
 Domínio: [a definir]
-SSL: [a definir]
-Status do deploy: não iniciado
+SSL: [a definir - Let's Encrypt via EasyPanel]
+Status do deploy: preparado (Docker + docs/13), aguardando push e configuração no painel
 ```
 
 ## Checklist rápido de produção
@@ -268,19 +269,20 @@ Status do deploy: não iniciado
 # 13. Último checkpoint
 
 ```txt
-Última coisa feita: Scaffold do backend PHP (config/PDO, helpers, middlewares, front controller,
-rotas, health, login) escrito. NÃO executado (sem PHP/MySQL no ambiente atual).
+Última coisa feita: Docker + deploy EasyPanel (Dockerfile, vhost docroot public/, php.ini,
+scripts/migrar.php, docs/13) e Git iniciado (branch main, commit inicial ac5a892).
 
-Estado atual: docs 01-10 + SQL do modelo + fundação do backend prontos. Nada executado/validado.
+Estado atual: docs 01-10 + 13, SQL do modelo, backend scaffold e artefatos de deploy prontos.
+NADA executado/validado — o EasyPanel será o primeiro ambiente real.
 Decisões: 2 modalidades, upload+API, CPF, multi-tenant por tenant_id, API interno/parceiro,
-aplicação imutável, paciente/vacina/clinica globais, JSON oficial + idempotência, auth
-sessão/CSRF (humano) e Bearer com escopo (máquina), roteamento por tabela, PDO prepared.
+aplicação imutável, JSON oficial + idempotência, auth sessão/CSRF e Bearer com escopo,
+Docker php:8.3-apache com docroot public/, health em /api/v1/health.
 
-Próximo passo recomendado: provisionar PHP+MySQL de dev, rodar migrations/seeds, validar
-health+login; depois implementar os endpoints de domínio do doc 09.
+Próximo passo recomendado: push para GitHub; criar serviços no EasyPanel; deploy; aplicar
+migrations (scripts/migrar.php --seeds); validar checklist pós-deploy (doc 13 §10).
 
-Arquivos que devem ser lidos primeiro: controle-projeto.md, docs/05, docs/08, docs/09, docs/10,
-database/README.md, app/bootstrap.php, api/v1/rotas.php.
+Arquivos que devem ser lidos primeiro: controle-projeto.md, docs/13, database/README.md,
+Dockerfile, docs/05, docs/09, app/bootstrap.php.
 
 Cuidados antes de continuar: isolamento multi-tenant e escopo por campanha (RN-009);
 aplicação nunca é editada (RN-010); LGPD/dado sensível como risco crítico; validar bases legais

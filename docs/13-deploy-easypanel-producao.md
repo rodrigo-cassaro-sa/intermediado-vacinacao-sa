@@ -13,11 +13,11 @@ Documentar como publicar e operar o sistema no EasyPanel.
 # 1. Repositório
 
 ```txt
-GitHub: [preencher: git@github.com:USUARIO/REPO.git]
+GitHub: https://github.com/rodrigo-cassaro-sa/intermediado-vacinacao-sa (público)
 Branch desenvolvimento: desenvolvimento
 Branch homologação: homologacao
-Branch produção: producao   (ou 'main' para o primeiro ambiente)
-Tag/release atual: v0.1.0 (scaffold + modelo)
+Branch produção: producao   (usar 'main' para o primeiro ambiente)
+Tag/release atual: v0.1.0 (scaffold + modelo) — commit inicial 7071c6c
 ```
 
 > Sugestão para o primeiro ambiente: publicar a branch `main` como **homologação** primeiro,
@@ -144,14 +144,15 @@ Após o `imz-app` no ar e o `imz-mysql` criado, escolher **uma** opção:
 
 ```txt
 Opção A (recomendada) — script no container da app:
-  - Abrir o terminal do serviço imz-app no EasyPanel.
-  - Rodar:  php scripts/migrar.php --seeds
-  - Isso cria as 13 tabelas + VIEW e insere o catálogo de vacinas e o admin inicial.
-  - ANTES do --seeds em produção: gerar hash real da senha do admin
-    (php -r "echo password_hash('SENHA', PASSWORD_DEFAULT);") e ajustar o seed.
+  1. Abrir o terminal do serviço imz-app no EasyPanel.
+  2. Criar tabelas + catálogo de vacinas:   php scripts/migrar.php --seeds
+  3. Criar o admin com senha real:
+       php scripts/criar_admin.php admin@suaempresa.com SuaSenhaForte "Administrador"
+     (a senha é gravada com password_hash; o seed NÃO cria admin).
 
 Opção B — phpMyAdmin:
-  - Importar, na ORDEM, os arquivos de database/migrations/000..008 e depois o seed.
+  - Importar, na ORDEM, database/migrations/000..008 e depois database/seeds/seeds_vacinas_perfis.sql.
+  - Depois criar o admin pelo terminal do container (passo 3 acima).
 ```
 
 > Nunca rodar migration em produção sem backup. Ver database/README.md.
