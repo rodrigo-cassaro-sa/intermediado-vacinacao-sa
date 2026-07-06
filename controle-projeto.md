@@ -204,6 +204,8 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | api/v1/rotas.php, health.php, interno/auth.php | Roteador + endpoints de prova | escrito, não executado |
 | public/index.php | Front controller (docroot) | escrito, não executado |
 | .env.example, .gitignore | Config de ambiente e exclusões | preenchido |
+| Dockerfile, docker/apache/vhost.conf, docker/php/php.ini | Imagem PHP+Apache (docroot public/) | escrito, não executado |
+| scripts/migrar.php, scripts/criar_admin.php | Aplicar migrations + criar admin | escrito, não executado |
 
 ---
 
