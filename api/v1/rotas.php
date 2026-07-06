@@ -30,10 +30,20 @@ return [
     'PUT  /api/v1/interno/campanhas/{id}'           => ['arquivo' => 'interno/campanhas.php', 'funcao' => 'rota_editar_campanha'],
     'POST /api/v1/interno/campanhas/{id}/vacinas'   => ['arquivo' => 'interno/campanhas.php', 'funcao' => 'rota_definir_vacinas_campanha'],
 
-    // --- Próximos (bloco 2+): elegíveis, aplicação, tabela verdade ---
-    // 'POST /api/v1/interno/campanhas/{id}/elegiveis/importar' => [...],
+    // --- Elegíveis (bloco 2) ---
+    'POST /api/v1/interno/campanhas/{id}/elegiveis/importar' => ['arquivo' => 'interno/elegiveis.php', 'funcao' => 'rota_importar_elegiveis'],
+    'GET  /api/v1/interno/campanhas/{id}/elegiveis'          => ['arquivo' => 'interno/elegiveis.php', 'funcao' => 'rota_listar_elegiveis'],
+
+    // --- Credenciais de API (parceiro) ---
+    'POST /api/v1/interno/credenciais'             => ['arquivo' => 'interno/credenciais.php', 'funcao' => 'rota_emitir_credencial'],
+    'GET  /api/v1/interno/credenciais'             => ['arquivo' => 'interno/credenciais.php', 'funcao' => 'rota_listar_credenciais'],
+    'POST /api/v1/interno/credenciais/{id}/revogar' => ['arquivo' => 'interno/credenciais.php', 'funcao' => 'rota_revogar_credencial'],
+
+    // --- Grupo parceiro (Bearer + escopo) ---
+    'POST /api/v1/parceiro/campanhas/{id}/elegiveis' => ['arquivo' => 'parceiro/elegiveis.php', 'funcao' => 'rota_parceiro_ingerir_elegiveis'],
+
+    // --- Próximos (bloco 3): aplicação, tabela verdade ---
     // 'POST /api/v1/interno/aplicacoes' => [...],
-    // 'POST /api/v1/parceiro/campanhas/{id}/elegiveis' => [...],
     // 'GET  /api/v1/parceiro/campanhas/{id}/elegiveis/{cpf}' => [...],
     // 'POST /api/v1/parceiro/aplicacoes' => [...],
 ];

@@ -121,6 +121,47 @@
       <table id="tblCampanhas"></table>
     </div>
 
+    <!-- ELEGÍVEIS -->
+    <div class="card full">
+      <h2>4. Elegíveis (importar / listar)</h2>
+      <div class="row">
+        <div>
+          <label>Campanha</label>
+          <select id="elegCampanha"><option value="">— liste as campanhas —</option></select>
+        </div>
+      </div>
+      <label>Cole os elegíveis (uma linha por pessoa: <span class="muted">cpf,nome,data_nascimento</span>)</label>
+      <textarea id="elegCsv" rows="4" style="width:100%;padding:8px;background:#0b1220;border:1px solid var(--line);border-radius:6px;color:var(--txt)"
+        placeholder="52998224725,Maria Silva,1990-05-10&#10;16899535009,João Souza,1985-11-02"></textarea>
+      <div style="margin-top:12px" class="row">
+        <button onclick="importarElegiveis()">Importar (JSON)</button>
+        <button class="sec" onclick="listarElegiveis()">Listar elegíveis</button>
+      </div>
+      <p id="elegResumo" class="muted"></p>
+      <table id="tblElegiveis"></table>
+    </div>
+
+    <!-- CREDENCIAL / PARCEIRO -->
+    <div class="card full">
+      <h2>5. Credencial de API + ingestão do parceiro</h2>
+      <div class="row">
+        <div>
+          <label>Campanha</label>
+          <select id="credCampanha"><option value="">— liste as campanhas —</option></select>
+        </div>
+        <div style="flex:0">
+          <label>&nbsp;</label>
+          <button onclick="emitirCredencial()">Emitir token (ingestao_b2b)</button>
+        </div>
+      </div>
+      <label>Token emitido (cole aqui para testar; só aparece uma vez)</label>
+      <input id="credToken" placeholder="token..." />
+      <label style="margin-top:8px">Elegíveis para enviar via API do parceiro (cpf,nome,data_nascimento)</label>
+      <textarea id="ingCsv" rows="3" style="width:100%;padding:8px;background:#0b1220;border:1px solid var(--line);border-radius:6px;color:var(--txt)"
+        placeholder="529.982.247-25,Ana Costa,1992-03-01"></textarea>
+      <div style="margin-top:12px"><button onclick="testarIngestaoParceiro()">Testar ingestão via API (Bearer)</button></div>
+    </div>
+
     <!-- RESPOSTA -->
     <div class="card full">
       <h2>Última resposta da API</h2>
@@ -236,6 +277,61 @@ async function listarCampanhas() {
   const itens = d.data.itens || [];
   tbl.innerHTML = '<tr><th>ID</th><th>Cliente</th><th>Nome</th><th>Modalidade</th><th>Período</th><th>Status</th></tr>' +
     itens.map(c => `<tr><td>${c.id}</td><td>${c.cliente}</td><td>${c.nome}</td><td>${c.modalidade}</td><td>${c.periodo_inicio} → ${c.periodo_fim}</td><td>${c.status}</td></tr>`).join('');
+  // Popula os seletores de campanha das seções 4 e 5.
+  const opts = '<option value="">— selecione —</option>' +
+    itens.map(c => `<option value="${c.id}">${c.nome} (#${c.id})</option>`).join('');
+  ['elegCampanha', 'credCampanha'].forEach(idsel => { document.getElementById(idsel).innerHTML = opts; });
+}
+
+// Converte texto "cpf,nome,nascimento" (uma linha por pessoa) em array de objetos.
+function parseElegiveis(texto) {
+  return texto.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(linha => {
+    const p = linha.split(/[;,]/).map(x => x.trim());
+    return { cpf: p[0] || '', nome: p[1] || '', data_nascimento: p[2] || null };
+  });
+}
+
+async function importarElegiveis() {
+  const id = document.getElementById('elegCampanha').value;
+  if (!id) return log('Selecione uma campanha (clique em Listar campanhas antes).');
+  const elegiveis = parseElegiveis(document.getElementById('elegCsv').value);
+  await api(`/interno/campanhas/${id}/elegiveis/importar`, 'POST', { elegiveis });
+  listarElegiveis();
+}
+
+async function listarElegiveis() {
+  const id = document.getElementById('elegCampanha').value;
+  if (!id) return log('Selecione uma campanha.');
+  const d = await api(`/interno/campanhas/${id}/elegiveis`);
+  if (!d.success) return;
+  const r = d.data.resumo || {};
+  document.getElementById('elegResumo').textContent =
+    `Pendentes: ${r.pendente||0} · Aplicados: ${r.aplicado||0} · Recusados: ${r.recusado||0} · Total: ${d.meta?.total||0}`;
+  const itens = d.data.itens || [];
+  document.getElementById('tblElegiveis').innerHTML =
+    '<tr><th>CPF</th><th>Nome</th><th>Origem</th><th>Status</th></tr>' +
+    itens.map(e => `<tr><td>${e.cpf}</td><td>${e.nome}</td><td>${e.origem}</td><td>${e.status}</td></tr>`).join('');
+}
+
+async function emitirCredencial() {
+  const id = document.getElementById('credCampanha').value;
+  if (!id) return log('Selecione uma campanha.');
+  const d = await api('/interno/credenciais', 'POST', { tipo: 'ingestao_b2b', campanha_id: Number(id) });
+  if (d.success) document.getElementById('credToken').value = d.data.token;
+}
+
+async function testarIngestaoParceiro() {
+  const id = document.getElementById('credCampanha').value;
+  const token = document.getElementById('credToken').value.trim();
+  if (!id || !token) return log('Selecione a campanha e emita/cole um token.');
+  const elegiveis = parseElegiveis(document.getElementById('ingCsv').value);
+  const resp = await fetch(`/api/v1/parceiro/campanhas/${id}/elegiveis`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    body: JSON.stringify({ elegiveis }),
+  });
+  log(await resp.json());
+  listarElegiveis();
 }
 
 // Ao abrir, checa a saúde do serviço.

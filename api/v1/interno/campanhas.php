@@ -355,13 +355,3 @@ function gravar_vacinas_campanha(int $campanhaId, int $tenantId, array $vacinas)
         );
     }
 }
-
-/** Lê page/por_pagina do querystring com limites seguros. Devolve [page, porPagina, offset]. */
-function paginacao(): array
-{
-    $page = isset($_GET['page']) && is_numeric($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
-    $porPagina = isset($_GET['por_pagina']) && is_numeric($_GET['por_pagina'])
-        ? min(100, max(1, (int) $_GET['por_pagina'])) : 50;
-    $offset = ($page - 1) * $porPagina;
-    return [$page, $porPagina, $offset];
-}

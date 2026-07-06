@@ -76,7 +76,7 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | Design/UX/UI | pendente |  |
 | Banco de dados | em andamento | doc 08 modelado; SQL/migrations 000..008 + seeds escritos em database/; falta executar/validar em MySQL |
 | Backend/API/PHP | em andamento | scaffold validado; bloco 1 (clientes B2B + campanhas CRUD + vacinas) implementado (commit e6e8fe1), aguardando deploy/teste; elegíveis/aplicação/tabela verdade pendentes |
-| Frontend | pendente |  |
+| Frontend | em andamento | public/admin/index.html: console de testes (login/health/clientes/campanhas) via Fetch; validar no deploy |
 | Segurança/auditoria | em andamento | doc 10 preenchido (auth, escopo, auditoria, LGPD, criptografia); implementação nos middlewares pendente |
 | QA/testes | pendente |  |
 | Documentação | em andamento | fase 1 documentada |
@@ -139,7 +139,7 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | 2 | ~~EasyPanel: criar serviços + deploy~~ | usuário/deploy | alta | feito (health app:ok/banco:ok) |
 | 3 | ~~Aplicar migrations + criar admin~~ | deploy | alta | feito (13 tabelas + VIEW + seeds; admin id=1) |
 | 4 | ~~Validar login~~ | QA/deploy | alta | feito (success:true, super_admin) |
-| 5 | Deploy do bloco 1 e testar (cliente + campanha + vacinas) | usuário/deploy | alta | pendente |
+| 5 | Deploy e testar via página /admin (cliente + campanha + vacinas) | usuário/deploy | alta | pendente |
 | 6 | Bloco 2: importar elegíveis (upload interno + API parceiro) com dedup CPF | especialista-backend | alta | pendente |
 | 7 | Bloco 3: registrar aplicação (interno+parceiro) RN-003/009/010 + tabela verdade | especialista-backend | alta | pendente |
 | 6 | (paralelo) Guia visual/UX (doc 06) ao iniciar frontend | especialista-design | média | pendente |
