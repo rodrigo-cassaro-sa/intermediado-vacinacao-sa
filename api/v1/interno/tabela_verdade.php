@@ -68,6 +68,60 @@ function rota_dashboard(array $params): void
     ], 'OK.');
 }
 
+/**
+ * GET /api/v1/interno/campanhas/{id}/exportar — CSV da tabela verdade.
+ * Retorno analítico ao cliente B2B (dado da própria campanha). Acesso auditado.
+ */
+function rota_exportar_tabela_verdade(array $params): void
+{
+    $usuario = exigir_login();
+    $id = id_campanha_rota($params['id'] ?? null);
+    $campanha = exigir_campanha_do_usuario($usuario, $id);
+
+    $linhas = db_todos(
+        "SELECT p.cpf, p.nome, e.status AS situacao,
+                COUNT(a.id) AS total_aplicacoes,
+                MAX(a.aplicado_em) AS ultima_aplicacao,
+                GROUP_CONCAT(DISTINCT v.nome ORDER BY v.nome SEPARATOR ' | ') AS vacinas
+           FROM elegivel e
+           JOIN paciente p ON p.id = e.paciente_id
+      LEFT JOIN aplicacao a ON a.elegivel_id = e.id AND a.status = 'confirmada'
+      LEFT JOIN vacina v ON v.id = a.vacina_id
+          WHERE e.campanha_id = :id
+       GROUP BY e.id, p.cpf, p.nome, e.status
+       ORDER BY p.nome",
+        [':id' => $id]
+    );
+
+    registrar_auditoria('tabela_verdade.exportada', [
+        'tenant_id'     => (int) $campanha['tenant_id'],
+        'ator_tipo'     => 'usuario',
+        'ator_id'       => (int) $usuario['id'],
+        'origem'        => 'admin',
+        'entidade_tipo' => 'campanha',
+        'entidade_id'   => $id,
+        'metadata'      => ['linhas' => count($linhas)],
+    ]);
+
+    // Saída CSV (UTF-8 com BOM p/ Excel; delimitador ; comum em pt-BR).
+    if (!headers_sent()) {
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="tabela-verdade-campanha-' . $id . '.csv"');
+        header('X-Request-Id: ' . request_id());
+    }
+    echo "\xEF\xBB\xBF"; // BOM
+    $out = fopen('php://output', 'w');
+    fputcsv($out, ['cpf', 'nome', 'situacao', 'total_aplicacoes', 'ultima_aplicacao', 'vacinas'], ';');
+    foreach ($linhas as $l) {
+        fputcsv($out, [
+            $l['cpf'], $l['nome'], $l['situacao'],
+            $l['total_aplicacoes'], $l['ultima_aplicacao'] ?? '', $l['vacinas'] ?? '',
+        ], ';');
+    }
+    fclose($out);
+    exit;
+}
+
 /** Contagem de elegíveis por situação (base da tabela verdade). */
 function resumo_situacao(int $campanhaId): array
 {

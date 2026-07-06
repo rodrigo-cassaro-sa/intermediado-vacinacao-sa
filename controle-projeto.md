@@ -56,7 +56,7 @@ Domínio com SSL. Sem framework e sem OO por padrão.
 # 3. Etapa atual
 
 ```txt
-Etapa atual: HOMOLOGAÇÃO VALIDADA de ponta a ponta — deploy + banco + migrations (13 tabelas + VIEW) + seeds + login (super_admin id=1) funcionando em https://imunizacao-imz-app.imx7lc.easypanel.host. Próximo: implementar endpoints de domínio do doc 09 (campanha → elegíveis → aplicação → tabela verdade).
+Etapa atual: MVP — CICLO CENTRAL VALIDADO em homologação. Blocos 1 (clientes/campanhas), 2 (elegíveis upload/JSON + API parceiro + credenciais) e 3 (registrar aplicação + retificar + tabela verdade + dashboard + rede credenciada) funcionando via /admin em https://imunizacao-imz-app.imx7lc.easypanel.host. Próximo: extração/CSV p/ B2B e telas reais (sair do console).
 Protocolo em uso: protocolo-criacao-projeto-zero.md
 Especialista principal: especialista-produto-planejamento.md
 Especialistas de apoio: especialista-negocio-saas.md, especialista-seguranca-auditoria.md, especialista-banco-dados.md, especialista-engajamento-integracoes.md, especialista-documentacao-memoria.md
@@ -75,7 +75,7 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | Mapa de telas | feito | doc 07: telas admin/portal/app + fluxos A–E |
 | Design/UX/UI | pendente |  |
 | Banco de dados | em andamento | doc 08 modelado; SQL/migrations 000..008 + seeds escritos em database/; falta executar/validar em MySQL |
-| Backend/API/PHP | em andamento | blocos 1 e 2 VALIDADOS em homolog; bloco 3 (registrar aplicação + retificar + tabela verdade + dashboard + rede credenciada consulta/registro) implementado (commit 740802b), aguardando deploy/teste. Ciclo central do MVP completo no código. |
+| Backend/API/PHP | validado (homolog) | blocos 1, 2 e 3 VALIDADOS em homolog via /admin (cliente→campanha→elegíveis→aplicação→tabela verdade/dashboard). Falta: extração CSV, rede credenciada testada com clínica real, refino. |
 | Frontend | em andamento | public/admin/index.html: console de testes (login/health/clientes/campanhas) via Fetch; validar no deploy |
 | Segurança/auditoria | em andamento | doc 10 preenchido (auth, escopo, auditoria, LGPD, criptografia); implementação nos middlewares pendente |
 | QA/testes | pendente |  |
@@ -141,8 +141,10 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | 4 | ~~Validar login~~ | QA/deploy | alta | feito (success:true, super_admin) |
 | 5 | ~~Bloco 1 (cliente/campanha)~~ | usuário/deploy | alta | validado no /admin |
 | 6 | ~~Bloco 2 (elegíveis)~~ | usuário/deploy | alta | validado no /admin |
-| 7 | Deploy e testar bloco 3 (aplicação + tabela verdade + dashboard) | usuário/deploy | alta | pendente |
-| 8 | Extração/CSV p/ cliente B2B + refino de telas reais (sair do console) | especialista-backend/design | média | pendente |
+| 7 | ~~Bloco 3 (aplicação + tabela verdade)~~ | usuário/deploy | alta | validado no /admin |
+| 8 | Extração/CSV p/ cliente B2B (tabela verdade exportável) | especialista-backend | média | pendente |
+| 9 | Telas reais (portal B2B / painel operador) saindo do console de testes | especialista-design/frontend | média | pendente |
+| 10 | Preencher docs pendentes (11 integrações, 12 QA, 14 backup, 15 changelog, 16 handoff) | especialista-documentacao | média | pendente |
 | 6 | (paralelo) Guia visual/UX (doc 06) ao iniciar frontend | especialista-design | média | pendente |
 
 ---

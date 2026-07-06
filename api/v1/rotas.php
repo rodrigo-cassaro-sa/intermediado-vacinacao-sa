@@ -46,6 +46,7 @@ return [
     // --- Tabela verdade e dashboard (bloco 3) ---
     'GET  /api/v1/interno/campanhas/{id}/tabela-verdade' => ['arquivo' => 'interno/tabela_verdade.php', 'funcao' => 'rota_tabela_verdade'],
     'GET  /api/v1/interno/campanhas/{id}/dashboard'      => ['arquivo' => 'interno/tabela_verdade.php', 'funcao' => 'rota_dashboard'],
+    'GET  /api/v1/interno/campanhas/{id}/exportar'       => ['arquivo' => 'interno/tabela_verdade.php', 'funcao' => 'rota_exportar_tabela_verdade'],
 
     // --- Grupo parceiro (Bearer + escopo) ---
     'POST /api/v1/parceiro/campanhas/{id}/elegiveis'        => ['arquivo' => 'parceiro/elegiveis.php', 'funcao' => 'rota_parceiro_ingerir_elegiveis'],

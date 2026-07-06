@@ -195,6 +195,7 @@
         </div>
         <div style="flex:0"><label>&nbsp;</label><button onclick="verTabelaVerdade()">Tabela verdade</button></div>
         <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="verDashboard()">Dashboard</button></div>
+        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="exportarCsv()">Exportar CSV</button></div>
       </div>
       <p id="tvResumo" class="muted"></p>
       <table id="tblTabelaVerdade"></table>
@@ -368,6 +369,13 @@ async function verTabelaVerdade() {
     '<tr><th>CPF</th><th>Nome</th><th>Situação</th><th>Aplicações</th><th>Última</th></tr>' +
     (d.data.itens || []).map(i =>
       `<tr><td>${i.cpf}</td><td>${i.nome}</td><td>${i.situacao_elegivel}</td><td>${i.total_aplicacoes}</td><td>${i.ultima_aplicacao_em||'—'}</td></tr>`).join('');
+}
+
+function exportarCsv() {
+  const id = document.getElementById('tvCampanha').value;
+  if (!id) return log('Selecione uma campanha.');
+  // GET com cookie de sessão (mesma origem) — dispara download pelo Content-Disposition.
+  window.open(`/api/v1/interno/campanhas/${id}/exportar`, '_blank');
 }
 
 async function verDashboard() {
