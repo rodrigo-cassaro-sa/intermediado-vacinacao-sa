@@ -75,7 +75,7 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | Mapa de telas | feito | doc 07: telas admin/portal/app + fluxos A–E |
 | Design/UX/UI | pendente |  |
 | Banco de dados | em andamento | doc 08 modelado; SQL/migrations 000..008 + seeds escritos em database/; falta executar/validar em MySQL |
-| Backend/API/PHP | em andamento | bloco 1 (clientes/campanhas) VALIDADO em homolog via /admin; bloco 2 (elegíveis upload/JSON + API parceiro + credenciais) implementado (commit cc3a9c7), aguardando deploy/teste; aplicação/tabela verdade pendentes |
+| Backend/API/PHP | em andamento | blocos 1 e 2 VALIDADOS em homolog; bloco 3 (registrar aplicação + retificar + tabela verdade + dashboard + rede credenciada consulta/registro) implementado (commit 740802b), aguardando deploy/teste. Ciclo central do MVP completo no código. |
 | Frontend | em andamento | public/admin/index.html: console de testes (login/health/clientes/campanhas) via Fetch; validar no deploy |
 | Segurança/auditoria | em andamento | doc 10 preenchido (auth, escopo, auditoria, LGPD, criptografia); implementação nos middlewares pendente |
 | QA/testes | pendente |  |
@@ -140,8 +140,9 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | 3 | ~~Aplicar migrations + criar admin~~ | deploy | alta | feito (13 tabelas + VIEW + seeds; admin id=1) |
 | 4 | ~~Validar login~~ | QA/deploy | alta | feito (success:true, super_admin) |
 | 5 | ~~Bloco 1 (cliente/campanha)~~ | usuário/deploy | alta | validado no /admin |
-| 6 | Deploy e testar bloco 2 via /admin (elegíveis upload/JSON, credencial, ingestão parceiro) | usuário/deploy | alta | pendente |
-| 7 | Bloco 3: registrar aplicação (interno+parceiro) RN-003/009/010 + tabela verdade/dashboard | especialista-backend | alta | pendente |
+| 6 | ~~Bloco 2 (elegíveis)~~ | usuário/deploy | alta | validado no /admin |
+| 7 | Deploy e testar bloco 3 (aplicação + tabela verdade + dashboard) | usuário/deploy | alta | pendente |
+| 8 | Extração/CSV p/ cliente B2B + refino de telas reais (sair do console) | especialista-backend/design | média | pendente |
 | 6 | (paralelo) Guia visual/UX (doc 06) ao iniciar frontend | especialista-design | média | pendente |
 
 ---
