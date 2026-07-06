@@ -284,9 +284,11 @@ async function listarCampanhas() {
 }
 
 // Converte texto "cpf,nome,nascimento" (uma linha por pessoa) em array de objetos.
+// Tolera aspas ao redor dos campos (ex.: "123","Nome","2000-01-01").
 function parseElegiveis(texto) {
+  const limpa = s => (s || '').trim().replace(/^"(.*)"$/, '$1').trim();
   return texto.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(linha => {
-    const p = linha.split(/[;,]/).map(x => x.trim());
+    const p = linha.split(/[;,](?=(?:[^"]*"[^"]*")*[^"]*$)/).map(limpa);
     return { cpf: p[0] || '', nome: p[1] || '', data_nascimento: p[2] || null };
   });
 }
