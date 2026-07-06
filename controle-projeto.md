@@ -142,7 +142,7 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | 5 | ~~Bloco 1 (cliente/campanha)~~ | usuário/deploy | alta | validado no /admin |
 | 6 | ~~Bloco 2 (elegíveis)~~ | usuário/deploy | alta | validado no /admin |
 | 7 | ~~Bloco 3 (aplicação + tabela verdade)~~ | usuário/deploy | alta | validado no /admin |
-| 8 | Extração/CSV p/ cliente B2B (tabela verdade exportável) | especialista-backend | média | pendente |
+| 8 | Extração/CSV p/ cliente B2B (implementado, commit df335e6) — deploy e testar | especialista-backend | média | em andamento |
 | 9 | Telas reais (portal B2B / painel operador) saindo do console de testes | especialista-design/frontend | média | pendente |
 | 10 | Preencher docs pendentes (11 integrações, 12 QA, 14 backup, 15 changelog, 16 handoff) | especialista-documentacao | média | pendente |
 | 6 | (paralelo) Guia visual/UX (doc 06) ao iniciar frontend | especialista-design | média | pendente |

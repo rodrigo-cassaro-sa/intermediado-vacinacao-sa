@@ -21,8 +21,23 @@ if (!$arquivos) {
     exit(1);
 }
 
+// Garante a tabela de controle e lê o que já foi aplicado (execução incremental).
+pdo()->exec(
+    "CREATE TABLE IF NOT EXISTS schema_migracao (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        arquivo VARCHAR(160) NOT NULL,
+        aplicado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id), UNIQUE KEY uq_schema_migracao_arquivo (arquivo)
+     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+);
+$aplicadas = array_column(db_todos("SELECT arquivo FROM schema_migracao"), 'arquivo');
+
 foreach ($arquivos as $arquivo) {
     $nome = basename($arquivo);
+    if (in_array($nome, $aplicadas, true)) {
+        echo "JÁ APLICADA: $nome\n";
+        continue;
+    }
     $sql = file_get_contents($arquivo);
     if ($sql === false || trim($sql) === '') {
         echo "Ignorado (vazio): $nome\n";

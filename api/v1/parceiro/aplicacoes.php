@@ -15,15 +15,16 @@ function rota_parceiro_consultar_elegivel(array $params): void
     exigir_escopo_campanha($cred, $id);
 
     $cpf = so_digitos($params['cpf'] ?? '');
+    // RN-012: a clínica só enxerga elegíveis atribuídos a ela.
     $eleg = db_primeiro(
         "SELECT e.id AS elegivel_id, e.status, p.cpf, p.nome
            FROM elegivel e JOIN paciente p ON p.id = e.paciente_id
-          WHERE e.campanha_id = :c AND p.cpf = :cpf LIMIT 1",
-        [':c' => $id, ':cpf' => $cpf]
+          WHERE e.campanha_id = :c AND p.cpf = :cpf AND e.clinica_id = :clinica LIMIT 1",
+        [':c' => $id, ':cpf' => $cpf, ':clinica' => (int) $cred['titular_id']]
     );
     if ($eleg === null) {
-        responder_erro('CPF não elegível nesta campanha.', 404, [
-            ['field' => null, 'code' => 'NAO_ELEGIVEL', 'message' => 'Sem elegibilidade nesta campanha.'],
+        responder_erro('CPF não elegível para esta clínica nesta campanha.', 404, [
+            ['field' => null, 'code' => 'NAO_ELEGIVEL', 'message' => 'Sem elegibilidade atribuída a esta clínica.'],
         ]);
     }
 
@@ -61,6 +62,12 @@ function rota_parceiro_registrar_aplicacao(array $params): void
     }
     // Escopo: a campanha do elegível precisa ser a da credencial.
     exigir_escopo_campanha($cred, (int) $eleg['campanha_id']);
+    // RN-012: a clínica só registra vacinado de elegível atribuído a ela.
+    if ((int) ($eleg['clinica_id'] ?? 0) !== (int) $cred['titular_id']) {
+        responder_erro('Elegível não pertence a esta clínica.', 403, [
+            ['field' => 'elegivel_id', 'code' => 'FORA_DO_ESCOPO', 'message' => 'Este elegível não está atribuído à sua clínica.'],
+        ]);
+    }
 
     $res = registrar_aplicacao([
         'elegivel_id'       => (int) $dados['elegivel_id'],

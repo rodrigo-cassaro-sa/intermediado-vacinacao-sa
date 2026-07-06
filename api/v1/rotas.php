@@ -20,6 +20,11 @@ return [
     'POST /api/v1/interno/clientes' => ['arquivo' => 'interno/clientes.php', 'funcao' => 'rota_criar_cliente'],
     'GET  /api/v1/interno/clientes' => ['arquivo' => 'interno/clientes.php', 'funcao' => 'rota_listar_clientes'],
 
+    // --- Clínicas da rede credenciada + atribuição (RN-012) ---
+    'POST /api/v1/interno/clinicas' => ['arquivo' => 'interno/clinicas.php', 'funcao' => 'rota_criar_clinica'],
+    'GET  /api/v1/interno/clinicas' => ['arquivo' => 'interno/clinicas.php', 'funcao' => 'rota_listar_clinicas'],
+    'POST /api/v1/interno/campanhas/{id}/atribuir-clinica' => ['arquivo' => 'interno/clinicas.php', 'funcao' => 'rota_atribuir_clinica'],
+
     // --- Catálogo de vacinas ---
     'GET  /api/v1/interno/vacinas' => ['arquivo' => 'interno/campanhas.php', 'funcao' => 'rota_listar_vacinas'],
 

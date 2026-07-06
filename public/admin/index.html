@@ -201,6 +201,46 @@
       <table id="tblTabelaVerdade"></table>
     </div>
 
+    <!-- REDE CREDENCIADA -->
+    <div class="card full">
+      <h2>8. Rede credenciada (fluxo da clínica via API) — RN-012</h2>
+      <div class="row">
+        <div><label>Nome da clínica</label><input id="clinicaNome" value="Clínica Parceira A" /></div>
+        <div><label>CNPJ</label><input id="clinicaCnpj" value="11444777000161" /></div>
+        <div style="flex:0"><label>&nbsp;</label><button onclick="criarClinica()">Criar clínica</button></div>
+        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="listarClinicasRede()">Listar</button></div>
+      </div>
+      <div class="row">
+        <div><label>Campanha</label><select id="redeCampanha"><option value="">— liste as campanhas —</option></select></div>
+        <div><label>Clínica</label><select id="redeClinica"><option value="">— liste as clínicas —</option></select></div>
+      </div>
+      <label>Atribuir elegíveis à clínica (CPFs, um por linha)</label>
+      <textarea id="redeCpfs" rows="2" style="width:100%;padding:8px;background:#0b1220;border:1px solid var(--line);border-radius:6px;color:var(--txt)"
+        placeholder="52998224725&#10;11144477735"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="sec" onclick="atribuirClinica()">Atribuir CPFs à clínica</button>
+        <button onclick="emitirTokenRede()">Emitir token da clínica</button>
+      </div>
+      <label>Token da clínica (use nas chamadas abaixo)</label>
+      <input id="redeToken" placeholder="token..." />
+      <hr style="border:0;border-top:1px solid var(--line);margin:14px 0" />
+      <p class="muted">Agora simulando a clínica (via API, com o token acima):</p>
+      <div class="row">
+        <div><label>Consultar CPF</label><input id="redeConsultaCpf" placeholder="52998224725" /></div>
+        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="consultarElegivelRede()">Consultar elegível (API)</button></div>
+      </div>
+      <div class="row">
+        <div><label>Elegível encontrado</label><input id="redeElegivelId" readonly placeholder="id do elegível" /></div>
+        <div><label>Vacina</label><select id="redeVacina"><option value="">consulte primeiro</option></select></div>
+        <div style="flex:0;min-width:80px"><label>Dose</label><input id="redeDose" type="number" value="1" min="1" /></div>
+      </div>
+      <div class="row">
+        <div><label>Lote</label><input id="redeLote" value="RED-2026-01" /></div>
+        <div><label>Data/hora</label><input id="redeData" type="datetime-local" value="2026-07-16T09:00" /></div>
+        <div style="flex:0"><label>&nbsp;</label><button onclick="registrarViaClinica()">Registrar via API clínica</button></div>
+      </div>
+    </div>
+
     <!-- RESPOSTA -->
     <div class="card full">
       <h2>Última resposta da API</h2>
@@ -319,9 +359,74 @@ async function listarCampanhas() {
   // Popula os seletores de campanha das seções 4, 5, 6 e 7.
   const opts = '<option value="">— selecione —</option>' +
     itens.map(c => `<option value="${c.id}">${c.nome} (#${c.id})</option>`).join('');
-  ['elegCampanha', 'credCampanha', 'aplicCampanha', 'tvCampanha'].forEach(idsel => {
+  ['elegCampanha', 'credCampanha', 'aplicCampanha', 'tvCampanha', 'redeCampanha'].forEach(idsel => {
     const el = document.getElementById(idsel); if (el) el.innerHTML = opts;
   });
+}
+
+// Fetch para o grupo parceiro (Bearer). Loga a resposta e devolve o JSON.
+async function apiBearer(path, metodo, corpo, token) {
+  const opts = { method: metodo, headers: { 'Authorization': 'Bearer ' + token }, credentials: 'same-origin' };
+  if (corpo) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(corpo); }
+  const resp = await fetch('/api/v1' + path, opts);
+  let d; try { d = await resp.json(); } catch (e) { d = { erro: 'não-JSON', status: resp.status }; }
+  log(d); return d;
+}
+
+async function criarClinica() {
+  await api('/interno/clinicas', 'POST', {
+    nome: document.getElementById('clinicaNome').value,
+    cnpj: document.getElementById('clinicaCnpj').value,
+  });
+  listarClinicasRede();
+}
+
+async function listarClinicasRede() {
+  const d = await api('/interno/clinicas');
+  if (!d.success) return;
+  document.getElementById('redeClinica').innerHTML = '<option value="">— selecione —</option>' +
+    (d.data.itens || []).map(c => `<option value="${c.id}">${c.nome} (#${c.id})</option>`).join('');
+}
+
+async function atribuirClinica() {
+  const id = document.getElementById('redeCampanha').value;
+  const clinica_id = Number(document.getElementById('redeClinica').value);
+  if (!id || !clinica_id) return log('Selecione campanha e clínica.');
+  const cpfs = document.getElementById('redeCpfs').value.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  await api(`/interno/campanhas/${id}/atribuir-clinica`, 'POST', { clinica_id, cpfs });
+}
+
+async function emitirTokenRede() {
+  const id = document.getElementById('redeCampanha').value;
+  const clinica_id = Number(document.getElementById('redeClinica').value);
+  if (!id || !clinica_id) return log('Selecione campanha e clínica.');
+  const d = await api('/interno/credenciais', 'POST', { tipo: 'rede_credenciada', campanha_id: Number(id), clinica_id });
+  if (d.success) document.getElementById('redeToken').value = d.data.token;
+}
+
+async function consultarElegivelRede() {
+  const id = document.getElementById('redeCampanha').value;
+  const token = document.getElementById('redeToken').value.trim();
+  const cpf = document.getElementById('redeConsultaCpf').value.replace(/\D/g, '');
+  if (!id || !token || !cpf) return log('Informe campanha, token e CPF.');
+  const d = await apiBearer(`/parceiro/campanhas/${id}/elegiveis/${cpf}`, 'GET', null, token);
+  if (d.success) {
+    document.getElementById('redeElegivelId').value = d.data.elegivel_id;
+    document.getElementById('redeVacina').innerHTML =
+      (d.data.vacinas_previstas || []).map(v => `<option value="${v.vacina_id}">${v.nome}</option>`).join('');
+  }
+}
+
+async function registrarViaClinica() {
+  const token = document.getElementById('redeToken').value.trim();
+  const body = {
+    elegivel_id: Number(document.getElementById('redeElegivelId').value),
+    vacina_id: Number(document.getElementById('redeVacina').value),
+    dose: Number(document.getElementById('redeDose').value),
+    lote: document.getElementById('redeLote').value,
+    aplicado_em: document.getElementById('redeData').value.replace('T', ' ') + ':00',
+  };
+  await apiBearer('/parceiro/aplicacoes', 'POST', body, token);
 }
 
 async function carregarAplicacao() {

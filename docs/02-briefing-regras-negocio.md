@@ -73,6 +73,7 @@ dificuldade de auditoria e de devolver dados confiáveis ao cliente.
 | RN-009 | Rede credenciada e app profissional só operam via **credencial/escopo** vinculada à campanha permitida | Clínica A não registra em campanha da Clínica B | Segurança de API | crítica |
 | RN-010 | Registro de aplicação é **imutável após confirmação**; correção gera novo registro/estorno auditado, nunca edição silenciosa | Erro de lote vira retificação auditada | Auditoria sanitária | rascunho |
 | RN-011 | Consentimento LGPD do paciente é pré-requisito para tratar dado de saúde do B2C | Aceite registrado com data/hora e versão do termo | Base legal | crítica |
+| RN-012 | Na rede credenciada, cada **clínica só vê os elegíveis atribuídos a ela** e só registra/vê os vacinados que ela mesma lançou; uma clínica nunca vê dados de outra | Clínica A não consulta nem registra elegível atribuído à Clínica B | Isolamento por clínica (além do escopo por campanha) | crítica |
 
 ---
 
@@ -82,6 +83,7 @@ Regras que não podem ser quebradas:
 
 - **RN-006 / RN-007** — isolamento de dados entre clientes B2B e entre pacientes (LGPD).
 - **RN-009** — API externa (rede e app) sempre com escopo restrito à campanha autorizada.
+- **RN-012** — isolamento por clínica na rede credenciada (elegível atribuído + vacinado próprio).
 - **RN-011** — sem base legal/consentimento não se trata dado de saúde do paciente B2C.
 - Toda validação de elegibilidade, período, vacina e permissão é feita **no backend**.
 - Dado sensível de saúde nunca trafega/armazena sem criptografia e sem log de auditoria de acesso.

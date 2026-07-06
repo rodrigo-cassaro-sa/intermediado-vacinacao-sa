@@ -103,6 +103,11 @@ Códigos HTTP:
 
 > Todo endpoint parceiro só opera dentro de `credencial_api.escopo_campanha_id` (RN-009).
 > Acesso a campanha fora do escopo → **403 FORA_DO_ESCOPO**.
+>
+> **RN-012 (rede credenciada):** a clínica só consulta/registra elegíveis com
+> `elegivel.clinica_id = credencial.titular_id`. CPF não atribuído à clínica →
+> **404 NAO_ELEGIVEL**; registrar vacinado de elegível de outra clínica → **403 FORA_DO_ESCOPO**.
+> A atribuição é feita pelo operador: `POST /api/v1/interno/campanhas/{id}/atribuir-clinica`.
 
 ---
 

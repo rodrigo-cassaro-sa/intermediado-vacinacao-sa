@@ -118,11 +118,11 @@ function registrar_aplicacao(array $ctx): array
     ];
 }
 
-/** Lê o campanha_id de um elegível (para validação de escopo no chamador). */
+/** Lê campanha/clinica de um elegível (para validação de escopo no chamador). */
 function campanha_do_elegivel(int $elegivelId): ?array
 {
     return db_primeiro(
-        "SELECT id, campanha_id, paciente_id FROM elegivel WHERE id = :id LIMIT 1",
+        "SELECT id, campanha_id, clinica_id, paciente_id FROM elegivel WHERE id = :id LIMIT 1",
         [':id' => $elegivelId]
     );
 }
