@@ -1,0 +1,9 @@
+# Não enviar para o contexto de build da imagem
+.git
+.gitignore
+.env
+storage/uploads/*
+storage/logs/*
+*.log
+node_modules
+vendor

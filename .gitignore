@@ -1,0 +1,17 @@
+# Segredos e ambiente
+.env
+
+# Configuração local do Claude Code (não versionar)
+.claude/settings.local.json
+
+# Uploads e logs (conteúdo em runtime; manter a pasta via .gitkeep)
+storage/uploads/*
+storage/logs/*
+!storage/uploads/.gitkeep
+!storage/logs/.gitkeep
+
+# Dependências e temporários
+/vendor/
+*.log
+.DS_Store
+Thumbs.db
