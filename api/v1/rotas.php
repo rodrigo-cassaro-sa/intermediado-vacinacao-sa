@@ -39,11 +39,16 @@ return [
     'GET  /api/v1/interno/credenciais'             => ['arquivo' => 'interno/credenciais.php', 'funcao' => 'rota_listar_credenciais'],
     'POST /api/v1/interno/credenciais/{id}/revogar' => ['arquivo' => 'interno/credenciais.php', 'funcao' => 'rota_revogar_credencial'],
 
-    // --- Grupo parceiro (Bearer + escopo) ---
-    'POST /api/v1/parceiro/campanhas/{id}/elegiveis' => ['arquivo' => 'parceiro/elegiveis.php', 'funcao' => 'rota_parceiro_ingerir_elegiveis'],
+    // --- Aplicação (bloco 3) ---
+    'POST /api/v1/interno/aplicacoes'              => ['arquivo' => 'interno/aplicacoes.php', 'funcao' => 'rota_registrar_aplicacao'],
+    'POST /api/v1/interno/aplicacoes/{id}/retificar' => ['arquivo' => 'interno/aplicacoes.php', 'funcao' => 'rota_retificar_aplicacao'],
 
-    // --- Próximos (bloco 3): aplicação, tabela verdade ---
-    // 'POST /api/v1/interno/aplicacoes' => [...],
-    // 'GET  /api/v1/parceiro/campanhas/{id}/elegiveis/{cpf}' => [...],
-    // 'POST /api/v1/parceiro/aplicacoes' => [...],
+    // --- Tabela verdade e dashboard (bloco 3) ---
+    'GET  /api/v1/interno/campanhas/{id}/tabela-verdade' => ['arquivo' => 'interno/tabela_verdade.php', 'funcao' => 'rota_tabela_verdade'],
+    'GET  /api/v1/interno/campanhas/{id}/dashboard'      => ['arquivo' => 'interno/tabela_verdade.php', 'funcao' => 'rota_dashboard'],
+
+    // --- Grupo parceiro (Bearer + escopo) ---
+    'POST /api/v1/parceiro/campanhas/{id}/elegiveis'        => ['arquivo' => 'parceiro/elegiveis.php', 'funcao' => 'rota_parceiro_ingerir_elegiveis'],
+    'GET  /api/v1/parceiro/campanhas/{id}/elegiveis/{cpf}'  => ['arquivo' => 'parceiro/aplicacoes.php', 'funcao' => 'rota_parceiro_consultar_elegivel'],
+    'POST /api/v1/parceiro/aplicacoes'                      => ['arquivo' => 'parceiro/aplicacoes.php', 'funcao' => 'rota_parceiro_registrar_aplicacao'],
 ];

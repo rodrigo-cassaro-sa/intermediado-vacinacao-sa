@@ -162,6 +162,43 @@
       <div style="margin-top:12px"><button onclick="testarIngestaoParceiro()">Testar ingestão via API (Bearer)</button></div>
     </div>
 
+    <!-- APLICAÇÃO -->
+    <div class="card full">
+      <h2>6. Registrar aplicação (vacinado)</h2>
+      <div class="row">
+        <div>
+          <label>Campanha</label>
+          <select id="aplicCampanha"><option value="">— liste as campanhas —</option></select>
+        </div>
+        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="carregarAplicacao()">Carregar elegíveis/vacinas</button></div>
+      </div>
+      <div class="row">
+        <div><label>Elegível (paciente)</label><select id="aplicElegivel"><option value="">—</option></select></div>
+        <div><label>Vacina</label><select id="aplicVacina"><option value="">—</option></select></div>
+        <div style="flex:0;min-width:90px"><label>Dose</label><input id="aplicDose" type="number" value="1" min="1" /></div>
+      </div>
+      <div class="row">
+        <div><label>Lote</label><input id="aplicLote" value="ABC-2026-77" /></div>
+        <div><label>Data/hora da aplicação</label><input id="aplicData" type="datetime-local" value="2026-07-15T10:00" /></div>
+      </div>
+      <div style="margin-top:12px"><button onclick="registrarAplicacao()">Registrar aplicação</button></div>
+    </div>
+
+    <!-- TABELA VERDADE -->
+    <div class="card full">
+      <h2>7. Tabela verdade / Dashboard</h2>
+      <div class="row">
+        <div>
+          <label>Campanha</label>
+          <select id="tvCampanha"><option value="">— liste as campanhas —</option></select>
+        </div>
+        <div style="flex:0"><label>&nbsp;</label><button onclick="verTabelaVerdade()">Tabela verdade</button></div>
+        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="verDashboard()">Dashboard</button></div>
+      </div>
+      <p id="tvResumo" class="muted"></p>
+      <table id="tblTabelaVerdade"></table>
+    </div>
+
     <!-- RESPOSTA -->
     <div class="card full">
       <h2>Última resposta da API</h2>
@@ -277,10 +314,63 @@ async function listarCampanhas() {
   const itens = d.data.itens || [];
   tbl.innerHTML = '<tr><th>ID</th><th>Cliente</th><th>Nome</th><th>Modalidade</th><th>Período</th><th>Status</th></tr>' +
     itens.map(c => `<tr><td>${c.id}</td><td>${c.cliente}</td><td>${c.nome}</td><td>${c.modalidade}</td><td>${c.periodo_inicio} → ${c.periodo_fim}</td><td>${c.status}</td></tr>`).join('');
-  // Popula os seletores de campanha das seções 4 e 5.
+  // Popula os seletores de campanha das seções 4, 5, 6 e 7.
   const opts = '<option value="">— selecione —</option>' +
     itens.map(c => `<option value="${c.id}">${c.nome} (#${c.id})</option>`).join('');
-  ['elegCampanha', 'credCampanha'].forEach(idsel => { document.getElementById(idsel).innerHTML = opts; });
+  ['elegCampanha', 'credCampanha', 'aplicCampanha', 'tvCampanha'].forEach(idsel => {
+    const el = document.getElementById(idsel); if (el) el.innerHTML = opts;
+  });
+}
+
+async function carregarAplicacao() {
+  const id = document.getElementById('aplicCampanha').value;
+  if (!id) return log('Selecione uma campanha.');
+  // Elegíveis da campanha.
+  const de = await api(`/interno/campanhas/${id}/elegiveis`);
+  const selE = document.getElementById('aplicElegivel');
+  selE.innerHTML = (de.data?.itens || [])
+    .map(e => `<option value="${e.id}">${e.nome} (${e.cpf}) — ${e.status}</option>`).join('') || '<option value="">sem elegíveis</option>';
+  // Vacinas da campanha (via detalhe).
+  const dc = await api(`/interno/campanhas/${id}`);
+  const selV = document.getElementById('aplicVacina');
+  selV.innerHTML = (dc.data?.vacinas || [])
+    .map(v => `<option value="${v.vacina_id}">${v.nome}</option>`).join('') || '<option value="">sem vacinas</option>';
+}
+
+async function registrarAplicacao() {
+  const body = {
+    elegivel_id: Number(document.getElementById('aplicElegivel').value),
+    vacina_id: Number(document.getElementById('aplicVacina').value),
+    dose: Number(document.getElementById('aplicDose').value),
+    lote: document.getElementById('aplicLote').value,
+    aplicado_em: document.getElementById('aplicData').value.replace('T', ' ') + ':00',
+  };
+  await api('/interno/aplicacoes', 'POST', body);
+}
+
+async function verTabelaVerdade() {
+  const id = document.getElementById('tvCampanha').value;
+  if (!id) return log('Selecione uma campanha.');
+  const d = await api(`/interno/campanhas/${id}/tabela-verdade`);
+  if (!d.success) return;
+  const r = d.data.resumo || {};
+  document.getElementById('tvResumo').textContent =
+    `Pendentes: ${r.pendente||0} · Aplicados: ${r.aplicado||0} · Recusados: ${r.recusado||0} · Total: ${d.meta?.total||0}`;
+  document.getElementById('tblTabelaVerdade').innerHTML =
+    '<tr><th>CPF</th><th>Nome</th><th>Situação</th><th>Aplicações</th><th>Última</th></tr>' +
+    (d.data.itens || []).map(i =>
+      `<tr><td>${i.cpf}</td><td>${i.nome}</td><td>${i.situacao_elegivel}</td><td>${i.total_aplicacoes}</td><td>${i.ultima_aplicacao_em||'—'}</td></tr>`).join('');
+}
+
+async function verDashboard() {
+  const id = document.getElementById('tvCampanha').value;
+  if (!id) return log('Selecione uma campanha.');
+  const d = await api(`/interno/campanhas/${id}/dashboard`);
+  if (d.success) {
+    const x = d.data;
+    document.getElementById('tvResumo').textContent =
+      `Cobertura ${x.cobertura_percentual}% — Elegíveis: ${x.total_elegiveis} · Aplicados: ${x.aplicados} · Pendentes: ${x.pendentes} · Recusados: ${x.recusados}`;
+  }
 }
 
 // Converte texto "cpf,nome,nascimento" (uma linha por pessoa) em array de objetos.
