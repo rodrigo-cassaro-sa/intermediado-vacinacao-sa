@@ -16,8 +16,18 @@ return [
     'POST /api/v1/interno/auth/logout' => ['arquivo' => 'interno/auth.php', 'funcao' => 'rota_logout'],
     'GET  /api/v1/interno/auth/eu'     => ['arquivo' => 'interno/auth.php', 'funcao' => 'rota_eu'],
 
-    // --- Próximos endpoints do doc 09 (a implementar) ---
-    // 'POST /api/v1/interno/campanhas' => ['arquivo' => 'interno/campanhas.php', 'funcao' => 'rota_criar_campanha'],
+    // --- Clientes B2B (tenants) ---
+    'POST /api/v1/interno/clientes' => ['arquivo' => 'interno/clientes.php', 'funcao' => 'rota_criar_cliente'],
+    'GET  /api/v1/interno/clientes' => ['arquivo' => 'interno/clientes.php', 'funcao' => 'rota_listar_clientes'],
+
+    // --- Campanhas (RN-001) ---
+    'POST /api/v1/interno/campanhas'                => ['arquivo' => 'interno/campanhas.php', 'funcao' => 'rota_criar_campanha'],
+    'GET  /api/v1/interno/campanhas'                => ['arquivo' => 'interno/campanhas.php', 'funcao' => 'rota_listar_campanhas'],
+    'GET  /api/v1/interno/campanhas/{id}'           => ['arquivo' => 'interno/campanhas.php', 'funcao' => 'rota_obter_campanha'],
+    'PUT  /api/v1/interno/campanhas/{id}'           => ['arquivo' => 'interno/campanhas.php', 'funcao' => 'rota_editar_campanha'],
+    'POST /api/v1/interno/campanhas/{id}/vacinas'   => ['arquivo' => 'interno/campanhas.php', 'funcao' => 'rota_definir_vacinas_campanha'],
+
+    // --- Próximos (bloco 2+): elegíveis, aplicação, tabela verdade ---
     // 'POST /api/v1/interno/campanhas/{id}/elegiveis/importar' => [...],
     // 'POST /api/v1/interno/aplicacoes' => [...],
     // 'POST /api/v1/parceiro/campanhas/{id}/elegiveis' => [...],

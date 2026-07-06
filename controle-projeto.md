@@ -56,7 +56,7 @@ Domínio com SSL. Sem framework e sem OO por padrão.
 # 3. Etapa atual
 
 ```txt
-Etapa atual: PREPARO DE DEPLOY — Docker (Dockerfile+Apache docroot public/), scripts/migrar.php, docs/13 (EasyPanel) e Git iniciado (branch main, commit inicial ac5a892). Próximo: subir no EasyPanel (app+mysql+phpmyadmin), aplicar migrations e rodar checklist pós-deploy. Nada executado/validado ainda.
+Etapa atual: HOMOLOGAÇÃO VALIDADA de ponta a ponta — deploy + banco + migrations (13 tabelas + VIEW) + seeds + login (super_admin id=1) funcionando em https://imunizacao-imz-app.imx7lc.easypanel.host. Próximo: implementar endpoints de domínio do doc 09 (campanha → elegíveis → aplicação → tabela verdade).
 Protocolo em uso: protocolo-criacao-projeto-zero.md
 Especialista principal: especialista-produto-planejamento.md
 Especialistas de apoio: especialista-negocio-saas.md, especialista-seguranca-auditoria.md, especialista-banco-dados.md, especialista-engajamento-integracoes.md, especialista-documentacao-memoria.md
@@ -75,13 +75,13 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | Mapa de telas | feito | doc 07: telas admin/portal/app + fluxos A–E |
 | Design/UX/UI | pendente |  |
 | Banco de dados | em andamento | doc 08 modelado; SQL/migrations 000..008 + seeds escritos em database/; falta executar/validar em MySQL |
-| Backend/API/PHP | em andamento | doc 09 + scaffold (bootstrap, config/PDO, helpers, middlewares, front controller, rotas, health, login); endpoints de domínio pendentes; não executado |
+| Backend/API/PHP | em andamento | scaffold VALIDADO em homolog (health, login OK); endpoints de domínio (campanha/elegíveis/aplicação/tabela verdade) pendentes |
 | Frontend | pendente |  |
 | Segurança/auditoria | em andamento | doc 10 preenchido (auth, escopo, auditoria, LGPD, criptografia); implementação nos middlewares pendente |
 | QA/testes | pendente |  |
 | Documentação | em andamento | fase 1 documentada |
 | Git/GitHub | feito | repo público no GitHub (intermediado-vacinacao-sa), branch main, push do commit inicial 7071c6c |
-| Docker/EasyPanel | em andamento | Dockerfile + vhost + php.ini + scripts/migrar.php + docs/13; falta configurar serviços no painel |
+| Docker/EasyPanel | validado (homolog) | 3 serviços no ar (imz-app, imz-mysql, phpmyadmin); health app:ok/banco:ok; falta aplicar migrations |
 | Homologação | pendente |  |
 | Produção | pendente |  |
 | Monitoramento | pendente |  |
@@ -136,9 +136,9 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | Ordem | Próximo passo | Responsável | Prioridade | Status |
 |---:|---|---|---|---|
 | 1 | ~~Criar repo GitHub + push~~ | usuário/deploy | alta | feito (commit 7071c6c) |
-| 2 | EasyPanel: criar imz-mysql, imz-app (Dockerfile), imz-phpmyadmin + variáveis/volumes/SSL | usuário/deploy | alta | pendente |
-| 3 | Deploy do imz-app e aplicar migrations (scripts/migrar.php --seeds) | deploy | alta | pendente |
-| 4 | Checklist pós-deploy (doc 13 §10): health, login, banco, logs, phpMyAdmin | QA/deploy | alta | pendente |
+| 2 | ~~EasyPanel: criar serviços + deploy~~ | usuário/deploy | alta | feito (health app:ok/banco:ok) |
+| 3 | ~~Aplicar migrations + criar admin~~ | deploy | alta | feito (13 tabelas + VIEW + seeds; admin id=1) |
+| 4 | ~~Validar login~~ | QA/deploy | alta | feito (success:true, super_admin) |
 | 5 | Implementar endpoints de domínio do doc 09 (campanha, elegíveis, aplicação, tabela verdade) | especialista-backend | alta | pendente |
 | 6 | (paralelo) Guia visual/UX (doc 06) ao iniciar frontend | especialista-design | média | pendente |
 
