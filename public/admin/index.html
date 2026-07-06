@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Console de Testes — Imunização</title>
+  <style>
+    :root {
+      --bg: #0f172a; --card: #1e293b; --line: #334155; --txt: #e2e8f0;
+      --muted: #94a3b8; --pri: #2563eb; --ok: #16a34a; --err: #dc2626; --warn:#d97706;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, Segoe UI, Roboto, sans-serif;
+      background: var(--bg); color: var(--txt); font-size: 14px; }
+    header { display:flex; align-items:center; justify-content:space-between;
+      padding: 14px 20px; background: #0b1220; border-bottom: 1px solid var(--line); }
+    header h1 { font-size: 16px; margin: 0; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 20px; display: grid;
+      grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+      padding: 16px; }
+    .card h2 { font-size: 14px; margin: 0 0 12px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .04em; }
+    .full { grid-column: 1 / -1; }
+    label { display:block; font-size: 12px; color: var(--muted); margin: 8px 0 4px; }
+    input, select, button { font: inherit; }
+    input, select { width: 100%; padding: 8px 10px; background: #0b1220;
+      border: 1px solid var(--line); border-radius: 6px; color: var(--txt); }
+    button { cursor: pointer; padding: 8px 14px; border: 0; border-radius: 6px;
+      background: var(--pri); color: #fff; font-weight: 600; }
+    button.sec { background: #334155; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .row { display:flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+    .row > div { flex: 1; min-width: 120px; }
+    .pill { display:inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; }
+    .pill.ok { background: rgba(22,163,74,.2); color: #4ade80; }
+    .pill.err { background: rgba(220,38,38,.2); color: #f87171; }
+    .pill.off { background: #334155; color: var(--muted); }
+    table { width:100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+    th, td { text-align:left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); font-weight: 600; }
+    pre { background:#0b1220; border:1px solid var(--line); border-radius:8px;
+      padding: 12px; overflow:auto; max-height: 320px; font-size: 12px; margin:0; }
+    .muted { color: var(--muted); }
+    .vacinas { display:flex; flex-direction:column; gap:4px; max-height:120px; overflow:auto;
+      border:1px solid var(--line); border-radius:6px; padding:8px; }
+    .vacinas label { display:flex; align-items:center; gap:8px; margin:0; color:var(--txt); }
+    .vacinas input { width:auto; }
+    .hide { display:none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🩹 Console de Testes — Imunização (homologação)</h1>
+    <div>
+      <span class="muted">Banco:</span> <span id="healthPill" class="pill off">?</span>
+      <button class="sec" onclick="checarHealth()">Health</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <!-- LOGIN -->
+    <div class="card" id="cardLogin">
+      <h2>1. Login</h2>
+      <div id="logadoInfo" class="hide">
+        <p>Logado como <b id="usuarioNome"></b> (<span id="usuarioPerfil"></span>)</p>
+        <button class="sec" onclick="logout()">Sair</button>
+      </div>
+      <div id="loginForm">
+        <label>E-mail</label>
+        <input id="loginEmail" value="rodrigo@saimunizacoes.com.br" />
+        <label>Senha</label>
+        <input id="loginSenha" type="password" placeholder="sua senha" />
+        <div style="margin-top:12px"><button onclick="login()">Entrar</button></div>
+      </div>
+    </div>
+
+    <!-- CLIENTES -->
+    <div class="card">
+      <h2>2. Cliente B2B</h2>
+      <div class="row">
+        <div><label>Razão social</label><input id="cliRazao" value="Empresa Teste LTDA" /></div>
+        <div><label>CNPJ</label><input id="cliCnpj" value="11222333000181" /></div>
+      </div>
+      <div style="margin-top:12px" class="row">
+        <button onclick="criarCliente()">Criar cliente</button>
+        <button class="sec" onclick="listarClientes()">Listar</button>
+      </div>
+      <table id="tblClientes"></table>
+    </div>
+
+    <!-- CAMPANHAS -->
+    <div class="card full">
+      <h2>3. Campanha</h2>
+      <div class="row">
+        <div>
+          <label>Cliente B2B</label>
+          <select id="campCliente"><option value="">— carregue os clientes —</option></select>
+        </div>
+        <div>
+          <label>Modalidade</label>
+          <select id="campModalidade">
+            <option value="in_company">in_company</option>
+            <option value="rede_credenciada">rede_credenciada</option>
+          </select>
+        </div>
+        <div><label>Nome</label><input id="campNome" value="Gripe 2026" /></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div><label>Início</label><input id="campInicio" type="date" value="2026-07-10" /></div>
+        <div><label>Fim</label><input id="campFim" type="date" value="2026-08-10" /></div>
+        <div>
+          <label>Vacinas <button class="sec" style="padding:2px 8px" onclick="carregarVacinas()">↻</button></label>
+          <div class="vacinas" id="campVacinas"><span class="muted">clique em ↻</span></div>
+        </div>
+      </div>
+      <div style="margin-top:12px" class="row">
+        <button onclick="criarCampanha()">Criar campanha</button>
+        <button class="sec" onclick="listarCampanhas()">Listar campanhas</button>
+      </div>
+      <table id="tblCampanhas"></table>
+    </div>
+
+    <!-- RESPOSTA -->
+    <div class="card full">
+      <h2>Última resposta da API</h2>
+      <pre id="saida">—</pre>
+    </div>
+  </div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Console de testes — vanilla JS + Fetch. Mesma origem: cookies de sessão são
+// enviados automaticamente. Mutações enviam o header X-CSRF-Token.
+// ---------------------------------------------------------------------------
+let CSRF = null;
+
+function log(obj) {
+  document.getElementById('saida').textContent =
+    typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
+}
+
+async function api(path, metodo = 'GET', corpo = null) {
+  const opts = { method: metodo, headers: {}, credentials: 'same-origin' };
+  if (corpo) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(corpo);
+  }
+  if (metodo !== 'GET' && CSRF) {
+    opts.headers['X-CSRF-Token'] = CSRF;
+  }
+  const resp = await fetch('/api/v1' + path, opts);
+  let dados;
+  try { dados = await resp.json(); } catch (e) { dados = { erro: 'resposta não-JSON', status: resp.status }; }
+  log(dados);
+  return dados;
+}
+
+async function checarHealth() {
+  const d = await api('/health');
+  const pill = document.getElementById('healthPill');
+  const ok = d && d.data && d.data.banco === 'ok';
+  pill.className = 'pill ' + (ok ? 'ok' : 'err');
+  pill.textContent = d?.data?.banco || 'erro';
+}
+
+async function login() {
+  const d = await api('/interno/auth/login', 'POST', {
+    email: document.getElementById('loginEmail').value,
+    senha: document.getElementById('loginSenha').value,
+  });
+  if (d.success) {
+    CSRF = d.data.csrf_token;
+    document.getElementById('usuarioNome').textContent = d.data.usuario.nome;
+    document.getElementById('usuarioPerfil').textContent = d.data.usuario.perfil;
+    document.getElementById('loginForm').classList.add('hide');
+    document.getElementById('logadoInfo').classList.remove('hide');
+    listarClientes();
+  }
+}
+
+async function logout() {
+  await api('/interno/auth/logout', 'POST');
+  CSRF = null;
+  document.getElementById('loginForm').classList.remove('hide');
+  document.getElementById('logadoInfo').classList.add('hide');
+}
+
+async function criarCliente() {
+  await api('/interno/clientes', 'POST', {
+    razao_social: document.getElementById('cliRazao').value,
+    cnpj: document.getElementById('cliCnpj').value,
+  });
+  listarClientes();
+}
+
+async function listarClientes() {
+  const d = await api('/interno/clientes');
+  const tbl = document.getElementById('tblClientes');
+  const sel = document.getElementById('campCliente');
+  if (!d.success) return;
+  const itens = d.data.itens || [];
+  tbl.innerHTML = '<tr><th>ID</th><th>Razão social</th><th>CNPJ</th><th>Status</th></tr>' +
+    itens.map(c => `<tr><td>${c.id}</td><td>${c.razao_social}</td><td>${c.cnpj}</td><td>${c.status}</td></tr>`).join('');
+  sel.innerHTML = '<option value="">— selecione —</option>' +
+    itens.map(c => `<option value="${c.id}">${c.razao_social} (#${c.id})</option>`).join('');
+}
+
+async function carregarVacinas() {
+  const d = await api('/interno/vacinas');
+  const box = document.getElementById('campVacinas');
+  if (!d.success) return;
+  box.innerHTML = (d.data.itens || []).map(v =>
+    `<label><input type="checkbox" value="${v.id}" data-doses="${v.doses_padrao}"> ${v.nome} (${v.doses_padrao} dose(s))</label>`
+  ).join('') || '<span class="muted">nenhuma vacina</span>';
+}
+
+async function criarCampanha() {
+  const vacinas = [...document.querySelectorAll('#campVacinas input:checked')]
+    .map(el => ({ vacina_id: Number(el.value), doses_previstas: Number(el.dataset.doses) }));
+  await api('/interno/campanhas', 'POST', {
+    cliente_b2b_id: Number(document.getElementById('campCliente').value),
+    nome: document.getElementById('campNome').value,
+    modalidade: document.getElementById('campModalidade').value,
+    periodo_inicio: document.getElementById('campInicio').value,
+    periodo_fim: document.getElementById('campFim').value,
+    vacinas,
+  });
+  listarCampanhas();
+}
+
+async function listarCampanhas() {
+  const d = await api('/interno/campanhas');
+  const tbl = document.getElementById('tblCampanhas');
+  if (!d.success) return;
+  const itens = d.data.itens || [];
+  tbl.innerHTML = '<tr><th>ID</th><th>Cliente</th><th>Nome</th><th>Modalidade</th><th>Período</th><th>Status</th></tr>' +
+    itens.map(c => `<tr><td>${c.id}</td><td>${c.cliente}</td><td>${c.nome}</td><td>${c.modalidade}</td><td>${c.periodo_inicio} → ${c.periodo_fim}</td><td>${c.status}</td></tr>`).join('');
+}
+
+// Ao abrir, checa a saúde do serviço.
+checarHealth();
+</script>
+</body>
+</html>

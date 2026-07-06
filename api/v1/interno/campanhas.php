@@ -273,6 +273,17 @@ function rota_definir_vacinas_campanha(array $params): void
     responder_sucesso(['campanha_id' => $id, 'vacinas_vinculadas' => count($vacinas)], 'Vacinas atualizadas.');
 }
 
+/** GET /api/v1/interno/vacinas — catálogo de vacinas ativas (para montar campanha). */
+function rota_listar_vacinas(array $params): void
+{
+    exigir_login();
+    $itens = db_todos(
+        "SELECT id, nome, fabricante, doses_padrao
+           FROM vacina WHERE status = 'ativa' ORDER BY nome"
+    );
+    responder_sucesso(['itens' => $itens], 'OK.');
+}
+
 // ------------------------------- Helpers -----------------------------------
 
 /** Valida modalidade, datas e status (quando presentes) na criação. */
