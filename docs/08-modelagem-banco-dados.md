@@ -63,7 +63,8 @@ Documentar entidades, tabelas, campos, relacionamentos, índices, migrations e c
 | Campo | Tipo | Obrigatório | Índice | Observação |
 |---|---|---|---|---|
 | id | BIGINT | sim | PK |  |
-| cpf | VARCHAR(11) | sim | UNIQUE | chave de deduplicação (RN-008) |
+| cpf | VARCHAR(11) | cond. | UNIQUE | chave de deduplicação (RN-008); NULL se identificado por voucher. Migration 017 |
+| identificador | VARCHAR(40) | cond. | UNIQUE | voucher/identificador quando não há CPF (RN-028). Migration 017 |
 | nome | VARCHAR(120) | sim |  | dado pessoal |
 | data_nascimento | DATE | não |  |  |
 | sexo | CHAR(1) | não |  |  |

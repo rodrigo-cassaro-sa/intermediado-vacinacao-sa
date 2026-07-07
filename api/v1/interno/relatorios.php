@@ -15,16 +15,17 @@ function rota_carteira_paciente(array $params): void
     $usuario = exigir_login();
     exigir_perfil($usuario, ['super_admin', 'operador_interno', 'cliente_b2b']);
 
-    $cpf = so_digitos($params['cpf'] ?? '');
-    if (!validar_cpf($cpf)) {
-        responder_erro('CPF inválido.', 400, [
-            ['field' => 'cpf', 'code' => 'CPF_INVALIDO', 'message' => 'Informe um CPF válido.'],
-        ]);
+    // Identidade por CPF (validado) OU por identificador/voucher (RN-028).
+    $raw = trim((string) ($params['cpf'] ?? ''));
+    $cpf = so_digitos($raw);
+    if (validar_cpf($cpf)) {
+        $paciente = db_primeiro("SELECT id, cpf, identificador, nome FROM paciente WHERE cpf = :v LIMIT 1", [':v' => $cpf]);
+    } else {
+        $paciente = db_primeiro("SELECT id, cpf, identificador, nome FROM paciente WHERE identificador = :v LIMIT 1", [':v' => $raw]);
     }
-    $paciente = db_primeiro("SELECT id, cpf, nome, data_nascimento FROM paciente WHERE cpf = :c LIMIT 1", [':c' => $cpf]);
     if ($paciente === null) {
         responder_erro('Paciente não encontrado.', 404, [
-            ['field' => null, 'code' => 'PACIENTE_NAO_ENCONTRADO', 'message' => 'Sem cadastro para este CPF.'],
+            ['field' => null, 'code' => 'PACIENTE_NAO_ENCONTRADO', 'message' => 'Sem cadastro para este CPF/identificador.'],
         ]);
     }
 
@@ -59,11 +60,12 @@ function rota_carteira_paciente(array $params): void
         'origem'        => 'admin',
         'entidade_tipo' => 'paciente',
         'entidade_id'   => (int) $paciente['id'],
-        'metadata'      => ['cpf' => mascarar_cpf($cpf), 'doses' => count($doses)],
+        'metadata'      => ['doses' => count($doses)],
     ]);
 
+    $identidade = $paciente['cpf'] ? mascarar_cpf($paciente['cpf']) : ('voucher:' . $paciente['identificador']);
     responder_sucesso([
-        'paciente' => ['cpf' => mascarar_cpf($cpf), 'nome' => $paciente['nome']],
+        'paciente' => ['identidade' => $identidade, 'nome' => $paciente['nome']],
         'total_doses' => count($doses),
         'doses'   => $doses,
     ], 'OK.');

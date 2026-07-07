@@ -53,26 +53,33 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
         $recebidos++;
         $linha = $offsetLinha + $i + 1;
         $cpf   = so_digitos($item['cpf'] ?? '');
+        $identificador = trim((string) ($item['identificador'] ?? ''));
         $nome  = trim((string) ($item['nome'] ?? ''));
         $nasc  = trim((string) ($item['data_nascimento'] ?? ''));
         $tipo  = strtolower(trim((string) ($item['tipo_vinculo'] ?? '')));
         $cpfTitular = so_digitos($item['cpf_titular'] ?? '');
         $codLotacao = trim((string) ($item['codigo_lotacao'] ?? ''));
         $codRh      = trim((string) ($item['codigo_rh'] ?? ''));
+        $temCpf = $cpf !== '';
+        $idErro = $temCpf ? $cpf : $identificador;  // valor mostrado no relatório de erros
 
-        // RN: CPF válido.
-        if (!validar_cpf($cpf)) { $rejeita($linha, $cpf, $nome, 'CPF_INVALIDO'); continue; }
+        // RN-028: identidade por CPF (validado) OU por voucher/identificador (sem CPF).
+        if ($temCpf) {
+            if (!validar_cpf($cpf)) { $rejeita($linha, $idErro, $nome, 'CPF_INVALIDO'); continue; }
+        } elseif ($identificador === '') {
+            $rejeita($linha, $idErro, $nome, 'SEM_IDENTIDADE'); continue;
+        }
         // Nome obrigatório.
-        if ($nome === '') { $rejeita($linha, $cpf, $nome, 'NOME_OBRIGATORIO'); continue; }
+        if ($nome === '') { $rejeita($linha, $idErro, $nome, 'NOME_OBRIGATORIO'); continue; }
         // RN-016: data de nascimento OPCIONAL, mas se vier tem de ser válida.
-        if ($nasc !== '' && !validar_data($nasc)) { $rejeita($linha, $cpf, $nome, 'DATA_NASCIMENTO_INVALIDA'); continue; }
+        if ($nasc !== '' && !validar_data($nasc)) { $rejeita($linha, $idErro, $nome, 'DATA_NASCIMENTO_INVALIDA'); continue; }
         $nasc = $nasc === '' ? null : $nasc;
         // RN-016: tipo de vínculo obrigatório (colaborador|dependente|terceiro).
-        if (!in_array($tipo, $tipos, true)) { $rejeita($linha, $cpf, $nome, 'TIPO_VINCULO_INVALIDO'); continue; }
+        if (!in_array($tipo, $tipos, true)) { $rejeita($linha, $idErro, $nome, 'TIPO_VINCULO_INVALIDO'); continue; }
         // RN-017: dependente exige CPF do titular válido e que seja COLABORADOR
         // elegível na mesma campanha (no arquivo ou já cadastrado). Item 6.
         if ($tipo === 'dependente') {
-            if (!validar_cpf($cpfTitular)) { $rejeita($linha, $cpf, $nome, 'CPF_TITULAR_INVALIDO'); continue; }
+            if (!validar_cpf($cpfTitular)) { $rejeita($linha, $idErro, $nome, 'CPF_TITULAR_INVALIDO'); continue; }
             $titularOk = isset($colaboradoresArquivo[$cpfTitular]);
             if (!$titularOk) {
                 $ex = db_primeiro(
@@ -82,20 +89,24 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
                 );
                 $titularOk = $ex !== null;
             }
-            if (!$titularOk) { $rejeita($linha, $cpf, $nome, 'CPF_TITULAR_NAO_ELEGIVEL'); continue; }
+            if (!$titularOk) { $rejeita($linha, $idErro, $nome, 'CPF_TITULAR_NAO_ELEGIVEL'); continue; }
         } else {
             $cpfTitular = null;
         }
         // RN-018: códigos do cliente obrigatórios.
-        if ($codLotacao === '') { $rejeita($linha, $cpf, $nome, 'CODIGO_LOTACAO_OBRIGATORIO'); continue; }
-        if ($codRh === '')      { $rejeita($linha, $cpf, $nome, 'CODIGO_RH_OBRIGATORIO'); continue; }
+        if ($codLotacao === '') { $rejeita($linha, $idErro, $nome, 'CODIGO_LOTACAO_OBRIGATORIO'); continue; }
+        if ($codRh === '')      { $rejeita($linha, $idErro, $nome, 'CODIGO_RH_OBRIGATORIO'); continue; }
 
-        // Paciente por CPF (identidade global — RN-008).
-        $paciente = db_primeiro("SELECT id FROM paciente WHERE cpf = :cpf LIMIT 1", [':cpf' => $cpf]);
+        // Identidade global: por CPF (RN-008) ou por identificador/voucher (RN-028).
+        if ($temCpf) {
+            $paciente = db_primeiro("SELECT id FROM paciente WHERE cpf = :v LIMIT 1", [':v' => $cpf]);
+        } else {
+            $paciente = db_primeiro("SELECT id FROM paciente WHERE identificador = :v LIMIT 1", [':v' => $identificador]);
+        }
         if ($paciente === null) {
             db_executar(
-                "INSERT INTO paciente (cpf, nome, data_nascimento) VALUES (:cpf, :nome, :nasc)",
-                [':cpf' => $cpf, ':nome' => $nome, ':nasc' => $nasc]
+                "INSERT INTO paciente (cpf, identificador, nome, data_nascimento) VALUES (:cpf, :idf, :nome, :nasc)",
+                [':cpf' => $temCpf ? $cpf : null, ':idf' => $temCpf ? null : $identificador, ':nome' => $nome, ':nasc' => $nasc]
             );
             $pacienteId = (int) db_ultimo_id();
         } else {
@@ -129,7 +140,8 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
             $criados++;
             // RN-021: evento de origem no histórico do elegível.
             historico_elegivel($novoId, 'criado', $ator, null, [
-                'cpf' => mascarar_cpf($cpf), 'nome' => $nome, 'tipo_vinculo' => $tipo,
+                'identidade' => $temCpf ? mascarar_cpf($cpf) : ('voucher:' . $identificador),
+                'nome' => $nome, 'tipo_vinculo' => $tipo,
                 'origem' => $origem, 'codigo_lotacao' => $codLotacao, 'codigo_rh' => $codRh,
             ]);
         } else {
@@ -173,7 +185,7 @@ function parsear_csv_elegiveis(string $conteudo): array
     $temCabecalho = in_array('cpf', $cabecalho, true);
 
     $idx = ['cpf' => 0, 'nome' => 1, 'data_nascimento' => 2, 'tipo_vinculo' => 3,
-            'cpf_titular' => 4, 'codigo_lotacao' => 5, 'codigo_rh' => 6];
+            'cpf_titular' => 4, 'codigo_lotacao' => 5, 'codigo_rh' => 6, 'identificador' => 7];
     if ($temCabecalho) {
         foreach ($idx as $nome => $_) {
             $idx[$nome] = array_search($nome, $cabecalho, true);
@@ -196,6 +208,7 @@ function parsear_csv_elegiveis(string $conteudo): array
             'cpf_titular'     => $val($col, $idx['cpf_titular']),
             'codigo_lotacao'  => $val($col, $idx['codigo_lotacao']),
             'codigo_rh'       => $val($col, $idx['codigo_rh']),
+            'identificador'   => $val($col, $idx['identificador']),
         ];
     }
     return $lista;
@@ -250,6 +263,7 @@ function normalizar_elegiveis_json($itens): array
             'cpf_titular'     => $it['cpf_titular'] ?? null,
             'codigo_lotacao'  => $it['codigo_lotacao'] ?? null,
             'codigo_rh'       => $it['codigo_rh'] ?? null,
+            'identificador'   => $it['identificador'] ?? null,
         ];
     }
     return $lista;

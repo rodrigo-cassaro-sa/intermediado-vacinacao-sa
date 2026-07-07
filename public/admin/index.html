@@ -130,9 +130,9 @@
           <select id="elegCampanha"><option value="">— liste as campanhas —</option></select>
         </div>
       </div>
-      <label>Cole os elegíveis — <span class="muted">cpf,nome,data_nascimento,tipo_vinculo,cpf_titular,codigo_lotacao,codigo_rh</span> (nascimento opcional; tipo = colaborador|dependente|terceiro; cpf_titular só p/ dependente; lotação e RH obrigatórios)</label>
+      <label>Cole os elegíveis — <span class="muted">cpf,nome,data_nascimento,tipo_vinculo,cpf_titular,codigo_lotacao,codigo_rh,identificador</span> (sem CPF? use identificador/voucher no último campo)</label>
       <textarea id="elegCsv" rows="4" style="width:100%;padding:8px;background:#0b1220;border:1px solid var(--line);border-radius:6px;color:var(--txt)"
-        placeholder="52998224725,Maria Silva,1990-05-10,colaborador,,LOT-01,RH-1001&#10;16899535009,Filho da Maria,2015-11-02,dependente,52998224725,LOT-01,RH-1001"></textarea>
+        placeholder="52998224725,Maria Silva,1990-05-10,colaborador,,LOT-01,RH-1001,&#10;,John Doe,1988-02-10,terceiro,,LOT-01,RH-2002,VOUCHER-123"></textarea>
       <div style="margin-top:12px" class="row">
         <button onclick="importarElegiveis()">Importar (JSON)</button>
         <button class="sec" onclick="listarElegiveis()">Listar elegíveis</button>
@@ -614,6 +614,7 @@ function parseElegiveis(texto) {
     return {
       cpf: p[0] || '', nome: p[1] || '', data_nascimento: p[2] || null,
       tipo_vinculo: p[3] || null, cpf_titular: p[4] || null,
+      codigo_lotacao: p[5] || null, codigo_rh: p[6] || null, identificador: p[7] || null,
     };
   });
 }
@@ -726,9 +727,9 @@ async function verHistoricoAplicacao() {
 }
 
 async function verCarteira() {
-  const cpf = document.getElementById('cartCpf').value.replace(/\D/g, '');
-  if (!cpf) return log('Informe o CPF.');
-  const d = await api(`/interno/pacientes/${cpf}/carteira`);
+  const raw = document.getElementById('cartCpf').value.trim();
+  if (!raw) return log('Informe o CPF ou voucher.');
+  const d = await api(`/interno/pacientes/${encodeURIComponent(raw)}/carteira`);
   if (!d.success) return;
   document.getElementById('tblCarteira').innerHTML =
     `<tr><th colspan="6">${d.data.paciente.nome} — ${d.data.total_doses} dose(s)</th></tr>` +
