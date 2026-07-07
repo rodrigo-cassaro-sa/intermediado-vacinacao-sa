@@ -178,6 +178,23 @@ php scripts/expirar_elegiveis.php
 
 Ele expira elegíveis pendentes de campanhas vencidas e encerra campanhas com período terminado.
 
+## Worker da ingestão assíncrona (item 9a) — cron a cada minuto
+
+Listas grandes (acima de ~2000 elegíveis) são processadas em segundo plano. Configure um
+**Cron Job** no `imz-app` rodando **a cada minuto**:
+
+```bash
+php scripts/processar_importacoes.php
+```
+
+Ele pega as importações `pendente`, processa em chunks (sobe os válidos e grava os rejeitados
+em `importacao_erro`) e atualiza o progresso. O cliente acompanha por
+`GET /api/v1/interno/importacoes/{id}` e baixa o **relatório de erros** por
+`GET /api/v1/interno/importacoes/{id}/erros/exportar`.
+
+> Sem esse cron, importações grandes ficam paradas em `pendente`. Listas pequenas continuam
+> sendo processadas na hora (inline), sem depender do worker.
+
 ---
 
 # 9. Checklist pré-deploy

@@ -40,6 +40,11 @@ return [
     'POST /api/v1/interno/campanhas/{id}/elegiveis/importar' => ['arquivo' => 'interno/elegiveis.php', 'funcao' => 'rota_importar_elegiveis'],
     'GET  /api/v1/interno/campanhas/{id}/elegiveis'          => ['arquivo' => 'interno/elegiveis.php', 'funcao' => 'rota_listar_elegiveis'],
     'POST /api/v1/interno/campanhas/{id}/elegiveis/remover'  => ['arquivo' => 'interno/elegiveis.php', 'funcao' => 'rota_remover_elegiveis'],
+
+    // --- Importações (assíncronas) + relatório de erros (item 9a) ---
+    'GET  /api/v1/interno/campanhas/{id}/importacoes'        => ['arquivo' => 'interno/importacoes.php', 'funcao' => 'rota_listar_importacoes'],
+    'GET  /api/v1/interno/importacoes/{id}'                  => ['arquivo' => 'interno/importacoes.php', 'funcao' => 'rota_status_importacao'],
+    'GET  /api/v1/interno/importacoes/{id}/erros/exportar'   => ['arquivo' => 'interno/importacoes.php', 'funcao' => 'rota_exportar_erros_importacao'],
     'POST /api/v1/interno/elegiveis/{id}/situacao'           => ['arquivo' => 'interno/elegiveis.php', 'funcao' => 'rota_definir_situacao_elegivel'],
     'PUT  /api/v1/interno/elegiveis/{id}'                    => ['arquivo' => 'interno/elegivel_edicao.php', 'funcao' => 'rota_editar_elegivel'],
     'GET  /api/v1/interno/elegiveis/{id}/historico'         => ['arquivo' => 'interno/elegivel_edicao.php', 'funcao' => 'rota_historico_elegivel'],

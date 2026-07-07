@@ -6,6 +6,7 @@
 // ============================================================================
 
 require_once BASE_PATH . '/app/services/elegiveis.php';
+require_once BASE_PATH . '/app/services/importacao.php';
 
 const PERFIS_IMPORTA_ELEGIVEIS = ['super_admin', 'operador_interno', 'cliente_b2b'];
 
@@ -28,12 +29,11 @@ function rota_importar_elegiveis(array $params): void
         ]);
     }
 
-    // Fonte dos dados: arquivo (multipart) OU JSON { elegiveis: [...] }.
-    $arquivoNome = null;
+    // Fonte dos dados: arquivo (multipart CSV) OU JSON { elegiveis: [...] }.
     if (!empty($_FILES['arquivo']['tmp_name']) && is_uploaded_file($_FILES['arquivo']['tmp_name'])) {
-        if (($_FILES['arquivo']['size'] ?? 0) > 5 * 1024 * 1024) {
-            responder_erro('Arquivo muito grande (máx. 5MB).', 400, [
-                ['field' => 'arquivo', 'code' => 'ARQUIVO_GRANDE', 'message' => 'Envie um arquivo de até 5MB.'],
+        if (($_FILES['arquivo']['size'] ?? 0) > 20 * 1024 * 1024) {
+            responder_erro('Arquivo muito grande (máx. 20MB).', 400, [
+                ['field' => 'arquivo', 'code' => 'ARQUIVO_GRANDE', 'message' => 'Envie um arquivo de até 20MB.'],
             ]);
         }
         $ext = strtolower(pathinfo($_FILES['arquivo']['name'], PATHINFO_EXTENSION));
@@ -42,9 +42,8 @@ function rota_importar_elegiveis(array $params): void
                 ['field' => 'arquivo', 'code' => 'ARQUIVO_INVALIDO', 'message' => 'Apenas .csv ou .txt.'],
             ]);
         }
-        $conteudo = file_get_contents($_FILES['arquivo']['tmp_name']);
-        $lista = parsear_csv_elegiveis((string) $conteudo);
-        $arquivoNome = basename($_FILES['arquivo']['name']);
+        $conteudo = (string) file_get_contents($_FILES['arquivo']['tmp_name']);
+        $formato = 'csv';
     } else {
         $dados = corpo_json();
         if (empty($dados['elegiveis'])) {
@@ -52,52 +51,12 @@ function rota_importar_elegiveis(array $params): void
                 ['field' => 'elegiveis', 'code' => 'SEM_DADOS', 'message' => 'Nenhum elegível informado.'],
             ]);
         }
-        $lista = normalizar_elegiveis_json($dados['elegiveis']);
+        $conteudo = json_encode(['elegiveis' => $dados['elegiveis']], JSON_UNESCAPED_UNICODE);
+        $formato = 'json';
     }
 
-    if (!$lista) {
-        responder_erro('Nenhuma linha válida encontrada.', 400, [
-            ['field' => null, 'code' => 'ARQUIVO_VAZIO', 'message' => 'O conteúdo não tinha linhas processáveis.'],
-        ]);
-    }
-
-    // Registra o lote e processa dentro de transação.
-    try {
-        pdo()->beginTransaction();
-
-        db_executar(
-            "INSERT INTO importacao_elegiveis (tenant_id, campanha_id, origem, arquivo, status, criado_por, criado_em)
-             VALUES (:tenant, :campanha, 'upload', :arquivo, 'processando', :criado_por, NOW())",
-            [
-                ':tenant'     => (int) $campanha['tenant_id'],
-                ':campanha'   => $id,
-                ':arquivo'    => $arquivoNome,
-                ':criado_por' => (int) $usuario['id'],
-            ]
-        );
-        $importacaoId = (int) db_ultimo_id();
-
-        $res = ingerir_elegiveis($id, (int) $campanha['tenant_id'], $lista, 'upload', $importacaoId, ator_usuario($usuario));
-
-        db_executar(
-            "UPDATE importacao_elegiveis
-                SET total_linhas = :t, total_validos = :v, total_invalidos = :inv, status = 'concluida'
-              WHERE id = :id",
-            [
-                ':t'   => $res['recebidos'],
-                ':v'   => $res['criados'] + $res['atualizados'],
-                ':inv' => $res['rejeitados'],
-                ':id'  => $importacaoId,
-            ]
-        );
-
-        pdo()->commit();
-    } catch (Throwable $e) {
-        if (pdo()->inTransaction()) {
-            pdo()->rollBack();
-        }
-        throw $e;
-    }
+    $r = importacao_iniciar((int) $campanha['tenant_id'], $id, $conteudo, $formato, 'upload',
+        (int) $usuario['id'], ator_usuario($usuario));
 
     registrar_auditoria('elegiveis.importados', [
         'tenant_id'     => (int) $campanha['tenant_id'],
@@ -106,18 +65,11 @@ function rota_importar_elegiveis(array $params): void
         'origem'        => 'admin',
         'entidade_tipo' => 'campanha',
         'entidade_id'   => $id,
-        'metadata'      => ['importacao_id' => $importacaoId, 'recebidos' => $res['recebidos'], 'criados' => $res['criados']],
+        'metadata'      => ['importacao_id' => $r['importacao_id'], 'status' => $r['status']],
     ]);
 
-    responder_sucesso([
-        'importacao_id'   => $importacaoId,
-        'total_linhas'    => $res['recebidos'],
-        'total_validos'   => $res['criados'] + $res['atualizados'],
-        'novos_elegiveis' => $res['criados'],
-        'ja_existentes'   => $res['atualizados'],
-        'total_invalidos' => $res['rejeitados'],
-        'invalidos'       => $res['erros'],
-    ], 'Importação processada.', 201);
+    responder_sucesso($r, $r['status'] === 'concluida'
+        ? 'Importação processada.' : 'Importação recebida; processando em segundo plano.', 201);
 }
 
 /**

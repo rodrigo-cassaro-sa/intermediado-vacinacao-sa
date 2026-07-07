@@ -12,31 +12,46 @@
  * Cria/reutiliza paciente por CPF e cria elegivel (UNIQUE campanha+paciente).
  * Devolve contagens e os primeiros erros por item.
  */
-function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string $origem, ?int $importacaoId, array $ator = ['tipo' => 'usuario', 'id' => null]): array
+function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string $origem, ?int $importacaoId, array $ator = ['tipo' => 'usuario', 'id' => null], ?array $colaboradoresArquivo = null, int $offsetLinha = 0): array
 {
     $recebidos = 0; $criados = 0; $atualizados = 0; $rejeitados = 0;
     $erros = [];
     $tipos = ['colaborador', 'dependente', 'terceiro'];
 
-    $rejeita = function (int $linha, string $cpf, string $code) use (&$rejeitados, &$erros) {
+    // Persiste o rejeitado (relatório de erros ao cliente) e acumula amostra.
+    $rejeita = function (int $linha, string $cpf, string $nome, string $code) use (&$rejeitados, &$erros, $importacaoId) {
         $rejeitados++;
         if (count($erros) < 50) {
             $erros[] = ['linha' => $linha, 'cpf' => mascarar_cpf($cpf), 'code' => $code];
         }
+        if ($importacaoId !== null) {
+            try {
+                db_executar(
+                    "INSERT INTO importacao_erro (importacao_id, linha, cpf, nome, codigo)
+                     VALUES (:imp, :linha, :cpf, :nome, :code)",
+                    [':imp' => $importacaoId, ':linha' => $linha, ':cpf' => $cpf ?: null,
+                     ':nome' => $nome !== '' ? $nome : null, ':code' => $code]
+                );
+            } catch (Throwable $e) {
+                error_log('importacao_erro falhou: ' . $e->getMessage());
+            }
+        }
     };
 
-    // RN-017/RN-018 (item 6): mapa dos colaboradores presentes no arquivo, para
-    // validar o titular dos dependentes (colaborador vinculado à empresa).
-    $colaboradoresArquivo = [];
-    foreach ($lista as $it) {
-        if (strtolower(trim((string) ($it['tipo_vinculo'] ?? ''))) === 'colaborador') {
-            $colaboradoresArquivo[so_digitos($it['cpf'] ?? '')] = true;
+    // RN-017/RN-018 (item 6): mapa dos colaboradores para validar o titular dos
+    // dependentes. Pode vir pré-calculado (worker) ou ser montado a partir do lote.
+    if ($colaboradoresArquivo === null) {
+        $colaboradoresArquivo = [];
+        foreach ($lista as $it) {
+            if (strtolower(trim((string) ($it['tipo_vinculo'] ?? ''))) === 'colaborador') {
+                $colaboradoresArquivo[so_digitos($it['cpf'] ?? '')] = true;
+            }
         }
     }
 
     foreach ($lista as $i => $item) {
         $recebidos++;
-        $linha = $i + 1;
+        $linha = $offsetLinha + $i + 1;
         $cpf   = so_digitos($item['cpf'] ?? '');
         $nome  = trim((string) ($item['nome'] ?? ''));
         $nasc  = trim((string) ($item['data_nascimento'] ?? ''));
@@ -46,18 +61,18 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
         $codRh      = trim((string) ($item['codigo_rh'] ?? ''));
 
         // RN: CPF válido.
-        if (!validar_cpf($cpf)) { $rejeita($linha, $cpf, 'CPF_INVALIDO'); continue; }
+        if (!validar_cpf($cpf)) { $rejeita($linha, $cpf, $nome, 'CPF_INVALIDO'); continue; }
         // Nome obrigatório.
-        if ($nome === '') { $rejeita($linha, $cpf, 'NOME_OBRIGATORIO'); continue; }
+        if ($nome === '') { $rejeita($linha, $cpf, $nome, 'NOME_OBRIGATORIO'); continue; }
         // RN-016: data de nascimento OPCIONAL, mas se vier tem de ser válida.
-        if ($nasc !== '' && !validar_data($nasc)) { $rejeita($linha, $cpf, 'DATA_NASCIMENTO_INVALIDA'); continue; }
+        if ($nasc !== '' && !validar_data($nasc)) { $rejeita($linha, $cpf, $nome, 'DATA_NASCIMENTO_INVALIDA'); continue; }
         $nasc = $nasc === '' ? null : $nasc;
         // RN-016: tipo de vínculo obrigatório (colaborador|dependente|terceiro).
-        if (!in_array($tipo, $tipos, true)) { $rejeita($linha, $cpf, 'TIPO_VINCULO_INVALIDO'); continue; }
+        if (!in_array($tipo, $tipos, true)) { $rejeita($linha, $cpf, $nome, 'TIPO_VINCULO_INVALIDO'); continue; }
         // RN-017: dependente exige CPF do titular válido e que seja COLABORADOR
         // elegível na mesma campanha (no arquivo ou já cadastrado). Item 6.
         if ($tipo === 'dependente') {
-            if (!validar_cpf($cpfTitular)) { $rejeita($linha, $cpf, 'CPF_TITULAR_INVALIDO'); continue; }
+            if (!validar_cpf($cpfTitular)) { $rejeita($linha, $cpf, $nome, 'CPF_TITULAR_INVALIDO'); continue; }
             $titularOk = isset($colaboradoresArquivo[$cpfTitular]);
             if (!$titularOk) {
                 $ex = db_primeiro(
@@ -67,13 +82,13 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
                 );
                 $titularOk = $ex !== null;
             }
-            if (!$titularOk) { $rejeita($linha, $cpf, 'CPF_TITULAR_NAO_ELEGIVEL'); continue; }
+            if (!$titularOk) { $rejeita($linha, $cpf, $nome, 'CPF_TITULAR_NAO_ELEGIVEL'); continue; }
         } else {
             $cpfTitular = null;
         }
         // RN-018: códigos do cliente obrigatórios.
-        if ($codLotacao === '') { $rejeita($linha, $cpf, 'CODIGO_LOTACAO_OBRIGATORIO'); continue; }
-        if ($codRh === '')      { $rejeita($linha, $cpf, 'CODIGO_RH_OBRIGATORIO'); continue; }
+        if ($codLotacao === '') { $rejeita($linha, $cpf, $nome, 'CODIGO_LOTACAO_OBRIGATORIO'); continue; }
+        if ($codRh === '')      { $rejeita($linha, $cpf, $nome, 'CODIGO_RH_OBRIGATORIO'); continue; }
 
         // Paciente por CPF (identidade global — RN-008).
         $paciente = db_primeiro("SELECT id FROM paciente WHERE cpf = :cpf LIMIT 1", [':cpf' => $cpf]);

@@ -136,7 +136,10 @@
       <div style="margin-top:12px" class="row">
         <button onclick="importarElegiveis()">Importar (JSON)</button>
         <button class="sec" onclick="listarElegiveis()">Listar elegíveis</button>
+        <button class="sec" onclick="statusImportacao()">Status da importação</button>
+        <button class="sec" onclick="baixarErrosImportacao()">Baixar relatório de erros</button>
       </div>
+      <p id="impInfo" class="muted"></p>
       <p id="elegResumo" class="muted"></p>
       <table id="tblElegiveis"></table>
       <div class="row" style="margin-top:10px">
@@ -603,12 +606,36 @@ function parseElegiveis(texto) {
   });
 }
 
+let ULTIMA_IMPORTACAO = null;
+
 async function importarElegiveis() {
   const id = document.getElementById('elegCampanha').value;
   if (!id) return log('Selecione uma campanha (clique em Listar campanhas antes).');
   const elegiveis = parseElegiveis(document.getElementById('elegCsv').value);
-  await api(`/interno/campanhas/${id}/elegiveis/importar`, 'POST', { elegiveis });
+  const d = await api(`/interno/campanhas/${id}/elegiveis/importar`, 'POST', { elegiveis });
+  if (d.success) {
+    ULTIMA_IMPORTACAO = d.data.importacao_id;
+    const t = d.data.totais;
+    document.getElementById('impInfo').textContent = t
+      ? `Importação #${d.data.importacao_id} (${d.data.status}) — válidos: ${t.validos}, rejeitados: ${t.rejeitados}`
+      : `Importação #${d.data.importacao_id} (${d.data.status}) — processando em segundo plano; use "Status".`;
+  }
   listarElegiveis();
+}
+
+async function statusImportacao() {
+  if (!ULTIMA_IMPORTACAO) return log('Importe algo primeiro (ou informe o id).');
+  const d = await api(`/interno/importacoes/${ULTIMA_IMPORTACAO}`);
+  if (d.success) {
+    const x = d.data;
+    document.getElementById('impInfo').textContent =
+      `Importação #${x.importacao_id} (${x.status}) — processados ${x.total_processados}/${x.total_linhas}, válidos ${x.total_validos}, rejeitados ${x.total_invalidos}`;
+  }
+}
+
+function baixarErrosImportacao() {
+  if (!ULTIMA_IMPORTACAO) return log('Importe algo primeiro.');
+  window.open(`/api/v1/interno/importacoes/${ULTIMA_IMPORTACAO}/erros/exportar`, '_blank');
 }
 
 async function listarElegiveis() {

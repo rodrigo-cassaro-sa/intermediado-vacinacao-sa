@@ -6,6 +6,7 @@
 // ============================================================================
 
 require_once BASE_PATH . '/app/services/elegiveis.php';
+require_once BASE_PATH . '/app/services/importacao.php';
 
 /**
  * POST /api/v1/parceiro/elegiveis/{id}/situacao — clínica marca recusa/ausência do
@@ -79,39 +80,10 @@ function rota_parceiro_ingerir_elegiveis(array $params): void
             ['field' => 'elegiveis', 'code' => 'PAYLOAD_INVALIDO', 'message' => 'Envie a lista "elegiveis".'],
         ]);
     }
-    $lista = normalizar_elegiveis_json($dados['elegiveis']);
 
-    try {
-        pdo()->beginTransaction();
-
-        db_executar(
-            "INSERT INTO importacao_elegiveis (tenant_id, campanha_id, origem, status, criado_em)
-             VALUES (:tenant, :campanha, 'api', 'processando', NOW())",
-            [':tenant' => (int) $campanha['tenant_id'], ':campanha' => $id]
-        );
-        $importacaoId = (int) db_ultimo_id();
-
-        $res = ingerir_elegiveis($id, (int) $campanha['tenant_id'], $lista, 'api', $importacaoId, ator_credencial($cred));
-
-        db_executar(
-            "UPDATE importacao_elegiveis
-                SET total_linhas = :t, total_validos = :v, total_invalidos = :inv, status = 'concluida'
-              WHERE id = :id",
-            [
-                ':t'   => $res['recebidos'],
-                ':v'   => $res['criados'] + $res['atualizados'],
-                ':inv' => $res['rejeitados'],
-                ':id'  => $importacaoId,
-            ]
-        );
-
-        pdo()->commit();
-    } catch (Throwable $e) {
-        if (pdo()->inTransaction()) {
-            pdo()->rollBack();
-        }
-        throw $e;
-    }
+    $conteudo = json_encode(['elegiveis' => $dados['elegiveis']], JSON_UNESCAPED_UNICODE);
+    $r = importacao_iniciar((int) $campanha['tenant_id'], $id, $conteudo, 'json', 'api',
+        null, ator_credencial($credencial));
 
     registrar_auditoria('elegiveis.importados', [
         'tenant_id'     => (int) $campanha['tenant_id'],
@@ -120,14 +92,8 @@ function rota_parceiro_ingerir_elegiveis(array $params): void
         'origem'        => 'api_parceiro',
         'entidade_tipo' => 'campanha',
         'entidade_id'   => $id,
-        'metadata'      => ['importacao_id' => $importacaoId, 'recebidos' => $res['recebidos']],
+        'metadata'      => ['importacao_id' => $r['importacao_id'], 'status' => $r['status']],
     ]);
 
-    responder_idempotente('credencial:' . $credencial['id'], [
-        'recebidos'  => $res['recebidos'],
-        'criados'    => $res['criados'],
-        'atualizados' => $res['atualizados'],
-        'rejeitados' => $res['rejeitados'],
-        'erros'      => $res['erros'],
-    ], 'Elegíveis recebidos.', 201);
+    responder_idempotente('credencial:' . $credencial['id'], $r, 'Elegíveis recebidos.', 201);
 }
