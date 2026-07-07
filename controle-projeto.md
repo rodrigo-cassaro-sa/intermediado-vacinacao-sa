@@ -152,7 +152,7 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | 8h | RN-021/022 histórico (elegível/aplicação) + editar elegível + estornar/desvacinar (commit a490beb) — migration 013 auto | usuário/deploy | alta | em andamento |
 | 8i | Batch 1 robustez (concorrência/idempotência/isolamento/titular/remoção — RN-013 rev, RN-023..026) — migration 014 APLICADA em homolog | usuário/deploy | alta | feito |
 | 9a | Ingestão assíncrona em lotes + relatório de erros ao cliente (commit c98204b) — migration 015 auto; requer cron do worker | usuário/deploy | alta | em andamento |
-| 9b | Rate limit por credencial (item 12) | especialista-seguranca | alta | pendente |
+| 9b | Rate limit por credencial + login (commit 9048c1b) — migration 016 auto | usuário/deploy | alta | feito |
 | 9c | Vacinado perpétuo/carteira + relatório ano a ano (itens 9/14) | especialista-backend | média | pendente |
 | 9d | Voucher p/ estrangeiro sem CPF (item 8); keyset (10); observabilidade (13) | especialista-backend | média | pendente |
 | backlog | Rastreabilidade extra: fabricante/validade lote, conselho profissional, comprovante, idempotência (recomendado) | especialista-backend | baixa/média | pendente |
@@ -187,7 +187,7 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | Vazamento de dados entre clientes no paciente global | privacidade | alta | RESOLVIDO: nome/nascimento por elegível (RN-023, mig 014) | mitigado |
 | Ingestão síncrona não escala p/ ~100k por lista (500 clientes) | performance | alta | RESOLVIDO: importação assíncrona em chunks + worker cron + relatório de erros (mig 015, commit c98204b) | mitigado |
 | Retenção/particionamento de histórico e auditoria em milhões/ano | operação/escala | alta | PENDENTE: política de arquivamento + partição; vacinado perpétuo p/ carteira (item 9) | aberto |
-| Sem rate limit real nas APIs (500 clientes podem travar) | segurança/escala | alta | PENDENTE: limitar acessos/consultas por credencial (item 12) | aberto |
+| Sem rate limit real nas APIs (500 clientes podem travar) | segurança/escala | alta | RESOLVIDO: rate limit por credencial + login (mig 016, commit 9048c1b) | mitigado |
 | Sem módulo de faturamento (pagar clínica / cobrar cliente) | negócio | alta | ADIADO pelo usuário (item 4) | aberto |
 | Estrangeiro sem CPF | cobertura | média | Decidido: usar voucher/identificador (item 8) — a implementar | aberto |
 | Sem relatório longitudinal ano a ano / carteira consolidada | produto | média | PENDENTE (itens 9 e 14) | aberto |
