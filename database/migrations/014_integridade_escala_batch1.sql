@@ -15,13 +15,15 @@ ALTER TABLE elegivel ADD COLUMN nome VARCHAR(120) NULL DEFAULT NULL AFTER pacien
 ALTER TABLE elegivel ADD COLUMN data_nascimento DATE NULL DEFAULT NULL AFTER nome;
 
 -- Item 1 + 7: unicidade do vacinado confirmado por (elegivel, vacina, dose).
--- Coluna gerada = chave só quando 'confirmada'; NULL nos demais (MySQL permite N NULLs).
+-- Coluna gerada VIRTUAL (INPLACE, sem copiar a tabela — aplicacao tem FK própria).
+-- FK checks off evita erro 1215 durante a alteração.
+SET FOREIGN_KEY_CHECKS = 0;
 ALTER TABLE aplicacao ADD COLUMN confirmacao_unica VARCHAR(80)
     GENERATED ALWAYS AS (
       CASE WHEN status = 'confirmada'
            THEN CONCAT_WS('-', elegivel_id, vacina_id, dose)
            ELSE NULL END
-    ) STORED;
+    ) VIRTUAL;
 
 -- Dedup defensivo antes da UNIQUE: mantém a confirmada de maior id, estorna as demais.
 UPDATE aplicacao a
@@ -34,6 +36,7 @@ JOIN (
 SET a.status = 'estornada';
 
 ALTER TABLE aplicacao ADD UNIQUE KEY uq_aplicacao_confirmada (confirmacao_unica);
+SET FOREIGN_KEY_CHECKS = 1;
 
 -- Item 2: idempotência das operações de escrita (API/lote).
 CREATE TABLE IF NOT EXISTS idempotencia (

@@ -5,6 +5,9 @@
 -- 014 como aplicada em schema_migracao. Seguro rodar mais de uma vez.
 -- ============================================================================
 
+-- Evita erro 1215 (cópia de tabela com FK própria) durante os ALTER.
+SET FOREIGN_KEY_CHECKS = 0;
+
 -- 1) Tabela de idempotência (segura re-rodar).
 CREATE TABLE IF NOT EXISTS idempotencia (
   id           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -45,7 +48,7 @@ BEGIN
     ALTER TABLE aplicacao ADD COLUMN confirmacao_unica VARCHAR(80)
       GENERATED ALWAYS AS (
         CASE WHEN status='confirmada' THEN CONCAT_WS('-', elegivel_id, vacina_id, dose) ELSE NULL END
-      ) STORED;
+      ) VIRTUAL;
   END IF;
 
   -- Deduplica: entre confirmadas iguais (elegivel,vacina,dose), mantém a de maior id,
@@ -81,3 +84,5 @@ GROUP BY e.tenant_id, e.campanha_id, e.paciente_id, p.cpf, COALESCE(e.nome, p.no
 -- 4) Marca a migration 014 como aplicada.
 INSERT INTO schema_migracao (arquivo) VALUES ('014_integridade_escala_batch1.sql')
   ON DUPLICATE KEY UPDATE arquivo = arquivo;
+
+SET FOREIGN_KEY_CHECKS = 1;
