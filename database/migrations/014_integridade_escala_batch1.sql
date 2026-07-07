@@ -10,20 +10,30 @@
 -- ============================================================================
 
 -- Item 5 / RN-023: dado do cliente por elegível (não sobrescreve outros clientes).
-ALTER TABLE elegivel
-  ADD COLUMN nome VARCHAR(120) NULL DEFAULT NULL AFTER paciente_id,
-  ADD COLUMN data_nascimento DATE NULL DEFAULT NULL AFTER nome;
+-- Statements separados para o runner tolerante pular só o que já existe.
+ALTER TABLE elegivel ADD COLUMN nome VARCHAR(120) NULL DEFAULT NULL AFTER paciente_id;
+ALTER TABLE elegivel ADD COLUMN data_nascimento DATE NULL DEFAULT NULL AFTER nome;
 
 -- Item 1 + 7: unicidade do vacinado confirmado por (elegivel, vacina, dose).
 -- Coluna gerada = chave só quando 'confirmada'; NULL nos demais (MySQL permite N NULLs).
-ALTER TABLE aplicacao
-  ADD COLUMN confirmacao_unica VARCHAR(80)
+ALTER TABLE aplicacao ADD COLUMN confirmacao_unica VARCHAR(80)
     GENERATED ALWAYS AS (
       CASE WHEN status = 'confirmada'
            THEN CONCAT_WS('-', elegivel_id, vacina_id, dose)
            ELSE NULL END
-    ) STORED,
-  ADD UNIQUE KEY uq_aplicacao_confirmada (confirmacao_unica);
+    ) STORED;
+
+-- Dedup defensivo antes da UNIQUE: mantém a confirmada de maior id, estorna as demais.
+UPDATE aplicacao a
+JOIN (
+  SELECT elegivel_id, vacina_id, dose, MAX(id) AS keep_id
+    FROM aplicacao WHERE status = 'confirmada'
+   GROUP BY elegivel_id, vacina_id, dose HAVING COUNT(*) > 1
+) d ON a.elegivel_id = d.elegivel_id AND a.vacina_id = d.vacina_id AND a.dose = d.dose
+   AND a.status = 'confirmada' AND a.id <> d.keep_id
+SET a.status = 'estornada';
+
+ALTER TABLE aplicacao ADD UNIQUE KEY uq_aplicacao_confirmada (confirmacao_unica);
 
 -- Item 2: idempotência das operações de escrita (API/lote).
 CREATE TABLE IF NOT EXISTS idempotencia (

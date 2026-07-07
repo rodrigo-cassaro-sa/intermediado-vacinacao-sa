@@ -43,8 +43,33 @@ foreach ($arquivos as $arquivo) {
         echo "Ignorado (vazio): $nome\n";
         continue;
     }
+    // Executa statement por statement, tolerando erros benignos de "já existe"
+    // (torna a re-aplicação segura após uma falha parcial). Não usar procedures
+    // nas migrations (o split é por ';').
+    $benignos = [
+        1050, // tabela já existe
+        1060, // coluna duplicada
+        1061, // índice duplicado
+        1091, // não é possível remover algo inexistente
+        1826, // FK com nome duplicado
+    ];
+    $statements = array_filter(array_map('trim', preg_split('/;\s*(?:\r?\n|$)/', $sql)));
     try {
-        pdo()->exec($sql); // executa o conteúdo do arquivo (DDL + registro em schema_migracao)
+        foreach ($statements as $st) {
+            if ($st === '' || preg_match('/^--/', $st) && !preg_match('/\n/', $st)) {
+                continue;
+            }
+            try {
+                pdo()->exec($st);
+            } catch (PDOException $e) {
+                $codigo = (int) ($e->errorInfo[1] ?? 0);
+                if (in_array($codigo, $benignos, true)) {
+                    echo "  (ignorado, já existe) " . substr(preg_replace('/\s+/', ' ', $st), 0, 60) . "...\n";
+                    continue;
+                }
+                throw $e;
+            }
+        }
         echo "OK: $nome\n";
     } catch (Throwable $e) {
         fwrite(STDERR, "FALHA em $nome: " . $e->getMessage() . "\n");
