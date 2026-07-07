@@ -8,8 +8,11 @@ function rota_health(array $params): void
 {
     $bancoOk = false;
     $diagnostico = null;
+    $bancoMs = null;
     try {
+        $t0 = microtime(true);
         db_primeiro('SELECT 1 AS ok');
+        $bancoMs = round((microtime(true) - $t0) * 1000, 1);
         $bancoOk = true;
     } catch (Throwable $e) {
         $bancoOk = false;
@@ -24,6 +27,8 @@ function rota_health(array $params): void
     $data = [
         'app'      => 'ok',
         'banco'    => $bancoOk ? 'ok' : 'indisponivel',
+        'banco_ms' => $bancoMs,
+        'versao'   => APP_VERSION,
         'ambiente' => APP_ENV,
         'agora'    => date('c'),
     ];

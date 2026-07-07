@@ -25,6 +25,10 @@ return [
     'GET  /api/v1/interno/clinicas' => ['arquivo' => 'interno/clinicas.php', 'funcao' => 'rota_listar_clinicas'],
     'POST /api/v1/interno/campanhas/{id}/atribuir-clinica' => ['arquivo' => 'interno/clinicas.php', 'funcao' => 'rota_atribuir_clinica'],
 
+    // --- Observabilidade (item 13) ---
+    'GET  /api/v1/interno/metricas'  => ['arquivo' => 'interno/observabilidade.php', 'funcao' => 'rota_metricas'],
+    'GET  /api/v1/interno/auditoria' => ['arquivo' => 'interno/observabilidade.php', 'funcao' => 'rota_auditoria_recente'],
+
     // --- Relatórios: carteira consolidada (9c) e resumo ano a ano ---
     'GET  /api/v1/interno/pacientes/{cpf}/carteira'         => ['arquivo' => 'interno/relatorios.php', 'funcao' => 'rota_carteira_paciente'],
     'GET  /api/v1/interno/clientes/{id}/campanhas-resumo'   => ['arquivo' => 'interno/relatorios.php', 'funcao' => 'rota_resumo_campanhas_cliente'],

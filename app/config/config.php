@@ -58,6 +58,7 @@ define('APP_ENV',   env('APP_ENV', 'desenvolvimento'));
 define('APP_DEBUG', (bool) env('APP_DEBUG', false));
 define('APP_URL',   env('APP_URL', 'http://localhost'));
 define('APP_CHAVE', env('APP_CHAVE', ''));
+define('APP_VERSION', env('APP_VERSION', 'dev'));  // versão/commit publicado (observabilidade)
 
 date_default_timezone_set(env('APP_TIMEZONE', 'America/Sao_Paulo'));
 
