@@ -56,7 +56,7 @@ Domínio com SSL. Sem framework e sem OO por padrão.
 # 3. Etapa atual
 
 ```txt
-Etapa atual: MVP — CICLO CENTRAL VALIDADO em homologação. Blocos 1 (clientes/campanhas), 2 (elegíveis upload/JSON + API parceiro + credenciais) e 3 (registrar aplicação + retificar + tabela verdade + dashboard + rede credenciada) funcionando via /admin em https://imunizacao-imz-app.imx7lc.easypanel.host. Próximo: extração/CSV p/ B2B e telas reais (sair do console).
+Etapa atual: MVP FUNCIONAL COMPLETO validado em homologação. Ambas modalidades (in_company + rede credenciada com isolamento por clínica RN-012), elegíveis (upload/JSON/API), aplicação, tabela verdade/dashboard e extração CSV — tudo via /admin em https://imunizacao-imz-app.imx7lc.easypanel.host. Próximo: telas reais (sair do console) e/ou preparar produção.
 Protocolo em uso: protocolo-criacao-projeto-zero.md
 Especialista principal: especialista-produto-planejamento.md
 Especialistas de apoio: especialista-negocio-saas.md, especialista-seguranca-auditoria.md, especialista-banco-dados.md, especialista-engajamento-integracoes.md, especialista-documentacao-memoria.md
@@ -74,7 +74,7 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | Arquitetura | feito | doc 05: multi-tenant por tenant_id, API interno/parceiro, public/ docroot |
 | Mapa de telas | feito | doc 07: telas admin/portal/app + fluxos A–E |
 | Design/UX/UI | pendente |  |
-| Banco de dados | em andamento | migrations 000..008 aplicadas em homolog; migration 009 (elegivel.clinica_id, RN-012) criada — PENDENTE rodar `php scripts/migrar.php` no container |
+| Banco de dados | validado (homolog) | migrations 000..009 aplicadas em homolog (009 = elegivel.clinica_id, RN-012). migrar.php incremental. |
 | Backend/API/PHP | validado (homolog) | blocos 1, 2 e 3 VALIDADOS em homolog via /admin (cliente→campanha→elegíveis→aplicação→tabela verdade/dashboard). Falta: extração CSV, rede credenciada testada com clínica real, refino. |
 | Frontend | em andamento | public/admin/index.html: console de testes (login/health/clientes/campanhas) via Fetch; validar no deploy |
 | Segurança/auditoria | em andamento | doc 10 preenchido (auth, escopo, auditoria, LGPD, criptografia); implementação nos middlewares pendente |
@@ -143,7 +143,7 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | 6 | ~~Bloco 2 (elegíveis)~~ | usuário/deploy | alta | validado no /admin |
 | 7 | ~~Bloco 3 (aplicação + tabela verdade)~~ | usuário/deploy | alta | validado no /admin |
 | 8 | Extração/CSV p/ cliente B2B (commit df335e6) — validado | especialista-backend | média | feito |
-| 8b | RN-012 isolamento por clínica (commit 7f63528) — **exige rodar migration 009** + testar | usuário/deploy | alta | em andamento |
+| 8b | ~~RN-012 isolamento por clínica~~ (migration 009 aplicada) | usuário/deploy | alta | validado no /admin |
 | 9 | Telas reais (portal B2B / painel operador) saindo do console de testes | especialista-design/frontend | média | pendente |
 | 10 | Preencher docs pendentes (11 integrações, 12 QA, 14 backup, 15 changelog, 16 handoff) | especialista-documentacao | média | pendente |
 | 6 | (paralelo) Guia visual/UX (doc 06) ao iniciar frontend | especialista-design | média | pendente |
