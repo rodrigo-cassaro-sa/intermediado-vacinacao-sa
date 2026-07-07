@@ -155,7 +155,8 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | 9b | Rate limit por credencial + login (commit 9048c1b) — migration 016 auto | usuário/deploy | alta | feito |
 | 9c | Vacinado perpétuo/carteira consolidada + relatório ano a ano (commit 695865c) — sem migration | usuário/deploy | média | feito |
 | 9d-8 | Voucher p/ estrangeiro sem CPF (commit fab47d4) — migration 017 auto | usuário/deploy | média | feito |
-| 9d | keyset pagination (10); observabilidade (13) | especialista-backend | média | pendente |
+| 13 | Observabilidade: health+versão, /metricas, /auditoria (commit 6d682b9) | usuário/deploy | média | feito |
+| 9d | keyset pagination (item 10) — único técnico restante | especialista-backend | baixa | pendente |
 | Banco: migrations até 017 | — | — | — | 017 = paciente voucher |
 | backlog | Rastreabilidade extra: fabricante/validade lote, conselho profissional, comprovante, idempotência (recomendado) | especialista-backend | baixa/média | pendente |
 | 9 | Telas reais (portal B2B / painel operador) saindo do console de testes | especialista-design/frontend | média | pendente |
@@ -193,7 +194,7 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | Sem módulo de faturamento (pagar clínica / cobrar cliente) | negócio | alta | ADIADO pelo usuário (item 4) | aberto |
 | Estrangeiro sem CPF | cobertura | média | RESOLVIDO: identidade por voucher/identificador (mig 017, commit fab47d4) | mitigado |
 | Sem relatório longitudinal ano a ano / carteira consolidada | produto | média | RESOLVIDO: carteira por CPF + resumo ano a ano (commit 695865c) | mitigado |
-| Observabilidade só /health | operação | média | PENDENTE: métricas, alertas, visão de fila (item 13) | aberto |
+| Observabilidade só /health | operação | média | RESOLVIDO: health+versão, /metricas, /auditoria, doc 14 (commit 6d682b9) | mitigado |
 | Paginação por OFFSET lenta em milhões | performance | média | PENDENTE: keyset/cursor (item 10) | aberto |
 | API externa (rede) com escopo mal definido | integração/segurança | alta | Credencial por parceiro, escopo por campanha (RN-009) | aberto |
 | Registro de aplicação sem rastreabilidade (lote/dose) | banco/negócio | alta | RN-004 e RN-010 (imutabilidade + retificação auditada) | aberto |
