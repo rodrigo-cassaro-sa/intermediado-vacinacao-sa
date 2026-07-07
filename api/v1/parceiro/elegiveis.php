@@ -90,7 +90,7 @@ function rota_parceiro_ingerir_elegiveis(array $params): void
         );
         $importacaoId = (int) db_ultimo_id();
 
-        $res = ingerir_elegiveis($id, (int) $campanha['tenant_id'], $lista, 'api', $importacaoId);
+        $res = ingerir_elegiveis($id, (int) $campanha['tenant_id'], $lista, 'api', $importacaoId, ator_credencial($cred));
 
         db_executar(
             "UPDATE importacao_elegiveis

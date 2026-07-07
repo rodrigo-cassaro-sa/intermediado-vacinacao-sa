@@ -12,7 +12,7 @@
  * Cria/reutiliza paciente por CPF e cria elegivel (UNIQUE campanha+paciente).
  * Devolve contagens e os primeiros erros por item.
  */
-function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string $origem, ?int $importacaoId): array
+function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string $origem, ?int $importacaoId, array $ator = ['tipo' => 'usuario', 'id' => null]): array
 {
     $recebidos = 0; $criados = 0; $atualizados = 0; $rejeitados = 0;
     $erros = [];
@@ -88,7 +88,13 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
                     ':imp'      => $importacaoId,
                 ]
             );
+            $novoId = (int) db_ultimo_id();
             $criados++;
+            // RN-021: evento de origem no histórico do elegível.
+            historico_elegivel($novoId, 'criado', $ator, null, [
+                'cpf' => mascarar_cpf($cpf), 'nome' => $nome, 'tipo_vinculo' => $tipo,
+                'origem' => $origem, 'codigo_lotacao' => $codLotacao, 'codigo_rh' => $codRh,
+            ]);
         } else {
             // Já elegível nesta campanha (dedup) — atualiza dados sem duplicar.
             db_executar(
@@ -97,6 +103,10 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
                 [':tipo' => $tipo, ':titular' => $cpfTitular, ':lotacao' => $codLotacao, ':rh' => $codRh, ':id' => (int) $eleg['id']]
             );
             $atualizados++;
+            historico_elegivel((int) $eleg['id'], 'reingerido', $ator, null, [
+                'tipo_vinculo' => $tipo, 'origem' => $origem,
+                'codigo_lotacao' => $codLotacao, 'codigo_rh' => $codRh,
+            ]);
         }
     }
 

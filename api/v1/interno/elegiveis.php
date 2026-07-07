@@ -77,7 +77,7 @@ function rota_importar_elegiveis(array $params): void
         );
         $importacaoId = (int) db_ultimo_id();
 
-        $res = ingerir_elegiveis($id, (int) $campanha['tenant_id'], $lista, 'upload', $importacaoId);
+        $res = ingerir_elegiveis($id, (int) $campanha['tenant_id'], $lista, 'upload', $importacaoId, ator_usuario($usuario));
 
         db_executar(
             "UPDATE importacao_elegiveis
