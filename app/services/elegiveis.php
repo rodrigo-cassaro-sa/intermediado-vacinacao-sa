@@ -153,6 +153,36 @@ function parsear_csv_elegiveis(string $conteudo): array
     return $lista;
 }
 
+/**
+ * RN-020: altera a situação de um elegível que NÃO foi vacinado, com motivo.
+ * status permitido: pendente | recusado | ausente | inelegivel. Motivo obrigatório
+ * quando != pendente. Não permite alterar quem já está 'aplicado'.
+ * Devolve ['ok'=>true] ou ['ok'=>false,'http','code','message']. Escopo é do chamador.
+ */
+function alterar_situacao_elegivel(int $elegId, string $status, string $motivo): array
+{
+    $permitidos = ['pendente', 'recusado', 'ausente', 'inelegivel'];
+    if (!in_array($status, $permitidos, true)) {
+        return ['ok' => false, 'http' => 400, 'code' => 'STATUS_INVALIDO', 'message' => 'Situação inválida.'];
+    }
+    if ($status !== 'pendente' && trim($motivo) === '') {
+        return ['ok' => false, 'http' => 400, 'code' => 'MOTIVO_OBRIGATORIO', 'message' => 'Informe o motivo.'];
+    }
+    $eleg = db_primeiro("SELECT status FROM elegivel WHERE id = :id LIMIT 1", [':id' => $elegId]);
+    if ($eleg === null) {
+        return ['ok' => false, 'http' => 404, 'code' => 'NAO_ELEGIVEL', 'message' => 'Elegível inexistente.'];
+    }
+    if ($eleg['status'] === 'aplicado') {
+        return ['ok' => false, 'http' => 409, 'code' => 'JA_VACINADO', 'message' => 'Elegível já vacinado; use retificação da aplicação.'];
+    }
+
+    db_executar(
+        "UPDATE elegivel SET status = :s, motivo_situacao = :m WHERE id = :id",
+        [':s' => $status, ':m' => $status === 'pendente' ? null : trim($motivo), ':id' => $elegId]
+    );
+    return ['ok' => true];
+}
+
 /** Normaliza itens vindos de JSON [{cpf,nome,data_nascimento}]. */
 function normalizar_elegiveis_json($itens): array
 {

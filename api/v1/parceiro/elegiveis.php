@@ -7,6 +7,47 @@
 
 require_once BASE_PATH . '/app/services/elegiveis.php';
 
+/**
+ * POST /api/v1/parceiro/elegiveis/{id}/situacao — clínica marca recusa/ausência do
+ * seu elegível (RN-020), respeitando escopo (RN-009) e isolamento por clínica (RN-012).
+ */
+function rota_parceiro_definir_situacao(array $params): void
+{
+    $cred = exigir_credencial('rede_credenciada');
+    $id = (int) ($params['id'] ?? 0);
+    $eleg = db_primeiro("SELECT id, campanha_id, clinica_id FROM elegivel WHERE id = :id LIMIT 1", [':id' => $id]);
+    if ($eleg === null) {
+        responder_erro('Elegível inexistente.', 404, [
+            ['field' => null, 'code' => 'NAO_ELEGIVEL', 'message' => 'Elegível não encontrado.'],
+        ]);
+    }
+    exigir_escopo_campanha($cred, (int) $eleg['campanha_id']);
+    if ((int) ($eleg['clinica_id'] ?? 0) !== (int) $cred['titular_id']) {
+        responder_erro('Elegível não pertence a esta clínica.', 403, [
+            ['field' => null, 'code' => 'FORA_DO_ESCOPO', 'message' => 'Sem acesso a este elegível.'],
+        ]);
+    }
+
+    $dados = corpo_json();
+    $res = alterar_situacao_elegivel($id, $dados['status'] ?? '', $dados['motivo'] ?? '');
+    if (!$res['ok']) {
+        responder_erro($res['message'], $res['http'], [
+            ['field' => null, 'code' => $res['code'], 'message' => $res['message']],
+        ]);
+    }
+
+    registrar_auditoria('elegivel.situacao_definida', [
+        'ator_tipo'     => 'credencial_api',
+        'ator_id'       => (int) $cred['id'],
+        'origem'        => 'api_parceiro',
+        'entidade_tipo' => 'elegivel',
+        'entidade_id'   => $id,
+        'metadata'      => ['status' => $dados['status'] ?? ''],
+    ]);
+
+    responder_sucesso(['elegivel_id' => $id, 'status' => $dados['status']], 'Situação atualizada.');
+}
+
 /** POST /api/v1/parceiro/campanhas/{id}/elegiveis */
 function rota_parceiro_ingerir_elegiveis(array $params): void
 {

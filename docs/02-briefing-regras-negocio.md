@@ -81,6 +81,7 @@ dificuldade de auditoria e de devolver dados confiáveis ao cliente.
 | RN-017 | Quando o elegível é **dependente**, é obrigatório o **CPF do titular** (colaborador vinculado à empresa), e este CPF deve ser válido | Dependente sem titular válido → CPF_TITULAR_INVALIDO | Vínculo e faturamento | crítica |
 | RN-018 | Todo elegível traz os **códigos do cliente**: `codigo_lotacao` e `codigo_rh` (obrigatórios). Data de nascimento é opcional, mas se vier deve ser válida | Ingestão rejeita sem lotação/RH; data inválida rejeitada, ausente aceita | Integração e conciliação com o cliente | crítica |
 | RN-019 | Todo **vacinado** guarda lastro/rastreabilidade: **profissional** (nome + CPF válido), **local** (cidade + UF; unidade opcional) e a **clínica/executor**. Campos obrigatórios no registro | Registrar sem profissional/cidade/UF → CAMPO_OBRIGATORIO; CPF prof. inválido → CPF_PROFISSIONAL_INVALIDO | Rastreabilidade sanitária e auditoria | crítica |
+| RN-020 | Elegível **não vacinado** pode ser marcado como `recusado`, `ausente` ou `inelegivel`, com **motivo obrigatório** (controle de adesão). Quem já está `aplicado` não pode ser remarcado | Registrar por que não vacinou; motivo ausente → MOTIVO_OBRIGATORIO | Controle de adesão e operação | importante |
 
 ---
 

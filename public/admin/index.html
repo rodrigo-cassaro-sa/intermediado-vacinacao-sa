@@ -139,6 +139,19 @@
       </div>
       <p id="elegResumo" class="muted"></p>
       <table id="tblElegiveis"></table>
+      <div class="row" style="margin-top:10px">
+        <div style="flex:0;min-width:120px"><label>Elegível ID</label><input id="sitElegId" placeholder="id" /></div>
+        <div style="flex:0"><label>Situação</label>
+          <select id="sitStatus">
+            <option value="recusado">recusado</option>
+            <option value="ausente">ausente</option>
+            <option value="inelegivel">inelegivel</option>
+            <option value="pendente">pendente (volta)</option>
+          </select>
+        </div>
+        <div><label>Motivo (obrigatório se não for pendente)</label><input id="sitMotivo" placeholder="ex.: recusou no dia" /></div>
+        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="definirSituacao()">Marcar situação</button></div>
+      </div>
     </div>
 
     <!-- CREDENCIAL / PARCEIRO -->
@@ -576,8 +589,18 @@ async function listarElegiveis() {
     `Pendentes: ${r.pendente||0} · Aplicados: ${r.aplicado||0} · Recusados: ${r.recusado||0} · Total: ${d.meta?.total||0}`;
   const itens = d.data.itens || [];
   document.getElementById('tblElegiveis').innerHTML =
-    '<tr><th>CPF</th><th>Nome</th><th>Tipo</th><th>Origem</th><th>Status</th></tr>' +
-    itens.map(e => `<tr><td>${e.cpf}</td><td>${e.nome}</td><td>${e.tipo_vinculo||'—'}</td><td>${e.origem}</td><td>${e.status}</td></tr>`).join('');
+    '<tr><th>ID</th><th>CPF</th><th>Nome</th><th>Tipo</th><th>Status</th><th>Motivo</th></tr>' +
+    itens.map(e => `<tr><td>${e.id}</td><td>${e.cpf}</td><td>${e.nome}</td><td>${e.tipo_vinculo||'—'}</td><td>${e.status}</td><td>${e.motivo_situacao||'—'}</td></tr>`).join('');
+}
+
+async function definirSituacao() {
+  const id = document.getElementById('sitElegId').value;
+  if (!id) return log('Informe o ID do elegível (veja na listagem).');
+  await api(`/interno/elegiveis/${id}/situacao`, 'POST', {
+    status: document.getElementById('sitStatus').value,
+    motivo: document.getElementById('sitMotivo').value,
+  });
+  listarElegiveis();
 }
 
 async function emitirCredencial() {

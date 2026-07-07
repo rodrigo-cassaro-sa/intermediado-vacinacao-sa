@@ -117,6 +117,7 @@ Documentar entidades, tabelas, campos, relacionamentos, índices, migrations e c
 | codigo_lotacao | VARCHAR(60) | sim* |  | código do cliente (RN-018). Migration 011 |
 | codigo_rh | VARCHAR(60) | sim* | IDX | código/matrícula do cliente (RN-018). Migration 011 |
 | status | VARCHAR(20) | sim | IDX | pendente / aplicado / recusado / inelegivel / ausente / expirado (RN-005, RN-015) |
+| motivo_situacao | VARCHAR(160) | cond. |  | motivo quando recusado/ausente/inelegivel (RN-020). Migration 012 |
 | importacao_id | BIGINT | não | FK | lote de origem |
 | criado_em / atualizado_em | DATETIME | — |  |  |
 | — | — | — | UNIQUE(campanha_id, paciente_id) | 1 elegibilidade por paciente/campanha |

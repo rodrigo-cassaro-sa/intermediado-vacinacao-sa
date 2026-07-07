@@ -120,6 +120,49 @@ function rota_importar_elegiveis(array $params): void
     ], 'Importação processada.', 201);
 }
 
+/**
+ * POST /api/v1/interno/elegiveis/{id}/situacao — marca recusado/ausente/inelegivel
+ * (com motivo) ou volta para pendente. RN-020.
+ */
+function rota_definir_situacao_elegivel(array $params): void
+{
+    $usuario = exigir_login();
+    if (!in_array($usuario['perfil'], ['super_admin', 'operador_interno', 'profissional_saude'], true)) {
+        responder_erro('Sem permissão.', 403, [
+            ['field' => null, 'code' => 'SEM_PERMISSAO', 'message' => 'Seu perfil não permite esta ação.'],
+        ]);
+    }
+    exigir_csrf();
+
+    $id = (int) ($params['id'] ?? 0);
+    $eleg = db_primeiro("SELECT id, campanha_id FROM elegivel WHERE id = :id LIMIT 1", [':id' => $id]);
+    if ($eleg === null) {
+        responder_erro('Elegível inexistente.', 404, [
+            ['field' => null, 'code' => 'NAO_ELEGIVEL', 'message' => 'Elegível não encontrado.'],
+        ]);
+    }
+    exigir_campanha_do_usuario($usuario, (int) $eleg['campanha_id']);
+
+    $dados = corpo_json();
+    $res = alterar_situacao_elegivel($id, $dados['status'] ?? '', $dados['motivo'] ?? '');
+    if (!$res['ok']) {
+        responder_erro($res['message'], $res['http'], [
+            ['field' => null, 'code' => $res['code'], 'message' => $res['message']],
+        ]);
+    }
+
+    registrar_auditoria('elegivel.situacao_definida', [
+        'ator_tipo'     => 'usuario',
+        'ator_id'       => (int) $usuario['id'],
+        'origem'        => 'admin',
+        'entidade_tipo' => 'elegivel',
+        'entidade_id'   => $id,
+        'metadata'      => ['status' => $dados['status'] ?? '', 'motivo' => $dados['motivo'] ?? ''],
+    ]);
+
+    responder_sucesso(['elegivel_id' => $id, 'status' => $dados['status']], 'Situação atualizada.');
+}
+
 /** GET /api/v1/interno/campanhas/{id}/elegiveis — lista + resumo. */
 function rota_listar_elegiveis(array $params): void
 {
@@ -144,7 +187,7 @@ function rota_listar_elegiveis(array $params): void
     }
 
     $itens = db_todos(
-        "SELECT e.id, p.cpf, p.nome, e.origem, e.tipo_vinculo, e.status, cc.nome AS clinica, e.criado_em
+        "SELECT e.id, p.cpf, p.nome, e.origem, e.tipo_vinculo, e.status, e.motivo_situacao, cc.nome AS clinica, e.criado_em
            FROM elegivel e
            JOIN paciente p ON p.id = e.paciente_id
       LEFT JOIN clinica_credenciada cc ON cc.id = e.clinica_id
