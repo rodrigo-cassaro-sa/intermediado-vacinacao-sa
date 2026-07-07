@@ -74,7 +74,7 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | Arquitetura | feito | doc 05: multi-tenant por tenant_id, API interno/parceiro, public/ docroot |
 | Mapa de telas | feito | doc 07: telas admin/portal/app + fluxos A–E |
 | Design/UX/UI | pendente |  |
-| Banco de dados | validado (homolog) | migrations 000..013 (013 = elegivel_historico + aplicacao_historico, RN-021/022). Auto-migração no deploy. |
+| Banco de dados | validado (homolog) | migrations 000..014 (014 = UNIQUE vacinado confirmado, idempotencia, elegivel.nome/nascimento). Auto-migração no deploy. |
 | Backend/API/PHP | validado (homolog) | blocos 1, 2 e 3 VALIDADOS em homolog via /admin (cliente→campanha→elegíveis→aplicação→tabela verdade/dashboard). Falta: extração CSV, rede credenciada testada com clínica real, refino. |
 | Frontend | em andamento | public/admin/index.html: console de testes (login/health/clientes/campanhas) via Fetch; validar no deploy |
 | Segurança/auditoria | em andamento | doc 10 preenchido (auth, escopo, auditoria, LGPD, criptografia); implementação nos middlewares pendente |
@@ -150,6 +150,11 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | 8f | RN-018/019 códigos do cliente + lastro do vacinado (commit 8e1b241) | usuário/deploy | alta | em andamento |
 | 8g | RN-020 motivo de não-vacinação (commit 30613a4) — migration 012 auto | usuário/deploy | média | em andamento |
 | 8h | RN-021/022 histórico (elegível/aplicação) + editar elegível + estornar/desvacinar (commit a490beb) — migration 013 auto | usuário/deploy | alta | em andamento |
+| 8i | Batch 1 robustez (concorrência/idempotência/isolamento/titular/remoção — RN-013 rev, RN-023..026, commit 786c83e) — migration 014 auto | usuário/deploy | alta | em andamento |
+| 9a | (próximo) Ingestão assíncrona em lotes (~100k por lista) | especialista-backend | alta | pendente |
+| 9b | Rate limit por credencial (item 12) | especialista-seguranca | alta | pendente |
+| 9c | Vacinado perpétuo/carteira + relatório ano a ano (itens 9/14) | especialista-backend | média | pendente |
+| 9d | Voucher p/ estrangeiro sem CPF (item 8); keyset (10); observabilidade (13) | especialista-backend | média | pendente |
 | backlog | Rastreabilidade extra: fabricante/validade lote, conselho profissional, comprovante, idempotência (recomendado) | especialista-backend | baixa/média | pendente |
 | 9 | Telas reais (portal B2B / painel operador) saindo do console de testes | especialista-design/frontend | média | pendente |
 | 10 | Preencher docs pendentes (11 integrações, 12 QA, 14 backup, 15 changelog, 16 handoff) | especialista-documentacao | média | pendente |
