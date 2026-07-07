@@ -25,6 +25,10 @@ return [
     'GET  /api/v1/interno/clinicas' => ['arquivo' => 'interno/clinicas.php', 'funcao' => 'rota_listar_clinicas'],
     'POST /api/v1/interno/campanhas/{id}/atribuir-clinica' => ['arquivo' => 'interno/clinicas.php', 'funcao' => 'rota_atribuir_clinica'],
 
+    // --- Relatórios: carteira consolidada (9c) e resumo ano a ano ---
+    'GET  /api/v1/interno/pacientes/{cpf}/carteira'         => ['arquivo' => 'interno/relatorios.php', 'funcao' => 'rota_carteira_paciente'],
+    'GET  /api/v1/interno/clientes/{id}/campanhas-resumo'   => ['arquivo' => 'interno/relatorios.php', 'funcao' => 'rota_resumo_campanhas_cliente'],
+
     // --- Catálogo de vacinas ---
     'GET  /api/v1/interno/vacinas' => ['arquivo' => 'interno/campanhas.php', 'funcao' => 'rota_listar_vacinas'],
 

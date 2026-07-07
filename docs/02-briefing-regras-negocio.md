@@ -88,6 +88,7 @@ dificuldade de auditoria e de devolver dados confiáveis ao cliente.
 | RN-024 | Na ingestão, o **titular de um dependente** precisa ser um **colaborador elegível** na mesma campanha (no arquivo ou já cadastrado) | Dependente cujo titular não é colaborador da campanha → CPF_TITULAR_NAO_ELEGIVEL | Integridade e faturamento | crítica |
 | RN-025 | Escritas de máquina (API/lote) aceitam **Idempotency-Key**: reenvio com a mesma chave devolve a resposta original, sem duplicar | Timeout de rede da clínica e retry → não duplica vacinado | Integridade em escala | importante |
 | RN-026 | Elegível **não vacinado** pode ser **removido** (soft, status `removido`) por turnover/limpeza; quem já foi vacinado não pode ser removido | Colaborador desligado antes de vacinar → removido; vacinado → mantido | Operação e integridade | importante |
+| RN-027 | **Vacinado é perpétuo** (carteira de vacinação): a aplicação guarda o paciente diretamente e nunca é apagada; campanha/elegível com aplicação não podem ser excluídos (FK RESTRICT). A **carteira consolidada** por CPF reúne todas as doses de todos os anos. Cliente B2B só vê as doses das próprias campanhas (LGPD); internos veem tudo (auditado) | Colaborador muda de empresa mas a carteira dele persiste; relatório ano a ano compara campanhas | Produto e integridade | crítica |
 
 ---
 

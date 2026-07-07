@@ -309,6 +309,18 @@
       </div>
     </div>
 
+    <!-- CARTEIRA & RELATÓRIOS -->
+    <div class="card full">
+      <h2>10. Carteira de vacinação & relatório ano a ano (9c)</h2>
+      <div class="row">
+        <div><label>Carteira do paciente (CPF)</label><input id="cartCpf" placeholder="52998224725" /></div>
+        <div style="flex:0"><label>&nbsp;</label><button onclick="verCarteira()">Ver carteira</button></div>
+        <div><label>Resumo de campanhas do cliente (ID)</label><input id="relCliente" placeholder="1" /></div>
+        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="verResumoCliente()">Resumo ano a ano</button></div>
+      </div>
+      <table id="tblCarteira"></table>
+    </div>
+
     <!-- RESPOSTA -->
     <div class="card full">
       <h2>Última resposta da API</h2>
@@ -711,6 +723,29 @@ async function verHistoricoAplicacao() {
   const id = document.getElementById('estAplId').value;
   if (!id) return log('Informe o ID da aplicação.');
   await api(`/interno/aplicacoes/${id}/historico`);
+}
+
+async function verCarteira() {
+  const cpf = document.getElementById('cartCpf').value.replace(/\D/g, '');
+  if (!cpf) return log('Informe o CPF.');
+  const d = await api(`/interno/pacientes/${cpf}/carteira`);
+  if (!d.success) return;
+  document.getElementById('tblCarteira').innerHTML =
+    `<tr><th colspan="6">${d.data.paciente.nome} — ${d.data.total_doses} dose(s)</th></tr>` +
+    '<tr><th>Data</th><th>Vacina</th><th>Dose</th><th>Lote</th><th>Campanha/Cliente</th><th>Local</th></tr>' +
+    (d.data.doses || []).map(x =>
+      `<tr><td>${(x.aplicado_em||'').substring(0,10)}</td><td>${x.vacina}</td><td>${x.dose}</td><td>${x.lote}</td><td>${x.campanha} / ${x.cliente}</td><td>${x.cidade||''}/${x.uf||''}</td></tr>`).join('');
+}
+
+async function verResumoCliente() {
+  const id = document.getElementById('relCliente').value;
+  if (!id) return log('Informe o ID do cliente.');
+  const d = await api(`/interno/clientes/${id}/campanhas-resumo`);
+  if (!d.success) return;
+  document.getElementById('tblCarteira').innerHTML =
+    '<tr><th>Ano</th><th>Campanha</th><th>Modalidade</th><th>Período</th><th>Elegíveis</th><th>Aplicados</th><th>Cobertura</th></tr>' +
+    (d.data.itens || []).map(c =>
+      `<tr><td>${c.ano||''}</td><td>${c.nome}</td><td>${c.modalidade}</td><td>${c.periodo_inicio}→${c.periodo_fim}</td><td>${c.elegiveis}</td><td>${c.aplicados}</td><td>${c.cobertura_percentual}%</td></tr>`).join('');
 }
 
 // Ao abrir, checa a saúde do serviço.
