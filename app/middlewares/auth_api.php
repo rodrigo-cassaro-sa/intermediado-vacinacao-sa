@@ -50,14 +50,20 @@ function exigir_credencial(string $tipoEsperado): array
     return $cred;
 }
 
+/** Verifica (sem encerrar) se a credencial tem escopo na campanha. */
+function credencial_tem_escopo(array $credencial, int $campanhaId): bool
+{
+    $escopo = $credencial['escopo_campanha_id'] ?? null;
+    return $escopo !== null && (int) $escopo === $campanhaId;
+}
+
 /**
  * Garante que a campanha da URL está dentro do escopo da credencial (RN-009).
  * Responde 403 FORA_DO_ESCOPO caso contrário.
  */
 function exigir_escopo_campanha(array $credencial, int $campanhaId): void
 {
-    $escopo = $credencial['escopo_campanha_id'] ?? null;
-    if ($escopo === null || (int) $escopo !== $campanhaId) {
+    if (!credencial_tem_escopo($credencial, $campanhaId)) {
         registrar_auditoria('permissao.negada', [
             'ator_tipo'     => 'credencial_api',
             'ator_id'       => (int) $credencial['id'],

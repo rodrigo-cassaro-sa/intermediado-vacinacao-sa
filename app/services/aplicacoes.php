@@ -7,14 +7,38 @@
 // ============================================================================
 
 /**
- * Registra uma aplicação de dose de forma rastreável e imutável.
- * $ctx exige: elegivel_id, vacina_id, dose, lote, aplicado_em, executor_tipo,
- *             executor_id, origem; opcionais: via_administracao, local_aplicacao, criado_por.
- * Valida tudo no backend, insere a aplicação e marca o elegível como 'aplicado'.
- * Em erro de negócio, responde e encerra. Devolve [aplicacao_id, tenant_id, campanha_id].
+ * Wrapper para registro UNITÁRIO: valida, e em erro responde e encerra.
+ * Usado pelos endpoints de aplicação única. Devolve [aplicacao_id, tenant_id, campanha_id].
  */
 function registrar_aplicacao(array $ctx): array
 {
+    $res = processar_aplicacao($ctx);
+    if (!$res['ok']) {
+        responder_erro($res['message'], $res['http'], [
+            ['field' => $res['field'] ?? null, 'code' => $res['code'], 'message' => $res['message']],
+        ]);
+    }
+    return $res;
+}
+
+/**
+ * Registra uma aplicação de dose (rastreável e imutável) SEM encerrar em erro.
+ * Devolve, em sucesso: ['ok'=>true, 'aplicacao_id', 'tenant_id', 'campanha_id'];
+ *          em erro:    ['ok'=>false, 'http', 'code', 'message', 'field'].
+ * Não valida escopo/permissão (responsabilidade do chamador). Base: RN-003/010/013.
+ */
+function processar_aplicacao(array $ctx): array
+{
+    $erro = fn(int $http, string $code, string $msg, ?string $field = null) =>
+        ['ok' => false, 'http' => $http, 'code' => $code, 'message' => $msg, 'field' => $field];
+
+    // Campos mínimos.
+    foreach (['elegivel_id', 'vacina_id', 'dose', 'lote', 'aplicado_em'] as $campo) {
+        if (!isset($ctx[$campo]) || $ctx[$campo] === '' || $ctx[$campo] === null) {
+            return $erro(400, 'CAMPO_OBRIGATORIO', "O campo '$campo' é obrigatório.", $campo);
+        }
+    }
+
     // Elegível + dados da campanha.
     $eleg = db_primeiro(
         "SELECT e.id, e.campanha_id, c.tenant_id, c.status AS campanha_status,
@@ -25,28 +49,20 @@ function registrar_aplicacao(array $ctx): array
         [':id' => (int) $ctx['elegivel_id']]
     );
     if ($eleg === null) {
-        responder_erro('Paciente não elegível.', 422, [
-            ['field' => 'elegivel_id', 'code' => 'NAO_ELEGIVEL', 'message' => 'Elegível inexistente.'],
-        ]);
+        return $erro(422, 'NAO_ELEGIVEL', 'Elegível inexistente.', 'elegivel_id');
     }
     if ($eleg['campanha_status'] !== 'ativa') {
-        responder_erro('Campanha não está ativa.', 422, [
-            ['field' => null, 'code' => 'CAMPANHA_INATIVA', 'message' => 'Só é possível registrar em campanha ativa.'],
-        ]);
+        return $erro(422, 'CAMPANHA_INATIVA', 'Só é possível registrar em campanha ativa.');
     }
 
     // Data/hora da aplicação dentro da janela da campanha (RN-003).
     $ts = strtotime((string) $ctx['aplicado_em']);
     if ($ts === false) {
-        responder_erro('Data de aplicação inválida.', 400, [
-            ['field' => 'aplicado_em', 'code' => 'DATA_INVALIDA', 'message' => 'Use AAAA-MM-DD HH:MM:SS.'],
-        ]);
+        return $erro(400, 'DATA_INVALIDA', 'Use AAAA-MM-DD HH:MM:SS.', 'aplicado_em');
     }
     $diaAplicacao = date('Y-m-d', $ts);
     if ($diaAplicacao < $eleg['periodo_inicio'] || $diaAplicacao > $eleg['periodo_fim']) {
-        responder_erro('Fora da janela da campanha.', 422, [
-            ['field' => 'aplicado_em', 'code' => 'FORA_DO_PERIODO', 'message' => 'Data fora do período da campanha.'],
-        ]);
+        return $erro(422, 'FORA_DO_PERIODO', 'Data fora do período da campanha.', 'aplicado_em');
     }
 
     // Vacina precisa estar prevista na campanha.
@@ -55,21 +71,16 @@ function registrar_aplicacao(array $ctx): array
         [':c' => (int) $eleg['campanha_id'], ':v' => (int) $ctx['vacina_id']]
     );
     if ($prevista === null) {
-        responder_erro('Vacina não prevista na campanha.', 422, [
-            ['field' => 'vacina_id', 'code' => 'VACINA_FORA_DA_CAMPANHA', 'message' => 'Vacina não faz parte da campanha.'],
-        ]);
+        return $erro(422, 'VACINA_FORA_DA_CAMPANHA', 'Vacina não faz parte da campanha.', 'vacina_id');
     }
 
-    // RN-013: um elegível só pode ter UM vacinado confirmado (pagamento por vacinado
-    // à clínica não pode repetir). Correção deve usar a retificação (RN-010).
+    // RN-013: um elegível só pode ter UM vacinado confirmado.
     $jaVacinado = db_primeiro(
         "SELECT id FROM aplicacao WHERE elegivel_id = :e AND status = 'confirmada' LIMIT 1",
         [':e' => (int) $ctx['elegivel_id']]
     );
     if ($jaVacinado !== null) {
-        responder_erro('Paciente já vacinado nesta campanha.', 409, [
-            ['field' => null, 'code' => 'VACINADO_DUPLICADO', 'message' => 'Este paciente já consta como vacinado nesta campanha.'],
-        ]);
+        return $erro(409, 'VACINADO_DUPLICADO', 'Este paciente já consta como vacinado nesta campanha.');
     }
 
     try {
@@ -112,6 +123,7 @@ function registrar_aplicacao(array $ctx): array
     }
 
     return [
+        'ok'           => true,
         'aplicacao_id' => $aplicacaoId,
         'tenant_id'    => (int) $eleg['tenant_id'],
         'campanha_id'  => (int) $eleg['campanha_id'],

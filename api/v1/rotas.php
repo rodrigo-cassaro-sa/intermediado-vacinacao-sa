@@ -47,6 +47,7 @@ return [
 
     // --- Aplicação (bloco 3) ---
     'POST /api/v1/interno/aplicacoes'              => ['arquivo' => 'interno/aplicacoes.php', 'funcao' => 'rota_registrar_aplicacao'],
+    'POST /api/v1/interno/aplicacoes-lote'         => ['arquivo' => 'interno/aplicacoes.php', 'funcao' => 'rota_registrar_aplicacoes_lote'],
     'POST /api/v1/interno/aplicacoes/{id}/retificar' => ['arquivo' => 'interno/aplicacoes.php', 'funcao' => 'rota_retificar_aplicacao'],
 
     // --- Tabela verdade e dashboard (bloco 3) ---
@@ -58,4 +59,5 @@ return [
     'POST /api/v1/parceiro/campanhas/{id}/elegiveis'        => ['arquivo' => 'parceiro/elegiveis.php', 'funcao' => 'rota_parceiro_ingerir_elegiveis'],
     'GET  /api/v1/parceiro/campanhas/{id}/elegiveis/{cpf}'  => ['arquivo' => 'parceiro/aplicacoes.php', 'funcao' => 'rota_parceiro_consultar_elegivel'],
     'POST /api/v1/parceiro/aplicacoes'                      => ['arquivo' => 'parceiro/aplicacoes.php', 'funcao' => 'rota_parceiro_registrar_aplicacao'],
+    'POST /api/v1/parceiro/aplicacoes-lote'                 => ['arquivo' => 'parceiro/aplicacoes.php', 'funcao' => 'rota_parceiro_registrar_aplicacoes_lote'],
 ];

@@ -240,6 +240,10 @@
         <div><label>Data/hora</label><input id="redeData" type="datetime-local" value="2026-07-16T09:00" /></div>
         <div style="flex:0"><label>&nbsp;</label><button onclick="registrarViaClinica()">Registrar via API clínica</button></div>
       </div>
+      <label style="margin-top:8px">Registro em LOTE (uma linha por vacinado: <span class="muted">elegivel_id;vacina_id;dose;lote;data</span>)</label>
+      <textarea id="redeLote2" rows="3" style="width:100%;padding:8px;background:#0b1220;border:1px solid var(--line);border-radius:6px;color:var(--txt)"
+        placeholder="12;5;1;RED-2026-01;2026-07-16 09:00&#10;13;5;1;RED-2026-01;2026-07-16 09:10"></textarea>
+      <div style="margin-top:8px"><button onclick="registrarLoteClinica()">Registrar em lote (API)</button></div>
     </div>
 
     <!-- RESPOSTA -->
@@ -416,6 +420,17 @@ async function consultarElegivelRede() {
     document.getElementById('redeVacina').innerHTML =
       (d.data.vacinas_previstas || []).map(v => `<option value="${v.vacina_id}">${v.nome}</option>`).join('');
   }
+}
+
+async function registrarLoteClinica() {
+  const token = document.getElementById('redeToken').value.trim();
+  if (!token) return log('Emita/cole um token da clínica.');
+  const aplicacoes = document.getElementById('redeLote2').value.split(/\r?\n/)
+    .map(l => l.trim()).filter(Boolean).map(l => {
+      const p = l.split(/[;,]/).map(x => x.trim());
+      return { elegivel_id: Number(p[0]), vacina_id: Number(p[1]), dose: Number(p[2]), lote: p[3], aplicado_em: p[4] };
+    });
+  await apiBearer('/parceiro/aplicacoes-lote', 'POST', { aplicacoes }, token);
 }
 
 async function registrarViaClinica() {

@@ -65,6 +65,99 @@ function rota_registrar_aplicacao(array $params): void
     ], 'Aplicação registrada.', 201);
 }
 
+/**
+ * POST /api/v1/interno/aplicacoes-lote — registra várias aplicações de uma vez.
+ * Body: { aplicacoes: [ {elegivel_id, vacina_id, dose, lote, aplicado_em, ...}, ... ] }
+ * Processa item a item (não para no 1º erro) e devolve relatório por índice.
+ */
+function rota_registrar_aplicacoes_lote(array $params): void
+{
+    $usuario = exigir_login();
+    if (!in_array($usuario['perfil'], PERFIS_APLICA, true)) {
+        responder_erro('Sem permissão para registrar aplicação.', 403, [
+            ['field' => null, 'code' => 'SEM_PERMISSAO', 'message' => 'Seu perfil não permite esta ação.'],
+        ]);
+    }
+    exigir_csrf();
+
+    $dados = corpo_json();
+    if (empty($dados['aplicacoes']) || !is_array($dados['aplicacoes'])) {
+        responder_erro('Envie a lista "aplicacoes".', 400, [
+            ['field' => 'aplicacoes', 'code' => 'SEM_DADOS', 'message' => 'Nenhuma aplicação informada.'],
+        ]);
+    }
+
+    $confirmados = 0; $rejeitados = 0; $itens = [];
+    foreach ($dados['aplicacoes'] as $i => $ap) {
+        $indice = $i + 1;
+        if (!is_array($ap) || empty($ap['elegivel_id'])) {
+            $rejeitados++;
+            $itens[] = ['indice' => $indice, 'ok' => false, 'code' => 'CAMPO_OBRIGATORIO'];
+            continue;
+        }
+        // Escopo por item: a campanha do elegível precisa ser acessível ao usuário.
+        $eleg = campanha_do_elegivel((int) $ap['elegivel_id']);
+        if ($eleg === null) {
+            $rejeitados++;
+            $itens[] = ['indice' => $indice, 'elegivel_id' => (int) $ap['elegivel_id'], 'ok' => false, 'code' => 'NAO_ELEGIVEL'];
+            continue;
+        }
+        if (!usuario_pode_campanha($usuario, (int) $eleg['campanha_id'])) {
+            $rejeitados++;
+            $itens[] = ['indice' => $indice, 'elegivel_id' => (int) $ap['elegivel_id'], 'ok' => false, 'code' => 'FORA_DO_ESCOPO'];
+            continue;
+        }
+
+        $res = processar_aplicacao([
+            'elegivel_id'       => (int) $ap['elegivel_id'],
+            'vacina_id'         => (int) ($ap['vacina_id'] ?? 0),
+            'dose'              => (int) ($ap['dose'] ?? 0),
+            'lote'              => $ap['lote'] ?? '',
+            'via_administracao' => $ap['via_administracao'] ?? null,
+            'local_aplicacao'   => $ap['local_aplicacao'] ?? null,
+            'aplicado_em'       => $ap['aplicado_em'] ?? '',
+            'executor_tipo'     => 'profissional_saude',
+            'executor_id'       => (int) $usuario['id'],
+            'origem'            => 'app',
+            'criado_por'        => (int) $usuario['id'],
+        ]);
+
+        if ($res['ok']) {
+            $confirmados++;
+            $itens[] = ['indice' => $indice, 'elegivel_id' => (int) $ap['elegivel_id'], 'ok' => true, 'aplicacao_id' => $res['aplicacao_id']];
+        } else {
+            $rejeitados++;
+            $itens[] = ['indice' => $indice, 'elegivel_id' => (int) $ap['elegivel_id'], 'ok' => false, 'code' => $res['code']];
+        }
+    }
+
+    registrar_auditoria('aplicacoes.lote_registradas', [
+        'ator_tipo'     => 'usuario',
+        'ator_id'       => (int) $usuario['id'],
+        'origem'        => 'app',
+        'entidade_tipo' => 'aplicacao',
+        'metadata'      => ['recebidos' => count($dados['aplicacoes']), 'confirmados' => $confirmados],
+    ]);
+
+    responder_sucesso([
+        'recebidos'   => count($dados['aplicacoes']),
+        'confirmados' => $confirmados,
+        'rejeitados'  => $rejeitados,
+        'itens'       => $itens,
+    ], 'Lote processado.', 201);
+}
+
+/** Verifica (sem encerrar) se o usuário pode operar na campanha. */
+function usuario_pode_campanha(array $usuario, int $campanhaId): bool
+{
+    $internos = ['super_admin', 'operador_interno'];
+    if (in_array($usuario['perfil'], $internos, true)) {
+        return true;
+    }
+    $c = db_primeiro("SELECT tenant_id FROM campanha WHERE id = :id AND excluido_em IS NULL LIMIT 1", [':id' => $campanhaId]);
+    return $c !== null && $usuario['tenant_id'] !== null && (int) $c['tenant_id'] === (int) $usuario['tenant_id'];
+}
+
 /** POST /api/v1/interno/aplicacoes/{id}/retificar — cria novo registro (RN-010). */
 function rota_retificar_aplicacao(array $params): void
 {

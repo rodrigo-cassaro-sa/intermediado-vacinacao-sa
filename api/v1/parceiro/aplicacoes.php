@@ -98,3 +98,80 @@ function rota_parceiro_registrar_aplicacao(array $params): void
         'elegivel_status' => 'aplicado',
     ], 'Aplicação registrada.', 201);
 }
+
+/**
+ * POST /api/v1/parceiro/aplicacoes-lote — registra vários vacinados (rede credenciada).
+ * Body: { aplicacoes: [ {elegivel_id, vacina_id, dose, lote, aplicado_em, ...}, ... ] }
+ * Cada item respeita escopo por campanha (RN-009) e isolamento por clínica (RN-012).
+ */
+function rota_parceiro_registrar_aplicacoes_lote(array $params): void
+{
+    $cred = exigir_credencial('rede_credenciada');
+
+    $dados = corpo_json();
+    if (empty($dados['aplicacoes']) || !is_array($dados['aplicacoes'])) {
+        responder_erro('Envie a lista "aplicacoes".', 400, [
+            ['field' => 'aplicacoes', 'code' => 'PAYLOAD_INVALIDO', 'message' => 'Nenhuma aplicação informada.'],
+        ]);
+    }
+
+    $confirmados = 0; $rejeitados = 0; $itens = [];
+    foreach ($dados['aplicacoes'] as $i => $ap) {
+        $indice = $i + 1;
+        if (!is_array($ap) || empty($ap['elegivel_id'])) {
+            $rejeitados++;
+            $itens[] = ['indice' => $indice, 'ok' => false, 'code' => 'CAMPO_OBRIGATORIO'];
+            continue;
+        }
+        $eleg = campanha_do_elegivel((int) $ap['elegivel_id']);
+        if ($eleg === null) {
+            $rejeitados++;
+            $itens[] = ['indice' => $indice, 'elegivel_id' => (int) $ap['elegivel_id'], 'ok' => false, 'code' => 'NAO_ELEGIVEL'];
+            continue;
+        }
+        // Escopo (RN-009) e isolamento por clínica (RN-012), por item.
+        if (!credencial_tem_escopo($cred, (int) $eleg['campanha_id'])
+            || (int) ($eleg['clinica_id'] ?? 0) !== (int) $cred['titular_id']) {
+            $rejeitados++;
+            $itens[] = ['indice' => $indice, 'elegivel_id' => (int) $ap['elegivel_id'], 'ok' => false, 'code' => 'FORA_DO_ESCOPO'];
+            continue;
+        }
+
+        $res = processar_aplicacao([
+            'elegivel_id'       => (int) $ap['elegivel_id'],
+            'vacina_id'         => (int) ($ap['vacina_id'] ?? 0),
+            'dose'              => (int) ($ap['dose'] ?? 0),
+            'lote'              => $ap['lote'] ?? '',
+            'via_administracao' => $ap['via_administracao'] ?? null,
+            'local_aplicacao'   => $ap['local_aplicacao'] ?? null,
+            'aplicado_em'       => $ap['aplicado_em'] ?? '',
+            'executor_tipo'     => 'clinica_credenciada',
+            'executor_id'       => (int) $cred['titular_id'],
+            'origem'            => 'api',
+            'criado_por'        => null,
+        ]);
+
+        if ($res['ok']) {
+            $confirmados++;
+            $itens[] = ['indice' => $indice, 'elegivel_id' => (int) $ap['elegivel_id'], 'ok' => true, 'aplicacao_id' => $res['aplicacao_id']];
+        } else {
+            $rejeitados++;
+            $itens[] = ['indice' => $indice, 'elegivel_id' => (int) $ap['elegivel_id'], 'ok' => false, 'code' => $res['code']];
+        }
+    }
+
+    registrar_auditoria('aplicacoes.lote_registradas', [
+        'ator_tipo'     => 'credencial_api',
+        'ator_id'       => (int) $cred['id'],
+        'origem'        => 'api_parceiro',
+        'entidade_tipo' => 'aplicacao',
+        'metadata'      => ['recebidos' => count($dados['aplicacoes']), 'confirmados' => $confirmados],
+    ]);
+
+    responder_sucesso([
+        'recebidos'   => count($dados['aplicacoes']),
+        'confirmados' => $confirmados,
+        'rejeitados'  => $rejeitados,
+        'itens'       => $itens,
+    ], 'Lote processado.', 201);
+}

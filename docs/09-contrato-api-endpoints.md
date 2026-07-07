@@ -84,6 +84,7 @@ Códigos HTTP:
 | POST | /campanhas/{id}/elegiveis/importar | Importar elegíveis por upload | operador / cliente_b2b (própria) | sim |
 | GET | /campanhas/{id}/elegiveis | Listar elegíveis da campanha | escopo da campanha | não |
 | POST | /aplicacoes | Registrar aplicação (app in company) | profissional_saude (campanha atribuída) | sim |
+| POST | /aplicacoes-lote | Registrar várias aplicações (relatório por item) | profissional_saude / operador | sim |
 | POST | /aplicacoes/{id}/retificar | Retificar aplicação (novo registro) | operador_interno+ | sim |
 | GET | /campanhas/{id}/tabela-verdade | Consolidação elegível×aplicado | operador / cliente_b2b (própria) | sim |
 | GET | /campanhas/{id}/dashboard | Métricas da campanha | operador / cliente_b2b (própria) | sim |
@@ -100,6 +101,11 @@ Códigos HTTP:
 | GET | /campanhas/{id}/elegiveis | Consultar elegíveis (para vacinar) | clinica_credenciada | sim |
 | GET | /campanhas/{id}/elegiveis/{cpf} | Consultar um elegível por CPF | clinica_credenciada | sim |
 | POST | /aplicacoes | Registrar vacinado | clinica_credenciada | sim |
+| POST | /aplicacoes-lote | Registrar vários vacinados (relatório por item) | clinica_credenciada | sim |
+
+> **Endpoints em lote** (`/aplicacoes-lote`): body `{ "aplicacoes": [ {elegivel_id, vacina_id, dose, lote, aplicado_em}, ... ] }`.
+> Processam item a item (não param no 1º erro) e devolvem `{recebidos, confirmados, rejeitados, itens:[{indice, elegivel_id, ok, code|aplicacao_id}]}`.
+> A ingestão de **elegíveis** já é em lote (ver seções de importar/ingestão).
 
 > Todo endpoint parceiro só opera dentro de `credencial_api.escopo_campanha_id` (RN-009).
 > Acesso a campanha fora do escopo → **403 FORA_DO_ESCOPO**.
