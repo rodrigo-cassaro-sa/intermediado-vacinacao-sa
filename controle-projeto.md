@@ -153,7 +153,7 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | 8i | Batch 1 robustez (concorrência/idempotência/isolamento/titular/remoção — RN-013 rev, RN-023..026) — migration 014 APLICADA em homolog | usuário/deploy | alta | feito |
 | 9a | Ingestão assíncrona em lotes + relatório de erros ao cliente (commit c98204b) — migration 015 auto; requer cron do worker | usuário/deploy | alta | em andamento |
 | 9b | Rate limit por credencial + login (commit 9048c1b) — migration 016 auto | usuário/deploy | alta | feito |
-| 9c | Vacinado perpétuo/carteira + relatório ano a ano (itens 9/14) | especialista-backend | média | pendente |
+| 9c | Vacinado perpétuo/carteira consolidada + relatório ano a ano (commit 695865c) — sem migration | usuário/deploy | média | feito |
 | 9d | Voucher p/ estrangeiro sem CPF (item 8); keyset (10); observabilidade (13) | especialista-backend | média | pendente |
 | backlog | Rastreabilidade extra: fabricante/validade lote, conselho profissional, comprovante, idempotência (recomendado) | especialista-backend | baixa/média | pendente |
 | 9 | Telas reais (portal B2B / painel operador) saindo do console de testes | especialista-design/frontend | média | pendente |
@@ -190,7 +190,7 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | Sem rate limit real nas APIs (500 clientes podem travar) | segurança/escala | alta | RESOLVIDO: rate limit por credencial + login (mig 016, commit 9048c1b) | mitigado |
 | Sem módulo de faturamento (pagar clínica / cobrar cliente) | negócio | alta | ADIADO pelo usuário (item 4) | aberto |
 | Estrangeiro sem CPF | cobertura | média | Decidido: usar voucher/identificador (item 8) — a implementar | aberto |
-| Sem relatório longitudinal ano a ano / carteira consolidada | produto | média | PENDENTE (itens 9 e 14) | aberto |
+| Sem relatório longitudinal ano a ano / carteira consolidada | produto | média | RESOLVIDO: carteira por CPF + resumo ano a ano (commit 695865c) | mitigado |
 | Observabilidade só /health | operação | média | PENDENTE: métricas, alertas, visão de fila (item 13) | aberto |
 | Paginação por OFFSET lenta em milhões | performance | média | PENDENTE: keyset/cursor (item 10) | aberto |
 | API externa (rede) com escopo mal definido | integração/segurança | alta | Credencial por parceiro, escopo por campanha (RN-009) | aberto |
