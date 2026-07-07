@@ -180,13 +180,10 @@ function rota_listar_elegiveis(array $params): void
     $id = id_campanha_rota($params['id'] ?? null);
     exigir_campanha_do_usuario($usuario, $id);
 
-    [$page, $porPagina, $offset] = paginacao();
+    // Paginação por cursor (keyset) — escala em milhões (item 10).
+    [$apos, $porPagina] = paginacao_keyset();
 
-    $total = (int) (db_primeiro(
-        "SELECT COUNT(*) AS t FROM elegivel WHERE campanha_id = :id", [':id' => $id]
-    )['t'] ?? 0);
-
-    // Resumo por status (base da tabela verdade — RN-005).
+    // Resumo por status (usa o índice (campanha_id, status) — RN-005).
     $resumoLinhas = db_todos(
         "SELECT status, COUNT(*) AS total FROM elegivel WHERE campanha_id = :id GROUP BY status",
         [':id' => $id]
@@ -195,24 +192,33 @@ function rota_listar_elegiveis(array $params): void
     foreach ($resumoLinhas as $r) {
         $resumo[$r['status']] = (int) $r['total'];
     }
+    $total = array_sum($resumo);
+
+    $where = 'e.campanha_id = :id';
+    $bind  = [':id' => $id];
+    if ($apos > 0) {
+        $where .= ' AND e.id < :apos';   // ordem por id DESC
+        $bind[':apos'] = $apos;
+    }
 
     $itens = db_todos(
         "SELECT e.id, p.cpf, COALESCE(e.nome, p.nome) AS nome, e.origem, e.tipo_vinculo, e.status, e.motivo_situacao, cc.nome AS clinica, e.criado_em
            FROM elegivel e
            JOIN paciente p ON p.id = e.paciente_id
       LEFT JOIN clinica_credenciada cc ON cc.id = e.clinica_id
-          WHERE e.campanha_id = :id
-          ORDER BY p.nome
-          LIMIT $porPagina OFFSET $offset",
-        [':id' => $id]
+          WHERE $where
+          ORDER BY e.id DESC
+          LIMIT $porPagina",
+        $bind
     );
-    // Mascara CPF na listagem (docs/10).
     foreach ($itens as &$it) {
         $it['cpf'] = mascarar_cpf($it['cpf']);
     }
     unset($it);
 
+    $proximo = count($itens) === $porPagina ? (int) end($itens)['id'] : null;
+
     responder_sucesso(['resumo' => $resumo, 'itens' => $itens], 'OK.', 200, [
-        'page' => $page, 'por_pagina' => $porPagina, 'total' => $total,
+        'por_pagina' => $porPagina, 'total' => $total, 'proximo_cursor' => $proximo,
     ]);
 }

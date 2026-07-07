@@ -12,26 +12,36 @@ function rota_tabela_verdade(array $params): void
     $id = id_campanha_rota($params['id'] ?? null);
     exigir_campanha_do_usuario($usuario, $id);
 
-    [$page, $porPagina, $offset] = paginacao();
+    // Keyset por paciente_id (único por campanha na VIEW) — escala em milhões (item 10).
+    [$apos, $porPagina] = paginacao_keyset();
 
     $resumo = resumo_situacao($id);
     $total = array_sum($resumo);
 
+    $where = 'campanha_id = :id';
+    $bind  = [':id' => $id];
+    if ($apos > 0) {
+        $where .= ' AND paciente_id > :apos';
+        $bind[':apos'] = $apos;
+    }
+
     $itens = db_todos(
-        "SELECT cpf, nome, situacao_elegivel, total_aplicacoes, ultima_aplicacao_em
+        "SELECT paciente_id, cpf, nome, situacao_elegivel, total_aplicacoes, ultima_aplicacao_em
            FROM vw_tabela_verdade
-          WHERE campanha_id = :id
-          ORDER BY nome
-          LIMIT $porPagina OFFSET $offset",
-        [':id' => $id]
+          WHERE $where
+          ORDER BY paciente_id ASC
+          LIMIT $porPagina",
+        $bind
     );
     foreach ($itens as &$it) {
         $it['cpf'] = mascarar_cpf($it['cpf']);
     }
     unset($it);
 
+    $proximo = count($itens) === $porPagina ? (int) end($itens)['paciente_id'] : null;
+
     responder_sucesso(['resumo' => $resumo, 'itens' => $itens], 'OK.', 200, [
-        'page' => $page, 'por_pagina' => $porPagina, 'total' => $total,
+        'por_pagina' => $porPagina, 'total' => $total, 'proximo_cursor' => $proximo,
     ]);
 }
 

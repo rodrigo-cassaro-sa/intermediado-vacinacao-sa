@@ -71,6 +71,18 @@ function paginacao(): array
     return [$page, $porPagina, $offset];
 }
 
+/**
+ * Paginação por cursor (keyset) — eficiente em milhões de linhas (evita OFFSET).
+ * Lê ?apos (último id/chave da página anterior) e ?por_pagina. Devolve [apos, limite].
+ */
+function paginacao_keyset(): array
+{
+    $por = isset($_GET['por_pagina']) && is_numeric($_GET['por_pagina'])
+        ? min(200, max(1, (int) $_GET['por_pagina'])) : 50;
+    $apos = isset($_GET['apos']) && is_numeric($_GET['apos']) ? (int) $_GET['apos'] : 0;
+    return [$apos, $por];
+}
+
 /** Lê e decodifica o corpo JSON da requisição (ou [] se vazio). */
 function corpo_json(): array
 {

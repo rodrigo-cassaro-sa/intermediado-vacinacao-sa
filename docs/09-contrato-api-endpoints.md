@@ -58,7 +58,10 @@ Multi-tenant:
 - interno  → tenant_id derivado da sessão (NUNCA aceito do corpo/URL para escopo).
 - parceiro → tenant_id/escopo derivado do token (credencial_api).
 
-Paginação (listagens): ?page=1&por_pagina=50  → meta { page, por_pagina, total }.
+Paginação (listagens grandes): keyset/cursor — ?apos={ultimo_cursor}&por_pagina=50
+  → meta { por_pagina, total, proximo_cursor }. Enviar proximo_cursor em `apos` para a
+  próxima página; proximo_cursor=null significa fim. Evita OFFSET (escala em milhões).
+  Listas pequenas podem ignorar (retorna a 1ª página).
 Idempotência (parceiro, POST de escrita): header Idempotency-Key para evitar duplicidade.
 
 Códigos HTTP:
