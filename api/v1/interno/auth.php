@@ -7,6 +7,9 @@
 
 function rota_login(array $params): void
 {
+    // Anti-brute force: limita tentativas de login por IP.
+    rate_limit_ou_429('login:' . ($_SERVER['REMOTE_ADDR'] ?? 'desconhecido'), (int) env('RATE_LIMIT_LOGIN', 20));
+
     $dados = corpo_json();
     $erros = exigir_campos($dados, ['email', 'senha']);
     if ($erros) {

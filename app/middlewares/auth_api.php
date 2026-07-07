@@ -47,6 +47,14 @@ function exigir_credencial(string $tipoEsperado): array
             ['field' => null, 'code' => 'CREDENCIAL_INVALIDA', 'message' => 'Token inválido ou sem permissão.'],
         ]);
     }
+
+    // Rate limit por credencial (item 9b/12): limite_rpm da própria credencial
+    // ou o padrão do ambiente. Protege a API de excesso de acessos/consultas.
+    $limite = isset($cred['limite_rpm']) && $cred['limite_rpm'] !== null
+        ? (int) $cred['limite_rpm']
+        : (int) env('RATE_LIMIT_RPM', 120);
+    rate_limit_ou_429('cred:' . $cred['id'], $limite);
+
     return $cred;
 }
 

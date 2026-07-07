@@ -43,7 +43,9 @@ Máquinas (rede credenciada, ingestão B2B):
   Armazenamento: apenas token_hash no banco; token cru mostrado 1x na emissão.
   Escopo: escopo_campanha_id restringe à campanha (RN-009).
   Ciclo de vida: expira_em, revogado_em; rotação suportada (emitir nova + revogar antiga).
-  Rate limit: por credencial (ex.: 60 req/min) → 429 quando excede.
+  Rate limit: IMPLEMENTADO — por credencial (env RATE_LIMIT_RPM, padrão 120/min, ou
+  limite_rpm próprio da credencial) → HTTP 429 + Retry-After. Login: por IP (RATE_LIMIT_LOGIN,
+  padrão 20/min). Contadores em `rate_limite` (janela de 60s), limpos pelo cron diário.
 ```
 
 ---

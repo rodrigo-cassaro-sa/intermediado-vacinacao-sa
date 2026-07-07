@@ -25,4 +25,12 @@ $stmt2 = db_executar(
 );
 $encerradas = $stmt2->rowCount();
 
+// Limpeza dos contadores de rate limit de janelas antigas (> 1h atrás).
+try {
+    $bucketCorte = intdiv(time(), 60) - 60;
+    db_executar("DELETE FROM rate_limite WHERE janela < :b", [':b' => $bucketCorte]);
+} catch (Throwable $e) {
+    // tabela pode não existir em ambientes antigos; ignora
+}
+
 echo "Elegíveis expirados: $expirados | Campanhas encerradas: $encerradas\n";

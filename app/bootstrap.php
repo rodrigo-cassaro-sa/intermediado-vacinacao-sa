@@ -12,6 +12,7 @@ require_once __DIR__ . '/helpers/resposta.php';
 require_once __DIR__ . '/helpers/validacao.php';
 require_once __DIR__ . '/helpers/auditoria.php';
 require_once __DIR__ . '/helpers/idempotencia.php';
+require_once __DIR__ . '/helpers/rate_limit.php';
 require_once __DIR__ . '/services/historico.php';
 
 require_once __DIR__ . '/middlewares/auth_sessao.php';
