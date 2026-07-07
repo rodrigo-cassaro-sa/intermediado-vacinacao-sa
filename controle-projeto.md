@@ -178,6 +178,16 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | Vazamento de dado sensível de saúde entre tenants | segurança/LGPD | crítica | Multi-tenant no backend, criptografia, auditoria | aberto |
 | Escopo grande demais entregue de uma vez | produto | alta | Usuário optou por MVP amplo (2 modalidades + upload/API); mitigação = ordem de construção incremental no doc 03 | mitigando |
 | Superfície de segurança de APIs públicas (rede + ingestão) na V1 | segurança/integração | alta | Credencial por parceiro, escopo por campanha, rate limit e auditoria já no MVP | aberto |
+| Concorrência duplicar vacinado (pagamento em dobro) | integridade/financeiro | crítica | RESOLVIDO: UNIQUE (elegivel,vacina,dose) confirmada + idempotência (mig 014) | mitigado |
+| Vazamento de dados entre clientes no paciente global | privacidade | alta | RESOLVIDO: nome/nascimento por elegível (RN-023, mig 014) | mitigado |
+| Ingestão síncrona não escala p/ ~100k por lista (500 clientes) | performance | alta | PENDENTE: processar importação assíncrona em lotes (item 3) | aberto |
+| Retenção/particionamento de histórico e auditoria em milhões/ano | operação/escala | alta | PENDENTE: política de arquivamento + partição; vacinado perpétuo p/ carteira (item 9) | aberto |
+| Sem rate limit real nas APIs (500 clientes podem travar) | segurança/escala | alta | PENDENTE: limitar acessos/consultas por credencial (item 12) | aberto |
+| Sem módulo de faturamento (pagar clínica / cobrar cliente) | negócio | alta | ADIADO pelo usuário (item 4) | aberto |
+| Estrangeiro sem CPF | cobertura | média | Decidido: usar voucher/identificador (item 8) — a implementar | aberto |
+| Sem relatório longitudinal ano a ano / carteira consolidada | produto | média | PENDENTE (itens 9 e 14) | aberto |
+| Observabilidade só /health | operação | média | PENDENTE: métricas, alertas, visão de fila (item 13) | aberto |
+| Paginação por OFFSET lenta em milhões | performance | média | PENDENTE: keyset/cursor (item 10) | aberto |
 | API externa (rede) com escopo mal definido | integração/segurança | alta | Credencial por parceiro, escopo por campanha (RN-009) | aberto |
 | Registro de aplicação sem rastreabilidade (lote/dose) | banco/negócio | alta | RN-004 e RN-010 (imutabilidade + retificação auditada) | aberto |
 

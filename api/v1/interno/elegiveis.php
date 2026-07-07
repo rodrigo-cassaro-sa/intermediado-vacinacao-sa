@@ -165,6 +165,62 @@ function rota_definir_situacao_elegivel(array $params): void
     responder_sucesso(['elegivel_id' => $id, 'status' => $dados['status']], 'Situação atualizada.');
 }
 
+/**
+ * POST /api/v1/interno/campanhas/{id}/elegiveis/remover
+ * Remove (soft) elegíveis por CPF — turnover/limpeza. Não remove quem já foi
+ * vacinado (integridade e faturamento). Body: { cpfs: [...] }. Item 6.
+ */
+function rota_remover_elegiveis(array $params): void
+{
+    $usuario = exigir_login();
+    exigir_perfil($usuario, ['super_admin', 'operador_interno']);
+    exigir_csrf();
+
+    $id = id_campanha_rota($params['id'] ?? null);
+    $campanha = exigir_campanha_do_usuario($usuario, $id);
+
+    $dados = corpo_json();
+    if (empty($dados['cpfs']) || !is_array($dados['cpfs'])) {
+        responder_erro('Envie a lista de CPFs.', 400, [
+            ['field' => 'cpfs', 'code' => 'CPFS_OBRIGATORIOS', 'message' => 'Nenhum CPF informado.'],
+        ]);
+    }
+
+    $removidos = 0; $bloqueadosVacinados = []; $naoEncontrados = [];
+    foreach ($dados['cpfs'] as $cpfBruto) {
+        $cpf = so_digitos((string) $cpfBruto);
+        $eleg = db_primeiro(
+            "SELECT e.id, e.status FROM elegivel e JOIN paciente p ON p.id = e.paciente_id
+              WHERE e.campanha_id = :c AND p.cpf = :cpf LIMIT 1",
+            [':c' => $id, ':cpf' => $cpf]
+        );
+        if ($eleg === null) { $naoEncontrados[] = mascarar_cpf($cpf); continue; }
+        if ($eleg['status'] === 'aplicado') { $bloqueadosVacinados[] = mascarar_cpf($cpf); continue; }
+
+        db_executar("UPDATE elegivel SET status = 'removido', motivo_situacao = 'removido da lista' WHERE id = :id",
+            [':id' => (int) $eleg['id']]);
+        historico_elegivel((int) $eleg['id'], 'situacao_alterada', ator_usuario($usuario), null,
+            ['status' => 'removido'], 'removido da lista');
+        $removidos++;
+    }
+
+    registrar_auditoria('elegiveis.removidos', [
+        'tenant_id'     => (int) $campanha['tenant_id'],
+        'ator_tipo'     => 'usuario',
+        'ator_id'       => (int) $usuario['id'],
+        'origem'        => 'admin',
+        'entidade_tipo' => 'campanha',
+        'entidade_id'   => $id,
+        'metadata'      => ['removidos' => $removidos],
+    ]);
+
+    responder_sucesso([
+        'removidos'             => $removidos,
+        'bloqueados_vacinados'  => $bloqueadosVacinados,
+        'nao_encontrados'       => $naoEncontrados,
+    ], 'Remoção processada.');
+}
+
 /** GET /api/v1/interno/campanhas/{id}/elegiveis — lista + resumo. */
 function rota_listar_elegiveis(array $params): void
 {
@@ -183,13 +239,13 @@ function rota_listar_elegiveis(array $params): void
         "SELECT status, COUNT(*) AS total FROM elegivel WHERE campanha_id = :id GROUP BY status",
         [':id' => $id]
     );
-    $resumo = ['pendente' => 0, 'aplicado' => 0, 'recusado' => 0, 'inelegivel' => 0, 'ausente' => 0, 'expirado' => 0];
+    $resumo = ['pendente' => 0, 'aplicado' => 0, 'recusado' => 0, 'inelegivel' => 0, 'ausente' => 0, 'expirado' => 0, 'removido' => 0];
     foreach ($resumoLinhas as $r) {
         $resumo[$r['status']] = (int) $r['total'];
     }
 
     $itens = db_todos(
-        "SELECT e.id, p.cpf, p.nome, e.origem, e.tipo_vinculo, e.status, e.motivo_situacao, cc.nome AS clinica, e.criado_em
+        "SELECT e.id, p.cpf, COALESCE(e.nome, p.nome) AS nome, e.origem, e.tipo_vinculo, e.status, e.motivo_situacao, cc.nome AS clinica, e.criado_em
            FROM elegivel e
            JOIN paciente p ON p.id = e.paciente_id
       LEFT JOIN clinica_credenciada cc ON cc.id = e.clinica_id

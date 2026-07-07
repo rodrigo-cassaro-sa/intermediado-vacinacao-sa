@@ -39,6 +39,7 @@ return [
     // --- Elegíveis (bloco 2) ---
     'POST /api/v1/interno/campanhas/{id}/elegiveis/importar' => ['arquivo' => 'interno/elegiveis.php', 'funcao' => 'rota_importar_elegiveis'],
     'GET  /api/v1/interno/campanhas/{id}/elegiveis'          => ['arquivo' => 'interno/elegiveis.php', 'funcao' => 'rota_listar_elegiveis'],
+    'POST /api/v1/interno/campanhas/{id}/elegiveis/remover'  => ['arquivo' => 'interno/elegiveis.php', 'funcao' => 'rota_remover_elegiveis'],
     'POST /api/v1/interno/elegiveis/{id}/situacao'           => ['arquivo' => 'interno/elegiveis.php', 'funcao' => 'rota_definir_situacao_elegivel'],
     'PUT  /api/v1/interno/elegiveis/{id}'                    => ['arquivo' => 'interno/elegivel_edicao.php', 'funcao' => 'rota_editar_elegivel'],
     'GET  /api/v1/interno/elegiveis/{id}/historico'         => ['arquivo' => 'interno/elegivel_edicao.php', 'funcao' => 'rota_historico_elegivel'],

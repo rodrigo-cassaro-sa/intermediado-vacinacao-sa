@@ -79,7 +79,7 @@ function rota_exportar_tabela_verdade(array $params): void
     $campanha = exigir_campanha_do_usuario($usuario, $id);
 
     $linhas = db_todos(
-        "SELECT p.cpf, p.nome, e.status AS situacao,
+        "SELECT p.cpf, COALESCE(e.nome, p.nome) AS nome, e.status AS situacao,
                 COUNT(a.id) AS total_aplicacoes,
                 MAX(a.aplicado_em) AS ultima_aplicacao,
                 GROUP_CONCAT(DISTINCT v.nome ORDER BY v.nome SEPARATOR ' | ') AS vacinas
@@ -129,7 +129,7 @@ function resumo_situacao(int $campanhaId): array
         "SELECT status, COUNT(*) AS total FROM elegivel WHERE campanha_id = :id GROUP BY status",
         [':id' => $campanhaId]
     );
-    $resumo = ['pendente' => 0, 'aplicado' => 0, 'recusado' => 0, 'inelegivel' => 0, 'ausente' => 0, 'expirado' => 0];
+    $resumo = ['pendente' => 0, 'aplicado' => 0, 'recusado' => 0, 'inelegivel' => 0, 'ausente' => 0, 'expirado' => 0, 'removido' => 0];
     foreach ($linhas as $r) {
         $resumo[$r['status']] = (int) $r['total'];
     }

@@ -17,7 +17,7 @@ function rota_parceiro_consultar_elegivel(array $params): void
     $cpf = so_digitos($params['cpf'] ?? '');
     // RN-012: a clínica só enxerga elegíveis atribuídos a ela.
     $eleg = db_primeiro(
-        "SELECT e.id AS elegivel_id, e.status, p.cpf, p.nome
+        "SELECT e.id AS elegivel_id, e.status, p.cpf, COALESCE(e.nome, p.nome) AS nome
            FROM elegivel e JOIN paciente p ON p.id = e.paciente_id
           WHERE e.campanha_id = :c AND p.cpf = :cpf AND e.clinica_id = :clinica LIMIT 1",
         [':c' => $id, ':cpf' => $cpf, ':clinica' => (int) $cred['titular_id']]
@@ -47,6 +47,7 @@ function rota_parceiro_consultar_elegivel(array $params): void
 function rota_parceiro_registrar_aplicacao(array $params): void
 {
     $cred = exigir_credencial('rede_credenciada');
+    idempotencia_replay('credencial:' . $cred['id']);
 
     $dados = corpo_json();
     $erros = exigir_campos($dados, ['elegivel_id', 'vacina_id', 'dose', 'lote', 'aplicado_em']);
@@ -100,7 +101,7 @@ function rota_parceiro_registrar_aplicacao(array $params): void
     historico_elegivel((int) $dados['elegivel_id'], 'vacinado', ator_credencial($cred), null,
         ['aplicacao_id' => $res['aplicacao_id']]);
 
-    responder_sucesso([
+    responder_idempotente('credencial:' . $cred['id'], [
         'aplicacao_id'    => $res['aplicacao_id'],
         'status'          => 'confirmada',
         'elegivel_status' => 'aplicado',
@@ -115,6 +116,7 @@ function rota_parceiro_registrar_aplicacao(array $params): void
 function rota_parceiro_registrar_aplicacoes_lote(array $params): void
 {
     $cred = exigir_credencial('rede_credenciada');
+    idempotencia_replay('credencial:' . $cred['id']);
 
     $dados = corpo_json();
     if (empty($dados['aplicacoes']) || !is_array($dados['aplicacoes'])) {
@@ -183,7 +185,7 @@ function rota_parceiro_registrar_aplicacoes_lote(array $params): void
         'metadata'      => ['recebidos' => count($dados['aplicacoes']), 'confirmados' => $confirmados],
     ]);
 
-    responder_sucesso([
+    responder_idempotente('credencial:' . $cred['id'], [
         'recebidos'   => count($dados['aplicacoes']),
         'confirmados' => $confirmados,
         'rejeitados'  => $rejeitados,

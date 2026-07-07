@@ -17,7 +17,9 @@ function rota_editar_elegivel(array $params): void
     $id = (int) ($params['id'] ?? 0);
     $atual = db_primeiro(
         "SELECT e.id, e.campanha_id, e.tipo_vinculo, e.cpf_titular, e.codigo_lotacao, e.codigo_rh, e.clinica_id,
-                e.paciente_id, p.cpf, p.nome, p.data_nascimento
+                e.paciente_id, p.cpf,
+                COALESCE(e.nome, p.nome) AS nome,
+                COALESCE(e.data_nascimento, p.data_nascimento) AS data_nascimento
            FROM elegivel e JOIN paciente p ON p.id = e.paciente_id
           WHERE e.id = :id LIMIT 1",
         [':id' => $id]
@@ -122,15 +124,18 @@ function rota_editar_elegivel(array $params): void
     try {
         pdo()->beginTransaction();
 
+        // CPF é identidade global (paciente); nome/nascimento ficam POR ELEGÍVEL
+        // (não vaza correção de um cliente para outro — item 5/RN-023).
+        if ($novoCpf !== $atual['cpf']) {
+            db_executar("UPDATE paciente SET cpf = :cpf WHERE id = :id",
+                [':cpf' => $novoCpf, ':id' => (int) $atual['paciente_id']]);
+        }
         db_executar(
-            "UPDATE paciente SET nome = :nome, cpf = :cpf, data_nascimento = :nasc WHERE id = :id",
-            [':nome' => $novoNome, ':cpf' => $novoCpf, ':nasc' => $novoNasc, ':id' => (int) $atual['paciente_id']]
-        );
-        db_executar(
-            "UPDATE elegivel SET tipo_vinculo = :tipo, cpf_titular = :titular, codigo_lotacao = :lot,
-                    codigo_rh = :rh, clinica_id = :clinica WHERE id = :id",
-            [':tipo' => $novoTipo, ':titular' => $novoTitular, ':lot' => $novoLotacao, ':rh' => $novoRh,
-             ':clinica' => $novaClinica, ':id' => $id]
+            "UPDATE elegivel SET nome = :nome, data_nascimento = :nasc, tipo_vinculo = :tipo,
+                    cpf_titular = :titular, codigo_lotacao = :lot, codigo_rh = :rh, clinica_id = :clinica
+              WHERE id = :id",
+            [':nome' => $novoNome, ':nasc' => $novoNasc, ':tipo' => $novoTipo, ':titular' => $novoTitular,
+             ':lot' => $novoLotacao, ':rh' => $novoRh, ':clinica' => $novaClinica, ':id' => $id]
         );
 
         // Histórico: evento geral 'editado' e, se mudou a clínica, também 'clinica_alterada'.

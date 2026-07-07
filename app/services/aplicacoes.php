@@ -84,13 +84,15 @@ function processar_aplicacao(array $ctx): array
         return $erro(422, 'VACINA_FORA_DA_CAMPANHA', 'Vacina não faz parte da campanha.', 'vacina_id');
     }
 
-    // RN-013: um elegível só pode ter UM vacinado confirmado.
+    // RN-013 (revisada): não repetir a MESMA dose da MESMA vacina para o elegível
+    // (faturamento por vacina/dose). Trava definitiva é a UNIQUE no banco (concorrência).
     $jaVacinado = db_primeiro(
-        "SELECT id FROM aplicacao WHERE elegivel_id = :e AND status = 'confirmada' LIMIT 1",
-        [':e' => (int) $ctx['elegivel_id']]
+        "SELECT id FROM aplicacao
+          WHERE elegivel_id = :e AND vacina_id = :v AND dose = :d AND status = 'confirmada' LIMIT 1",
+        [':e' => (int) $ctx['elegivel_id'], ':v' => (int) $ctx['vacina_id'], ':d' => (int) $ctx['dose']]
     );
     if ($jaVacinado !== null) {
-        return $erro(409, 'VACINADO_DUPLICADO', 'Este paciente já consta como vacinado nesta campanha.');
+        return $erro(409, 'VACINADO_DUPLICADO', 'Esta dose desta vacina já consta para o paciente.');
     }
 
     try {
@@ -135,6 +137,10 @@ function processar_aplicacao(array $ctx): array
     } catch (Throwable $e) {
         if (pdo()->inTransaction()) {
             pdo()->rollBack();
+        }
+        // Corrida: a UNIQUE do banco barrou uma 2ª aplicação confirmada simultânea.
+        if ($e instanceof PDOException && $e->getCode() === '23000') {
+            return $erro(409, 'VACINADO_DUPLICADO', 'Esta dose desta vacina já consta para o paciente.');
         }
         throw $e;
     }

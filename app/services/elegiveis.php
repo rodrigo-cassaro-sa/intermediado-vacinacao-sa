@@ -25,6 +25,15 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
         }
     };
 
+    // RN-017/RN-018 (item 6): mapa dos colaboradores presentes no arquivo, para
+    // validar o titular dos dependentes (colaborador vinculado à empresa).
+    $colaboradoresArquivo = [];
+    foreach ($lista as $it) {
+        if (strtolower(trim((string) ($it['tipo_vinculo'] ?? ''))) === 'colaborador') {
+            $colaboradoresArquivo[so_digitos($it['cpf'] ?? '')] = true;
+        }
+    }
+
     foreach ($lista as $i => $item) {
         $recebidos++;
         $linha = $i + 1;
@@ -45,9 +54,20 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
         $nasc = $nasc === '' ? null : $nasc;
         // RN-016: tipo de vínculo obrigatório (colaborador|dependente|terceiro).
         if (!in_array($tipo, $tipos, true)) { $rejeita($linha, $cpf, 'TIPO_VINCULO_INVALIDO'); continue; }
-        // RN-017: dependente exige CPF do titular válido; demais não têm titular.
+        // RN-017: dependente exige CPF do titular válido e que seja COLABORADOR
+        // elegível na mesma campanha (no arquivo ou já cadastrado). Item 6.
         if ($tipo === 'dependente') {
             if (!validar_cpf($cpfTitular)) { $rejeita($linha, $cpf, 'CPF_TITULAR_INVALIDO'); continue; }
+            $titularOk = isset($colaboradoresArquivo[$cpfTitular]);
+            if (!$titularOk) {
+                $ex = db_primeiro(
+                    "SELECT e.id FROM elegivel e JOIN paciente p ON p.id = e.paciente_id
+                      WHERE e.campanha_id = :c AND p.cpf = :cpf AND e.tipo_vinculo = 'colaborador' LIMIT 1",
+                    [':c' => $campanhaId, ':cpf' => $cpfTitular]
+                );
+                $titularOk = $ex !== null;
+            }
+            if (!$titularOk) { $rejeita($linha, $cpf, 'CPF_TITULAR_NAO_ELEGIVEL'); continue; }
         } else {
             $cpfTitular = null;
         }
@@ -74,12 +94,14 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
         );
         if ($eleg === null) {
             db_executar(
-                "INSERT INTO elegivel (tenant_id, campanha_id, paciente_id, origem, tipo_vinculo, cpf_titular, codigo_lotacao, codigo_rh, status, importacao_id)
-                 VALUES (:tenant, :campanha, :paciente, :origem, :tipo, :titular, :lotacao, :rh, 'pendente', :imp)",
+                "INSERT INTO elegivel (tenant_id, campanha_id, paciente_id, nome, data_nascimento, origem, tipo_vinculo, cpf_titular, codigo_lotacao, codigo_rh, status, importacao_id)
+                 VALUES (:tenant, :campanha, :paciente, :enome, :enasc, :origem, :tipo, :titular, :lotacao, :rh, 'pendente', :imp)",
                 [
                     ':tenant'   => $tenantId,
                     ':campanha' => $campanhaId,
                     ':paciente' => $pacienteId,
+                    ':enome'    => $nome,
+                    ':enasc'    => $nasc,
                     ':origem'   => $origem,
                     ':tipo'     => $tipo,
                     ':titular'  => $cpfTitular,
@@ -98,9 +120,10 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
         } else {
             // Já elegível nesta campanha (dedup) — atualiza dados sem duplicar.
             db_executar(
-                "UPDATE elegivel SET tipo_vinculo = :tipo, cpf_titular = :titular,
-                        codigo_lotacao = :lotacao, codigo_rh = :rh WHERE id = :id",
-                [':tipo' => $tipo, ':titular' => $cpfTitular, ':lotacao' => $codLotacao, ':rh' => $codRh, ':id' => (int) $eleg['id']]
+                "UPDATE elegivel SET nome = :enome, data_nascimento = :enasc, tipo_vinculo = :tipo,
+                        cpf_titular = :titular, codigo_lotacao = :lotacao, codigo_rh = :rh WHERE id = :id",
+                [':enome' => $nome, ':enasc' => $nasc, ':tipo' => $tipo, ':titular' => $cpfTitular,
+                 ':lotacao' => $codLotacao, ':rh' => $codRh, ':id' => (int) $eleg['id']]
             );
             $atualizados++;
             historico_elegivel((int) $eleg['id'], 'reingerido', $ator, null, [

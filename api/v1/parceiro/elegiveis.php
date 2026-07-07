@@ -54,6 +54,7 @@ function rota_parceiro_definir_situacao(array $params): void
 function rota_parceiro_ingerir_elegiveis(array $params): void
 {
     $credencial = exigir_credencial('ingestao_b2b');
+    idempotencia_replay('credencial:' . $credencial['id']);
     $id = id_campanha_rota($params['id'] ?? null);
     exigir_escopo_campanha($credencial, $id);
 
@@ -122,7 +123,7 @@ function rota_parceiro_ingerir_elegiveis(array $params): void
         'metadata'      => ['importacao_id' => $importacaoId, 'recebidos' => $res['recebidos']],
     ]);
 
-    responder_sucesso([
+    responder_idempotente('credencial:' . $credencial['id'], [
         'recebidos'  => $res['recebidos'],
         'criados'    => $res['criados'],
         'atualizados' => $res['atualizados'],
