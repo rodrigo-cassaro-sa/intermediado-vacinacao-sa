@@ -144,7 +144,7 @@ function rota_listar_elegiveis(array $params): void
     }
 
     $itens = db_todos(
-        "SELECT e.id, p.cpf, p.nome, e.origem, e.status, cc.nome AS clinica, e.criado_em
+        "SELECT e.id, p.cpf, p.nome, e.origem, e.tipo_vinculo, e.status, cc.nome AS clinica, e.criado_em
            FROM elegivel e
            JOIN paciente p ON p.id = e.paciente_id
       LEFT JOIN clinica_credenciada cc ON cc.id = e.clinica_id

@@ -16,33 +16,37 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
 {
     $recebidos = 0; $criados = 0; $atualizados = 0; $rejeitados = 0;
     $erros = [];
+    $tipos = ['colaborador', 'dependente', 'terceiro'];
+
+    $rejeita = function (int $linha, string $cpf, string $code) use (&$rejeitados, &$erros) {
+        $rejeitados++;
+        if (count($erros) < 50) {
+            $erros[] = ['linha' => $linha, 'cpf' => mascarar_cpf($cpf), 'code' => $code];
+        }
+    };
 
     foreach ($lista as $i => $item) {
         $recebidos++;
         $linha = $i + 1;
-        $cpf  = so_digitos($item['cpf'] ?? '');
-        $nome = trim((string) ($item['nome'] ?? ''));
-        $nasc = $item['data_nascimento'] ?? null;
+        $cpf   = so_digitos($item['cpf'] ?? '');
+        $nome  = trim((string) ($item['nome'] ?? ''));
+        $nasc  = trim((string) ($item['data_nascimento'] ?? ''));
+        $tipo  = strtolower(trim((string) ($item['tipo_vinculo'] ?? '')));
+        $cpfTitular = so_digitos($item['cpf_titular'] ?? '');
 
-        if (!validar_cpf($cpf)) {
-            $rejeitados++;
-            if (count($erros) < 50) {
-                $erros[] = ['linha' => $linha, 'cpf' => mascarar_cpf($cpf), 'code' => 'CPF_INVALIDO'];
-            }
-            continue;
-        }
-        if ($nome === '') {
-            $rejeitados++;
-            if (count($erros) < 50) {
-                $erros[] = ['linha' => $linha, 'cpf' => mascarar_cpf($cpf), 'code' => 'NOME_OBRIGATORIO'];
-            }
-            continue;
-        }
-        if ($nasc !== null && $nasc !== '' && !validar_data($nasc)) {
-            $nasc = null; // data inválida é ignorada, não rejeita o registro
-        }
-        if ($nasc === '') {
-            $nasc = null;
+        // RN: CPF válido.
+        if (!validar_cpf($cpf)) { $rejeita($linha, $cpf, 'CPF_INVALIDO'); continue; }
+        // Nome obrigatório.
+        if ($nome === '') { $rejeita($linha, $cpf, 'NOME_OBRIGATORIO'); continue; }
+        // RN: data de nascimento obrigatória e válida (AAAA-MM-DD).
+        if (!validar_data($nasc)) { $rejeita($linha, $cpf, 'DATA_NASCIMENTO_INVALIDA'); continue; }
+        // RN-016: tipo de vínculo obrigatório (colaborador|dependente|terceiro).
+        if (!in_array($tipo, $tipos, true)) { $rejeita($linha, $cpf, 'TIPO_VINCULO_INVALIDO'); continue; }
+        // RN-017: dependente exige CPF do titular válido; demais não têm titular.
+        if ($tipo === 'dependente') {
+            if (!validar_cpf($cpfTitular)) { $rejeita($linha, $cpf, 'CPF_TITULAR_INVALIDO'); continue; }
+        } else {
+            $cpfTitular = null;
         }
 
         // Paciente por CPF (identidade global — RN-008).
@@ -64,19 +68,26 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
         );
         if ($eleg === null) {
             db_executar(
-                "INSERT INTO elegivel (tenant_id, campanha_id, paciente_id, origem, status, importacao_id)
-                 VALUES (:tenant, :campanha, :paciente, :origem, 'pendente', :imp)",
+                "INSERT INTO elegivel (tenant_id, campanha_id, paciente_id, origem, tipo_vinculo, cpf_titular, status, importacao_id)
+                 VALUES (:tenant, :campanha, :paciente, :origem, :tipo, :titular, 'pendente', :imp)",
                 [
                     ':tenant'   => $tenantId,
                     ':campanha' => $campanhaId,
                     ':paciente' => $pacienteId,
                     ':origem'   => $origem,
+                    ':tipo'     => $tipo,
+                    ':titular'  => $cpfTitular,
                     ':imp'      => $importacaoId,
                 ]
             );
             $criados++;
         } else {
-            $atualizados++; // já elegível nesta campanha (dedup) — não duplica
+            // Já elegível nesta campanha (dedup) — atualiza tipo/titular sem duplicar.
+            db_executar(
+                "UPDATE elegivel SET tipo_vinculo = :tipo, cpf_titular = :titular WHERE id = :id",
+                [':tipo' => $tipo, ':titular' => $cpfTitular, ':id' => (int) $eleg['id']]
+            );
+            $atualizados++;
         }
     }
 
@@ -104,12 +115,15 @@ function parsear_csv_elegiveis(string $conteudo): array
     $cabecalho = array_map(fn($h) => strtolower(trim($h)), str_getcsv($linhas[0], $delim));
     $temCabecalho = in_array('cpf', $cabecalho, true);
 
-    $idxCpf = 0; $idxNome = 1; $idxNasc = 2;
+    $idxCpf = 0; $idxNome = 1; $idxNasc = 2; $idxTipo = 3; $idxTitular = 4;
     if ($temCabecalho) {
-        $idxCpf  = array_search('cpf', $cabecalho, true);
-        $idxNome = array_search('nome', $cabecalho, true);
-        $idxNasc = array_search('data_nascimento', $cabecalho, true);
+        $idxCpf     = array_search('cpf', $cabecalho, true);
+        $idxNome    = array_search('nome', $cabecalho, true);
+        $idxNasc    = array_search('data_nascimento', $cabecalho, true);
+        $idxTipo    = array_search('tipo_vinculo', $cabecalho, true);
+        $idxTitular = array_search('cpf_titular', $cabecalho, true);
     }
+    $val = fn($col, $idx) => ($idx !== false && isset($col[$idx])) ? $col[$idx] : null;
 
     $lista = [];
     $inicio = $temCabecalho ? 1 : 0;
@@ -121,7 +135,9 @@ function parsear_csv_elegiveis(string $conteudo): array
         $lista[] = [
             'cpf'             => $col[$idxCpf] ?? '',
             'nome'            => $col[$idxNome] ?? '',
-            'data_nascimento' => ($idxNasc !== false && isset($col[$idxNasc])) ? $col[$idxNasc] : null,
+            'data_nascimento' => $val($col, $idxNasc),
+            'tipo_vinculo'    => $val($col, $idxTipo),
+            'cpf_titular'     => $val($col, $idxTitular),
         ];
     }
     return $lista;
@@ -142,6 +158,8 @@ function normalizar_elegiveis_json($itens): array
             'cpf'             => $it['cpf'] ?? '',
             'nome'            => $it['nome'] ?? '',
             'data_nascimento' => $it['data_nascimento'] ?? null,
+            'tipo_vinculo'    => $it['tipo_vinculo'] ?? null,
+            'cpf_titular'     => $it['cpf_titular'] ?? null,
         ];
     }
     return $lista;

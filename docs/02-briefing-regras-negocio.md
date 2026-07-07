@@ -77,6 +77,8 @@ dificuldade de auditoria e de devolver dados confiáveis ao cliente.
 | RN-013 | **Faturamento com a clínica: pagamos por vacinado.** Cada elegível só pode ter **uma** aplicação confirmada; o vacinado é vinculado à clínica e não pode repetir | Não pagar 2x pelo mesmo paciente; 2ª aplicação → VACINADO_DUPLICADO | Financeiro (pagamento à rede) | crítica |
 | RN-014 | **Faturamento com o cliente: cobramos por elegível indicado.** O mesmo CPF/nome não pode repetir na campanha | Garantido por UNIQUE(campanha, paciente) + dedup por CPF na ingestão | Financeiro (cobrança do cliente) | crítica |
 | RN-015 | **Campanha tem duração por cliente.** Passado o `periodo_fim`, os elegíveis pendentes **expiram** (status `expirado`) e a campanha é encerrada; não aceitam mais aplicação | Elegível não aplicado até a data fim → expirado; não conta como vacinado | Financeiro e operacional | crítica |
+| RN-016 | Todo elegível tem **CPF válido** e **data de nascimento válida (obrigatória)**, e um **tipo de vínculo**: `colaborador`, `dependente` ou `terceiro` | Ingestão rejeita CPF/data inválidos e tipo fora da lista | Qualidade do cadastro e faturamento | crítica |
+| RN-017 | Quando o elegível é **dependente**, é obrigatório o **CPF do titular** (colaborador vinculado à empresa), e este CPF deve ser válido | Dependente sem titular válido → CPF_TITULAR_INVALIDO | Vínculo e faturamento | crítica |
 
 ---
 

@@ -130,9 +130,9 @@
           <select id="elegCampanha"><option value="">— liste as campanhas —</option></select>
         </div>
       </div>
-      <label>Cole os elegíveis (uma linha por pessoa: <span class="muted">cpf,nome,data_nascimento</span>)</label>
+      <label>Cole os elegíveis — <span class="muted">cpf,nome,data_nascimento,tipo_vinculo,cpf_titular</span> (tipo = colaborador | dependente | terceiro; cpf_titular só para dependente)</label>
       <textarea id="elegCsv" rows="4" style="width:100%;padding:8px;background:#0b1220;border:1px solid var(--line);border-radius:6px;color:var(--txt)"
-        placeholder="52998224725,Maria Silva,1990-05-10&#10;16899535009,João Souza,1985-11-02"></textarea>
+        placeholder="52998224725,Maria Silva,1990-05-10,colaborador,&#10;16899535009,Filho da Maria,2015-11-02,dependente,52998224725"></textarea>
       <div style="margin-top:12px" class="row">
         <button onclick="importarElegiveis()">Importar (JSON)</button>
         <button class="sec" onclick="listarElegiveis()">Listar elegíveis</button>
@@ -156,9 +156,9 @@
       </div>
       <label>Token emitido (cole aqui para testar; só aparece uma vez)</label>
       <input id="credToken" placeholder="token..." />
-      <label style="margin-top:8px">Elegíveis para enviar via API do parceiro (cpf,nome,data_nascimento)</label>
+      <label style="margin-top:8px">Elegíveis via API do parceiro (cpf,nome,data_nascimento,tipo_vinculo,cpf_titular)</label>
       <textarea id="ingCsv" rows="3" style="width:100%;padding:8px;background:#0b1220;border:1px solid var(--line);border-radius:6px;color:var(--txt)"
-        placeholder="529.982.247-25,Ana Costa,1992-03-01"></textarea>
+        placeholder="52998224725,Ana Costa,1992-03-01,terceiro,"></textarea>
       <div style="margin-top:12px"><button onclick="testarIngestaoParceiro()">Testar ingestão via API (Bearer)</button></div>
     </div>
 
@@ -517,13 +517,16 @@ async function verDashboard() {
   }
 }
 
-// Converte texto "cpf,nome,nascimento" (uma linha por pessoa) em array de objetos.
-// Tolera aspas ao redor dos campos (ex.: "123","Nome","2000-01-01").
+// Converte texto "cpf,nome,nascimento,tipo_vinculo,cpf_titular" (uma linha por
+// pessoa) em array de objetos. Tolera aspas ao redor dos campos.
 function parseElegiveis(texto) {
   const limpa = s => (s || '').trim().replace(/^"(.*)"$/, '$1').trim();
   return texto.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(linha => {
     const p = linha.split(/[;,](?=(?:[^"]*"[^"]*")*[^"]*$)/).map(limpa);
-    return { cpf: p[0] || '', nome: p[1] || '', data_nascimento: p[2] || null };
+    return {
+      cpf: p[0] || '', nome: p[1] || '', data_nascimento: p[2] || null,
+      tipo_vinculo: p[3] || null, cpf_titular: p[4] || null,
+    };
   });
 }
 
@@ -545,8 +548,8 @@ async function listarElegiveis() {
     `Pendentes: ${r.pendente||0} · Aplicados: ${r.aplicado||0} · Recusados: ${r.recusado||0} · Total: ${d.meta?.total||0}`;
   const itens = d.data.itens || [];
   document.getElementById('tblElegiveis').innerHTML =
-    '<tr><th>CPF</th><th>Nome</th><th>Origem</th><th>Status</th></tr>' +
-    itens.map(e => `<tr><td>${e.cpf}</td><td>${e.nome}</td><td>${e.origem}</td><td>${e.status}</td></tr>`).join('');
+    '<tr><th>CPF</th><th>Nome</th><th>Tipo</th><th>Origem</th><th>Status</th></tr>' +
+    itens.map(e => `<tr><td>${e.cpf}</td><td>${e.nome}</td><td>${e.tipo_vinculo||'—'}</td><td>${e.origem}</td><td>${e.status}</td></tr>`).join('');
 }
 
 async function emitirCredencial() {

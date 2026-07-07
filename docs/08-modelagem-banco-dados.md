@@ -112,6 +112,8 @@ Documentar entidades, tabelas, campos, relacionamentos, índices, migrations e c
 | clinica_id | BIGINT | não | FK/IDX | RN-012: clínica atribuída (rede credenciada); NULL em in_company. Migration 009 |
 | paciente_id | BIGINT | sim | FK/IDX |  |
 | origem | VARCHAR(20) | sim |  | upload / api / autoelegivel |
+| tipo_vinculo | VARCHAR(20) | sim* |  | colaborador / dependente / terceiro (RN-016). Migration 010 |
+| cpf_titular | VARCHAR(11) | cond. |  | obrigatório quando tipo=dependente (RN-017). Migration 010 |
 | status | VARCHAR(20) | sim | IDX | pendente / aplicado / recusado / inelegivel / ausente / expirado (RN-005, RN-015) |
 | importacao_id | BIGINT | não | FK | lote de origem |
 | criado_em / atualizado_em | DATETIME | — |  |  |
