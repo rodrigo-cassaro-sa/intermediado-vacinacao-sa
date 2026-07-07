@@ -34,6 +34,7 @@ return [
     'GET  /api/v1/interno/campanhas/{id}'           => ['arquivo' => 'interno/campanhas.php', 'funcao' => 'rota_obter_campanha'],
     'PUT  /api/v1/interno/campanhas/{id}'           => ['arquivo' => 'interno/campanhas.php', 'funcao' => 'rota_editar_campanha'],
     'POST /api/v1/interno/campanhas/{id}/vacinas'   => ['arquivo' => 'interno/campanhas.php', 'funcao' => 'rota_definir_vacinas_campanha'],
+    'POST /api/v1/interno/campanhas/{id}/encerrar'  => ['arquivo' => 'interno/campanhas.php', 'funcao' => 'rota_encerrar_campanha'],
 
     // --- Elegíveis (bloco 2) ---
     'POST /api/v1/interno/campanhas/{id}/elegiveis/importar' => ['arquivo' => 'interno/elegiveis.php', 'funcao' => 'rota_importar_elegiveis'],

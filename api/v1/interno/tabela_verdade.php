@@ -129,7 +129,7 @@ function resumo_situacao(int $campanhaId): array
         "SELECT status, COUNT(*) AS total FROM elegivel WHERE campanha_id = :id GROUP BY status",
         [':id' => $campanhaId]
     );
-    $resumo = ['pendente' => 0, 'aplicado' => 0, 'recusado' => 0, 'inelegivel' => 0, 'ausente' => 0];
+    $resumo = ['pendente' => 0, 'aplicado' => 0, 'recusado' => 0, 'inelegivel' => 0, 'ausente' => 0, 'expirado' => 0];
     foreach ($linhas as $r) {
         $resumo[$r['status']] = (int) $r['total'];
     }

@@ -112,7 +112,7 @@ Documentar entidades, tabelas, campos, relacionamentos, índices, migrations e c
 | clinica_id | BIGINT | não | FK/IDX | RN-012: clínica atribuída (rede credenciada); NULL em in_company. Migration 009 |
 | paciente_id | BIGINT | sim | FK/IDX |  |
 | origem | VARCHAR(20) | sim |  | upload / api / autoelegivel |
-| status | VARCHAR(20) | sim | IDX | pendente / aplicado / recusado / inelegivel / ausente (RN-005) |
+| status | VARCHAR(20) | sim | IDX | pendente / aplicado / recusado / inelegivel / ausente / expirado (RN-005, RN-015) |
 | importacao_id | BIGINT | não | FK | lote de origem |
 | criado_em / atualizado_em | DATETIME | — |  |  |
 | — | — | — | UNIQUE(campanha_id, paciente_id) | 1 elegibilidade por paciente/campanha |
@@ -247,7 +247,7 @@ Datas de evento: aplicado_em, aceito_em, revogado_em, expira_em
 | Campo | Valores possíveis | Quem altera | Observação |
 |---|---|---|---|
 | campanha.status | rascunho, ativa, encerrada | operador_interno | só `ativa` aceita aplicação (RN-003) |
-| elegivel.status | pendente, aplicado, recusado, inelegivel, ausente | sistema/operador | base da tabela verdade (RN-005) |
+| elegivel.status | pendente, aplicado, recusado, inelegivel, ausente, expirado | sistema/operador | base da tabela verdade (RN-005); `expirado` após periodo_fim (RN-015) |
 | aplicacao.status | confirmada, retificada, estornada | sistema/operador | nunca editar; gerar novo registro (RN-010) |
 | cliente_b2b.status | ativo, inativo | super_admin | inativo bloqueia acesso do tenant |
 | usuario.status | ativo, bloqueado | admin | bloqueado impede login |

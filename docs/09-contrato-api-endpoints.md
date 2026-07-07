@@ -273,8 +273,8 @@ Registro IMUTÁVEL (RN-010). Idempotency-Key recomendado no parceiro.
 | VACINA_FORA_DA_CAMPANHA | Vacina não prevista. | vacina_id ∉ campanha_vacina |
 | FORA_DO_PERIODO | Fora da janela da campanha. | aplicado_em fora do período |
 | CAMPANHA_INATIVA | Campanha não está ativa. | status ≠ ativa |
-| DOSE_DUPLICADA | Dose já registrada. | mesma dose/vacina já confirmada |
-| FORA_DO_ESCOPO | Sem acesso a esta campanha. | escopo do token (parceiro) |
+| VACINADO_DUPLICADO | Paciente já vacinado. | elegível já tem aplicação confirmada (RN-013) |
+| FORA_DO_ESCOPO | Sem acesso a esta campanha/clínica. | escopo do token / clínica (RN-009/012) |
 
 ---
 

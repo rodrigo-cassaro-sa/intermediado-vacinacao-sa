@@ -74,6 +74,9 @@ dificuldade de auditoria e de devolver dados confiáveis ao cliente.
 | RN-010 | Registro de aplicação é **imutável após confirmação**; correção gera novo registro/estorno auditado, nunca edição silenciosa | Erro de lote vira retificação auditada | Auditoria sanitária | rascunho |
 | RN-011 | Consentimento LGPD do paciente é pré-requisito para tratar dado de saúde do B2C | Aceite registrado com data/hora e versão do termo | Base legal | crítica |
 | RN-012 | Na rede credenciada, cada **clínica só vê os elegíveis atribuídos a ela** e só registra/vê os vacinados que ela mesma lançou; uma clínica nunca vê dados de outra | Clínica A não consulta nem registra elegível atribuído à Clínica B | Isolamento por clínica (além do escopo por campanha) | crítica |
+| RN-013 | **Faturamento com a clínica: pagamos por vacinado.** Cada elegível só pode ter **uma** aplicação confirmada; o vacinado é vinculado à clínica e não pode repetir | Não pagar 2x pelo mesmo paciente; 2ª aplicação → VACINADO_DUPLICADO | Financeiro (pagamento à rede) | crítica |
+| RN-014 | **Faturamento com o cliente: cobramos por elegível indicado.** O mesmo CPF/nome não pode repetir na campanha | Garantido por UNIQUE(campanha, paciente) + dedup por CPF na ingestão | Financeiro (cobrança do cliente) | crítica |
+| RN-015 | **Campanha tem duração por cliente.** Passado o `periodo_fim`, os elegíveis pendentes **expiram** (status `expirado`) e a campanha é encerrada; não aceitam mais aplicação | Elegível não aplicado até a data fim → expirado; não conta como vacinado | Financeiro e operacional | crítica |
 
 ---
 
@@ -84,6 +87,9 @@ Regras que não podem ser quebradas:
 - **RN-006 / RN-007** — isolamento de dados entre clientes B2B e entre pacientes (LGPD).
 - **RN-009** — API externa (rede e app) sempre com escopo restrito à campanha autorizada.
 - **RN-012** — isolamento por clínica na rede credenciada (elegível atribuído + vacinado próprio).
+- **RN-013** — um vacinado confirmado por elegível (não pagar a clínica em dobro).
+- **RN-014** — um elegível (CPF) por campanha (não cobrar o cliente em dobro).
+- **RN-015** — elegíveis expiram após o `periodo_fim` da campanha.
 - **RN-011** — sem base legal/consentimento não se trata dado de saúde do paciente B2C.
 - Toda validação de elegibilidade, período, vacina e permissão é feita **no backend**.
 - Dado sensível de saúde nunca trafega/armazena sem criptografia e sem log de auditoria de acesso.

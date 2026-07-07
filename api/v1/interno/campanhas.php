@@ -231,6 +231,48 @@ function rota_editar_campanha(array $params): void
     responder_sucesso(['campanha_id' => $id], 'Campanha atualizada.');
 }
 
+/**
+ * POST /api/v1/interno/campanhas/{id}/encerrar
+ * Encerra a campanha e expira os elegíveis pendentes (RN-015).
+ */
+function rota_encerrar_campanha(array $params): void
+{
+    $usuario = exigir_login();
+    exigir_perfil($usuario, PERFIS_INTERNOS);
+    exigir_csrf();
+
+    $id = id_campanha_rota($params['id'] ?? null);
+    $campanha = exigir_campanha_do_usuario($usuario, $id);
+
+    try {
+        pdo()->beginTransaction();
+        db_executar("UPDATE campanha SET status = 'encerrada' WHERE id = :id", [':id' => $id]);
+        $stmt = db_executar(
+            "UPDATE elegivel SET status = 'expirado' WHERE campanha_id = :id AND status = 'pendente'",
+            [':id' => $id]
+        );
+        $expirados = $stmt->rowCount();
+        pdo()->commit();
+    } catch (Throwable $e) {
+        if (pdo()->inTransaction()) {
+            pdo()->rollBack();
+        }
+        throw $e;
+    }
+
+    registrar_auditoria('campanha.encerrada', [
+        'tenant_id'     => (int) $campanha['tenant_id'],
+        'ator_tipo'     => 'usuario',
+        'ator_id'       => (int) $usuario['id'],
+        'origem'        => 'admin',
+        'entidade_tipo' => 'campanha',
+        'entidade_id'   => $id,
+        'metadata'      => ['elegiveis_expirados' => $expirados],
+    ]);
+
+    responder_sucesso(['campanha_id' => $id, 'elegiveis_expirados' => $expirados], 'Campanha encerrada.');
+}
+
 /** POST /api/v1/interno/campanhas/{id}/vacinas — redefine as vacinas da campanha. */
 function rota_definir_vacinas_campanha(array $params): void
 {

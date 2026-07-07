@@ -172,6 +172,7 @@
         </div>
         <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="carregarAplicacao()">Carregar elegíveis/vacinas</button></div>
         <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="ativarCampanha()">Ativar campanha</button></div>
+        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="encerrarCampanha()">Encerrar (expira pendentes)</button></div>
       </div>
       <div class="row">
         <div><label>Elegível (paciente)</label><select id="aplicElegivel"><option value="">—</option></select></div>
@@ -448,6 +449,13 @@ async function ativarCampanha() {
   const id = document.getElementById('aplicCampanha').value;
   if (!id) return log('Selecione uma campanha.');
   await api(`/interno/campanhas/${id}`, 'PUT', { status: 'ativa' });
+  listarCampanhas();
+}
+
+async function encerrarCampanha() {
+  const id = document.getElementById('aplicCampanha').value;
+  if (!id) return log('Selecione uma campanha.');
+  await api(`/interno/campanhas/${id}/encerrar`, 'POST');
   listarCampanhas();
 }
 

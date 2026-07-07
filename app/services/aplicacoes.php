@@ -60,15 +60,15 @@ function registrar_aplicacao(array $ctx): array
         ]);
     }
 
-    // Não duplicar a mesma dose confirmada.
-    $dup = db_primeiro(
-        "SELECT id FROM aplicacao
-          WHERE elegivel_id = :e AND vacina_id = :v AND dose = :d AND status = 'confirmada' LIMIT 1",
-        [':e' => (int) $ctx['elegivel_id'], ':v' => (int) $ctx['vacina_id'], ':d' => (int) $ctx['dose']]
+    // RN-013: um elegível só pode ter UM vacinado confirmado (pagamento por vacinado
+    // à clínica não pode repetir). Correção deve usar a retificação (RN-010).
+    $jaVacinado = db_primeiro(
+        "SELECT id FROM aplicacao WHERE elegivel_id = :e AND status = 'confirmada' LIMIT 1",
+        [':e' => (int) $ctx['elegivel_id']]
     );
-    if ($dup !== null) {
-        responder_erro('Dose já registrada.', 409, [
-            ['field' => 'dose', 'code' => 'DOSE_DUPLICADA', 'message' => 'Esta dose já foi registrada para o paciente.'],
+    if ($jaVacinado !== null) {
+        responder_erro('Paciente já vacinado nesta campanha.', 409, [
+            ['field' => null, 'code' => 'VACINADO_DUPLICADO', 'message' => 'Este paciente já consta como vacinado nesta campanha.'],
         ]);
     }
 
