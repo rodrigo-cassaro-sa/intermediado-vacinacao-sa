@@ -81,7 +81,7 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | QA/testes | pendente |  |
 | Documentação | em andamento | fase 1 documentada |
 | Git/GitHub | feito | repo público no GitHub (intermediado-vacinacao-sa), branch main, push do commit inicial 7071c6c |
-| Docker/EasyPanel | validado (homolog) | 3 serviços no ar (imz-app, imz-mysql, phpmyadmin); health app:ok/banco:ok; falta aplicar migrations |
+| Docker/EasyPanel | validado (homolog) | 3 serviços no ar; entrypoint aplica migrations no boot (AUTO_MIGRAR, incremental); cron de expiração (RN-015) documentado |
 | Homologação | pendente |  |
 | Produção | pendente |  |
 | Monitoramento | pendente |  |

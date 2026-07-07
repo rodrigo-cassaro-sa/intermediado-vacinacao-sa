@@ -138,24 +138,45 @@ Produção sem SSL não é considerada pronta.
 
 ---
 
-# 8. Aplicar migrations (primeira carga)
+# 8. Migrations e primeira carga
 
-Após o `imz-app` no ar e o `imz-mysql` criado, escolher **uma** opção:
+## Migração automática no deploy (padrão)
+
+O container tem um **entrypoint** (`docker/entrypoint.sh`) que aplica as migrations pendentes
+a cada start/redeploy, de forma **incremental e idempotente** (pula as já aplicadas). Ou seja,
+todo deploy já cria/atualiza o schema sozinho. Controlado pela env:
 
 ```txt
-Opção A (recomendada) — script no container da app:
-  1. Abrir o terminal do serviço imz-app no EasyPanel.
-  2. Criar tabelas + catálogo de vacinas:   php scripts/migrar.php --seeds
-  3. Criar o admin com senha real:
-       php scripts/criar_admin.php admin@suaempresa.com SuaSenhaForte "Administrador"
-     (a senha é gravada com password_hash; o seed NÃO cria admin).
-
-Opção B — phpMyAdmin:
-  - Importar, na ORDEM, database/migrations/000..008 e depois database/seeds/seeds_vacinas_perfis.sql.
-  - Depois criar o admin pelo terminal do container (passo 3 acima).
+AUTO_MIGRAR=true   # dev/homologação (default)
+AUTO_MIGRAR=false  # produção, se preferir aplicar manualmente com backup
 ```
 
-> Nunca rodar migration em produção sem backup. Ver database/README.md.
+Se o MySQL ainda estiver subindo, o entrypoint tenta por ~30s antes de seguir; o estado do
+banco sempre pode ser conferido em `GET /api/v1/health`.
+
+## Primeira carga (uma vez por ambiente)
+
+Catálogo de vacinas e usuário admin **não** rodam no boot — faça uma vez, no terminal do `imz-app`:
+
+```bash
+php scripts/migrar.php --seeds                # cria o catálogo de vacinas (idempotente)
+php scripts/criar_admin.php admin@suaempresa.com SuaSenhaForte "Administrador"
+```
+
+Alternativa manual: importar `database/migrations/*.sql` e `database/seeds/*.sql` pelo phpMyAdmin.
+
+> Em produção, se `AUTO_MIGRAR=false`, aplicar migrations manualmente **com backup antes**.
+> Ver database/README.md.
+
+## Expiração de elegíveis (RN-015) — cron diário
+
+Configure um **Cron Job** no serviço `imz-app` (EasyPanel → Scheduled/Cron) rodando 1x/dia:
+
+```bash
+php scripts/expirar_elegiveis.php
+```
+
+Ele expira elegíveis pendentes de campanhas vencidas e encerra campanhas com período terminado.
 
 ---
 
