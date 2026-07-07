@@ -74,7 +74,7 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | Arquitetura | feito | doc 05: multi-tenant por tenant_id, API interno/parceiro, public/ docroot |
 | Mapa de telas | feito | doc 07: telas admin/portal/app + fluxos A–E |
 | Design/UX/UI | pendente |  |
-| Banco de dados | em andamento | doc 08 modelado; SQL/migrations 000..008 + seeds escritos em database/; falta executar/validar em MySQL |
+| Banco de dados | em andamento | migrations 000..008 aplicadas em homolog; migration 009 (elegivel.clinica_id, RN-012) criada — PENDENTE rodar `php scripts/migrar.php` no container |
 | Backend/API/PHP | validado (homolog) | blocos 1, 2 e 3 VALIDADOS em homolog via /admin (cliente→campanha→elegíveis→aplicação→tabela verdade/dashboard). Falta: extração CSV, rede credenciada testada com clínica real, refino. |
 | Frontend | em andamento | public/admin/index.html: console de testes (login/health/clientes/campanhas) via Fetch; validar no deploy |
 | Segurança/auditoria | em andamento | doc 10 preenchido (auth, escopo, auditoria, LGPD, criptografia); implementação nos middlewares pendente |
@@ -142,7 +142,8 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | 5 | ~~Bloco 1 (cliente/campanha)~~ | usuário/deploy | alta | validado no /admin |
 | 6 | ~~Bloco 2 (elegíveis)~~ | usuário/deploy | alta | validado no /admin |
 | 7 | ~~Bloco 3 (aplicação + tabela verdade)~~ | usuário/deploy | alta | validado no /admin |
-| 8 | Extração/CSV p/ cliente B2B (implementado, commit df335e6) — deploy e testar | especialista-backend | média | em andamento |
+| 8 | Extração/CSV p/ cliente B2B (commit df335e6) — validado | especialista-backend | média | feito |
+| 8b | RN-012 isolamento por clínica (commit 7f63528) — **exige rodar migration 009** + testar | usuário/deploy | alta | em andamento |
 | 9 | Telas reais (portal B2B / painel operador) saindo do console de testes | especialista-design/frontend | média | pendente |
 | 10 | Preencher docs pendentes (11 integrações, 12 QA, 14 backup, 15 changelog, 16 handoff) | especialista-documentacao | média | pendente |
 | 6 | (paralelo) Guia visual/UX (doc 06) ao iniciar frontend | especialista-design | média | pendente |
