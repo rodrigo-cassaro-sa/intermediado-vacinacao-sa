@@ -107,10 +107,13 @@ function rota_atribuir_clinica(array $params): void
             $naoEncontrados[] = mascarar_cpf($cpf);
             continue;
         }
+        $anterior = db_primeiro("SELECT clinica_id FROM elegivel WHERE id = :id", [':id' => (int) $eleg['id']]);
         db_executar(
             "UPDATE elegivel SET clinica_id = :clinica WHERE id = :id",
             [':clinica' => (int) $dados['clinica_id'], ':id' => (int) $eleg['id']]
         );
+        historico_elegivel((int) $eleg['id'], 'clinica_alterada', ator_usuario($usuario),
+            ['clinica_id' => $anterior['clinica_id'] ?? null], ['clinica_id' => (int) $dados['clinica_id']]);
         $atribuidos++;
     }
 

@@ -44,6 +44,8 @@ function rota_parceiro_definir_situacao(array $params): void
         'entidade_id'   => $id,
         'metadata'      => ['status' => $dados['status'] ?? ''],
     ]);
+    historico_elegivel($id, 'situacao_alterada', ator_credencial($cred), null,
+        ['status' => $dados['status'] ?? ''], (string) ($dados['motivo'] ?? ''));
 
     responder_sucesso(['elegivel_id' => $id, 'status' => $dados['status']], 'Situação atualizada.');
 }

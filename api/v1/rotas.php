@@ -40,6 +40,8 @@ return [
     'POST /api/v1/interno/campanhas/{id}/elegiveis/importar' => ['arquivo' => 'interno/elegiveis.php', 'funcao' => 'rota_importar_elegiveis'],
     'GET  /api/v1/interno/campanhas/{id}/elegiveis'          => ['arquivo' => 'interno/elegiveis.php', 'funcao' => 'rota_listar_elegiveis'],
     'POST /api/v1/interno/elegiveis/{id}/situacao'           => ['arquivo' => 'interno/elegiveis.php', 'funcao' => 'rota_definir_situacao_elegivel'],
+    'PUT  /api/v1/interno/elegiveis/{id}'                    => ['arquivo' => 'interno/elegivel_edicao.php', 'funcao' => 'rota_editar_elegivel'],
+    'GET  /api/v1/interno/elegiveis/{id}/historico'         => ['arquivo' => 'interno/elegivel_edicao.php', 'funcao' => 'rota_historico_elegivel'],
 
     // --- Credenciais de API (parceiro) ---
     'POST /api/v1/interno/credenciais'             => ['arquivo' => 'interno/credenciais.php', 'funcao' => 'rota_emitir_credencial'],
@@ -50,6 +52,8 @@ return [
     'POST /api/v1/interno/aplicacoes'              => ['arquivo' => 'interno/aplicacoes.php', 'funcao' => 'rota_registrar_aplicacao'],
     'POST /api/v1/interno/aplicacoes-lote'         => ['arquivo' => 'interno/aplicacoes.php', 'funcao' => 'rota_registrar_aplicacoes_lote'],
     'POST /api/v1/interno/aplicacoes/{id}/retificar' => ['arquivo' => 'interno/aplicacoes.php', 'funcao' => 'rota_retificar_aplicacao'],
+    'POST /api/v1/interno/aplicacoes/{id}/estornar'  => ['arquivo' => 'interno/aplicacoes.php', 'funcao' => 'rota_estornar_aplicacao'],
+    'GET  /api/v1/interno/aplicacoes/{id}/historico' => ['arquivo' => 'interno/aplicacoes.php', 'funcao' => 'rota_historico_aplicacao'],
 
     // --- Tabela verdade e dashboard (bloco 3) ---
     'GET  /api/v1/interno/campanhas/{id}/tabela-verdade' => ['arquivo' => 'interno/tabela_verdade.php', 'funcao' => 'rota_tabela_verdade'],

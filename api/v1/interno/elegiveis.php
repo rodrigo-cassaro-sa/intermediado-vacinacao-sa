@@ -159,6 +159,8 @@ function rota_definir_situacao_elegivel(array $params): void
         'entidade_id'   => $id,
         'metadata'      => ['status' => $dados['status'] ?? '', 'motivo' => $dados['motivo'] ?? ''],
     ]);
+    historico_elegivel($id, 'situacao_alterada', ator_usuario($usuario), null,
+        ['status' => $dados['status'] ?? ''], (string) ($dados['motivo'] ?? ''));
 
     responder_sucesso(['elegivel_id' => $id, 'status' => $dados['status']], 'Situação atualizada.');
 }

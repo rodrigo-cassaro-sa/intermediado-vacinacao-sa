@@ -274,6 +274,38 @@
       <div style="margin-top:8px"><button onclick="registrarLoteClinica()">Registrar em lote (API)</button></div>
     </div>
 
+    <!-- CORREÇÕES E HISTÓRICO -->
+    <div class="card full">
+      <h2>9. Correções e histórico (integridade — RN-021/022)</h2>
+      <p class="muted">Editar elegível (deixe em branco o que não quer alterar):</p>
+      <div class="row">
+        <div style="flex:0;min-width:110px"><label>Elegível ID</label><input id="edElegId" placeholder="id" /></div>
+        <div><label>Nome</label><input id="edNome" placeholder="(manter)" /></div>
+        <div><label>CPF</label><input id="edCpf" placeholder="(manter)" /></div>
+        <div><label>Nascimento</label><input id="edNasc" placeholder="AAAA-MM-DD" /></div>
+      </div>
+      <div class="row">
+        <div><label>Tipo</label>
+          <select id="edTipo"><option value="">(manter)</option><option>colaborador</option><option>dependente</option><option>terceiro</option></select>
+        </div>
+        <div><label>CPF titular</label><input id="edTitular" placeholder="(se dependente)" /></div>
+        <div><label>Cód. lotação</label><input id="edLotacao" placeholder="(manter)" /></div>
+        <div><label>Cód. RH</label><input id="edRh" placeholder="(manter)" /></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button onclick="editarElegivel()">Salvar correção</button>
+        <button class="sec" onclick="verHistoricoElegivel()">Ver histórico do elegível</button>
+      </div>
+      <hr style="border:0;border-top:1px solid var(--line);margin:14px 0" />
+      <p class="muted">Estornar ("desvacinar") uma aplicação e ver seu histórico:</p>
+      <div class="row">
+        <div style="flex:0;min-width:110px"><label>Aplicação ID</label><input id="estAplId" placeholder="id" /></div>
+        <div><label>Motivo do estorno</label><input id="estMotivo" placeholder="ex.: vacinado por engano" /></div>
+        <div style="flex:0"><label>&nbsp;</label><button onclick="estornarAplicacao()">Estornar</button></div>
+        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="verHistoricoAplicacao()">Histórico da aplicação</button></div>
+      </div>
+    </div>
+
     <!-- RESPOSTA -->
     <div class="card full">
       <h2>Última resposta da API</h2>
@@ -622,6 +654,36 @@ async function testarIngestaoParceiro() {
   });
   log(await resp.json());
   listarElegiveis();
+}
+
+async function editarElegivel() {
+  const id = document.getElementById('edElegId').value;
+  if (!id) return log('Informe o ID do elegível.');
+  const body = {};
+  const add = (campo, elId) => { const v = document.getElementById(elId).value.trim(); if (v !== '') body[campo] = v; };
+  add('nome', 'edNome'); add('cpf', 'edCpf'); add('data_nascimento', 'edNasc');
+  add('tipo_vinculo', 'edTipo'); add('cpf_titular', 'edTitular');
+  add('codigo_lotacao', 'edLotacao'); add('codigo_rh', 'edRh');
+  await api(`/interno/elegiveis/${id}`, 'PUT', body);
+  listarElegiveis();
+}
+
+async function verHistoricoElegivel() {
+  const id = document.getElementById('edElegId').value;
+  if (!id) return log('Informe o ID do elegível.');
+  await api(`/interno/elegiveis/${id}/historico`);
+}
+
+async function estornarAplicacao() {
+  const id = document.getElementById('estAplId').value;
+  if (!id) return log('Informe o ID da aplicação.');
+  await api(`/interno/aplicacoes/${id}/estornar`, 'POST', { motivo: document.getElementById('estMotivo').value });
+}
+
+async function verHistoricoAplicacao() {
+  const id = document.getElementById('estAplId').value;
+  if (!id) return log('Informe o ID da aplicação.');
+  await api(`/interno/aplicacoes/${id}/historico`);
 }
 
 // Ao abrir, checa a saúde do serviço.

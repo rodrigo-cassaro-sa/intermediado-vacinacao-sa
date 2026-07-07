@@ -96,6 +96,9 @@ function rota_parceiro_registrar_aplicacao(array $params): void
         'entidade_tipo' => 'aplicacao',
         'entidade_id'   => $res['aplicacao_id'],
     ]);
+    historico_aplicacao($res['aplicacao_id'], 'registrada', ator_credencial($cred));
+    historico_elegivel((int) $dados['elegivel_id'], 'vacinado', ator_credencial($cred), null,
+        ['aplicacao_id' => $res['aplicacao_id']]);
 
     responder_sucesso([
         'aplicacao_id'    => $res['aplicacao_id'],
@@ -163,6 +166,8 @@ function rota_parceiro_registrar_aplicacoes_lote(array $params): void
 
         if ($res['ok']) {
             $confirmados++;
+            historico_aplicacao($res['aplicacao_id'], 'registrada', ator_credencial($cred), 'lote');
+            historico_elegivel((int) $ap['elegivel_id'], 'vacinado', ator_credencial($cred), null, ['aplicacao_id' => $res['aplicacao_id']]);
             $itens[] = ['indice' => $indice, 'elegivel_id' => (int) $ap['elegivel_id'], 'ok' => true, 'aplicacao_id' => $res['aplicacao_id']];
         } else {
             $rejeitados++;

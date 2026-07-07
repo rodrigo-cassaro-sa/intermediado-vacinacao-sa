@@ -28,6 +28,8 @@ Documentar entidades, tabelas, campos, relacionamentos, índices, migrations e c
 | Credencial de API | Token de máquina (ingestão B2B / rede), com escopo | `credencial_api` |
 | Consentimento LGPD | Aceite do paciente (base legal) | `consentimento_lgpd` |
 | Log de auditoria | Trilha de acesso/ações críticas | `log_auditoria` |
+| Histórico do elegível | Lastro de mudanças do elegível (RN-021) | `elegivel_historico` |
+| Histórico da aplicação | Lastro da aplicação: registrada/retificada/estornada (RN-022) | `aplicacao_historico` |
 
 ---
 

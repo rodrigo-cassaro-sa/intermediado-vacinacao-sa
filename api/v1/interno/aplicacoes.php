@@ -62,12 +62,91 @@ function rota_registrar_aplicacao(array $params): void
         'entidade_tipo' => 'aplicacao',
         'entidade_id'   => $res['aplicacao_id'],
     ]);
+    historico_aplicacao($res['aplicacao_id'], 'registrada', ator_usuario($usuario));
+    historico_elegivel((int) $dados['elegivel_id'], 'vacinado', ator_usuario($usuario), null,
+        ['aplicacao_id' => $res['aplicacao_id']]);
 
     responder_sucesso([
         'aplicacao_id'    => $res['aplicacao_id'],
         'status'          => 'confirmada',
         'elegivel_status' => 'aplicado',
     ], 'Aplicação registrada.', 201);
+}
+
+/**
+ * POST /api/v1/interno/aplicacoes/{id}/estornar — "desvacinar" (RN-022).
+ * Marca a aplicação como estornada, volta o elegível para pendente (permite
+ * relançar depois) e registra motivo + histórico. Imutabilidade preservada.
+ */
+function rota_estornar_aplicacao(array $params): void
+{
+    $usuario = exigir_login();
+    exigir_perfil($usuario, ['super_admin', 'operador_interno']);
+    exigir_csrf();
+
+    $id = (int) ($params['id'] ?? 0);
+    $dados = corpo_json();
+    if (empty($dados['motivo'])) {
+        responder_erro('Informe o motivo do estorno.', 400, [
+            ['field' => 'motivo', 'code' => 'MOTIVO_OBRIGATORIO', 'message' => 'Motivo é obrigatório.'],
+        ]);
+    }
+
+    $ap = db_primeiro("SELECT id, campanha_id, elegivel_id, tenant_id FROM aplicacao WHERE id = :id AND status = 'confirmada' LIMIT 1", [':id' => $id]);
+    if ($ap === null) {
+        responder_erro('Aplicação não encontrada.', 404, [
+            ['field' => null, 'code' => 'APLICACAO_NAO_ENCONTRADA', 'message' => 'Registro inexistente ou não confirmado.'],
+        ]);
+    }
+    exigir_campanha_do_usuario($usuario, (int) $ap['campanha_id']);
+
+    try {
+        pdo()->beginTransaction();
+        db_executar("UPDATE aplicacao SET status = 'estornada' WHERE id = :id", [':id' => $id]);
+        db_executar("UPDATE elegivel SET status = 'pendente', motivo_situacao = NULL WHERE id = :id", [':id' => (int) $ap['elegivel_id']]);
+        pdo()->commit();
+    } catch (Throwable $e) {
+        if (pdo()->inTransaction()) {
+            pdo()->rollBack();
+        }
+        throw $e;
+    }
+
+    registrar_auditoria('aplicacao.estornada', [
+        'tenant_id'     => (int) $ap['tenant_id'],
+        'ator_tipo'     => 'usuario',
+        'ator_id'       => (int) $usuario['id'],
+        'origem'        => 'admin',
+        'entidade_tipo' => 'aplicacao',
+        'entidade_id'   => $id,
+        'metadata'      => ['motivo' => $dados['motivo']],
+    ]);
+    historico_aplicacao($id, 'estornada', ator_usuario($usuario), trim((string) $dados['motivo']));
+    historico_elegivel((int) $ap['elegivel_id'], 'desvacinado', ator_usuario($usuario), null,
+        ['aplicacao_id' => $id], trim((string) $dados['motivo']));
+
+    responder_sucesso(['aplicacao_id' => $id, 'elegivel_status' => 'pendente'], 'Aplicação estornada.');
+}
+
+/** GET /api/v1/interno/aplicacoes/{id}/historico — trilha da aplicação. */
+function rota_historico_aplicacao(array $params): void
+{
+    $usuario = exigir_login();
+    exigir_perfil($usuario, ['super_admin', 'operador_interno']);
+    $id = (int) ($params['id'] ?? 0);
+    $ap = db_primeiro("SELECT campanha_id FROM aplicacao WHERE id = :id LIMIT 1", [':id' => $id]);
+    if ($ap === null) {
+        responder_erro('Aplicação não encontrada.', 404, [
+            ['field' => null, 'code' => 'APLICACAO_NAO_ENCONTRADA', 'message' => 'Registro inexistente.'],
+        ]);
+    }
+    exigir_campanha_do_usuario($usuario, (int) $ap['campanha_id']);
+    $itens = db_todos(
+        "SELECT id, evento, ator_tipo, ator_id, motivo, criado_em
+           FROM aplicacao_historico WHERE aplicacao_id = :id ORDER BY id DESC",
+        [':id' => $id]
+    );
+    responder_sucesso(['itens' => $itens], 'OK.');
 }
 
 /**
@@ -134,6 +213,8 @@ function rota_registrar_aplicacoes_lote(array $params): void
 
         if ($res['ok']) {
             $confirmados++;
+            historico_aplicacao($res['aplicacao_id'], 'registrada', ator_usuario($usuario), 'lote');
+            historico_elegivel((int) $ap['elegivel_id'], 'vacinado', ator_usuario($usuario), null, ['aplicacao_id' => $res['aplicacao_id']]);
             $itens[] = ['indice' => $indice, 'elegivel_id' => (int) $ap['elegivel_id'], 'ok' => true, 'aplicacao_id' => $res['aplicacao_id']];
         } else {
             $rejeitados++;
@@ -261,6 +342,8 @@ function rota_retificar_aplicacao(array $params): void
         'entidade_id'   => $novaId,
         'metadata'      => ['aplicacao_origem_id' => $id, 'motivo' => $dados['motivo']],
     ]);
+    historico_aplicacao($id, 'retificada', ator_usuario($usuario), trim((string) $dados['motivo']));
+    historico_aplicacao($novaId, 'registrada', ator_usuario($usuario), 'retificação de #' . $id);
 
     responder_sucesso(['aplicacao_id' => $novaId, 'aplicacao_origem_id' => $id], 'Aplicação retificada.', 201);
 }
