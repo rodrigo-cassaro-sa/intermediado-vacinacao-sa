@@ -33,13 +33,16 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
         $nasc  = trim((string) ($item['data_nascimento'] ?? ''));
         $tipo  = strtolower(trim((string) ($item['tipo_vinculo'] ?? '')));
         $cpfTitular = so_digitos($item['cpf_titular'] ?? '');
+        $codLotacao = trim((string) ($item['codigo_lotacao'] ?? ''));
+        $codRh      = trim((string) ($item['codigo_rh'] ?? ''));
 
         // RN: CPF válido.
         if (!validar_cpf($cpf)) { $rejeita($linha, $cpf, 'CPF_INVALIDO'); continue; }
         // Nome obrigatório.
         if ($nome === '') { $rejeita($linha, $cpf, 'NOME_OBRIGATORIO'); continue; }
-        // RN: data de nascimento obrigatória e válida (AAAA-MM-DD).
-        if (!validar_data($nasc)) { $rejeita($linha, $cpf, 'DATA_NASCIMENTO_INVALIDA'); continue; }
+        // RN-016: data de nascimento OPCIONAL, mas se vier tem de ser válida.
+        if ($nasc !== '' && !validar_data($nasc)) { $rejeita($linha, $cpf, 'DATA_NASCIMENTO_INVALIDA'); continue; }
+        $nasc = $nasc === '' ? null : $nasc;
         // RN-016: tipo de vínculo obrigatório (colaborador|dependente|terceiro).
         if (!in_array($tipo, $tipos, true)) { $rejeita($linha, $cpf, 'TIPO_VINCULO_INVALIDO'); continue; }
         // RN-017: dependente exige CPF do titular válido; demais não têm titular.
@@ -48,6 +51,9 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
         } else {
             $cpfTitular = null;
         }
+        // RN-018: códigos do cliente obrigatórios.
+        if ($codLotacao === '') { $rejeita($linha, $cpf, 'CODIGO_LOTACAO_OBRIGATORIO'); continue; }
+        if ($codRh === '')      { $rejeita($linha, $cpf, 'CODIGO_RH_OBRIGATORIO'); continue; }
 
         // Paciente por CPF (identidade global — RN-008).
         $paciente = db_primeiro("SELECT id FROM paciente WHERE cpf = :cpf LIMIT 1", [':cpf' => $cpf]);
@@ -68,8 +74,8 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
         );
         if ($eleg === null) {
             db_executar(
-                "INSERT INTO elegivel (tenant_id, campanha_id, paciente_id, origem, tipo_vinculo, cpf_titular, status, importacao_id)
-                 VALUES (:tenant, :campanha, :paciente, :origem, :tipo, :titular, 'pendente', :imp)",
+                "INSERT INTO elegivel (tenant_id, campanha_id, paciente_id, origem, tipo_vinculo, cpf_titular, codigo_lotacao, codigo_rh, status, importacao_id)
+                 VALUES (:tenant, :campanha, :paciente, :origem, :tipo, :titular, :lotacao, :rh, 'pendente', :imp)",
                 [
                     ':tenant'   => $tenantId,
                     ':campanha' => $campanhaId,
@@ -77,15 +83,18 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
                     ':origem'   => $origem,
                     ':tipo'     => $tipo,
                     ':titular'  => $cpfTitular,
+                    ':lotacao'  => $codLotacao,
+                    ':rh'       => $codRh,
                     ':imp'      => $importacaoId,
                 ]
             );
             $criados++;
         } else {
-            // Já elegível nesta campanha (dedup) — atualiza tipo/titular sem duplicar.
+            // Já elegível nesta campanha (dedup) — atualiza dados sem duplicar.
             db_executar(
-                "UPDATE elegivel SET tipo_vinculo = :tipo, cpf_titular = :titular WHERE id = :id",
-                [':tipo' => $tipo, ':titular' => $cpfTitular, ':id' => (int) $eleg['id']]
+                "UPDATE elegivel SET tipo_vinculo = :tipo, cpf_titular = :titular,
+                        codigo_lotacao = :lotacao, codigo_rh = :rh WHERE id = :id",
+                [':tipo' => $tipo, ':titular' => $cpfTitular, ':lotacao' => $codLotacao, ':rh' => $codRh, ':id' => (int) $eleg['id']]
             );
             $atualizados++;
         }
@@ -115,15 +124,14 @@ function parsear_csv_elegiveis(string $conteudo): array
     $cabecalho = array_map(fn($h) => strtolower(trim($h)), str_getcsv($linhas[0], $delim));
     $temCabecalho = in_array('cpf', $cabecalho, true);
 
-    $idxCpf = 0; $idxNome = 1; $idxNasc = 2; $idxTipo = 3; $idxTitular = 4;
+    $idx = ['cpf' => 0, 'nome' => 1, 'data_nascimento' => 2, 'tipo_vinculo' => 3,
+            'cpf_titular' => 4, 'codigo_lotacao' => 5, 'codigo_rh' => 6];
     if ($temCabecalho) {
-        $idxCpf     = array_search('cpf', $cabecalho, true);
-        $idxNome    = array_search('nome', $cabecalho, true);
-        $idxNasc    = array_search('data_nascimento', $cabecalho, true);
-        $idxTipo    = array_search('tipo_vinculo', $cabecalho, true);
-        $idxTitular = array_search('cpf_titular', $cabecalho, true);
+        foreach ($idx as $nome => $_) {
+            $idx[$nome] = array_search($nome, $cabecalho, true);
+        }
     }
-    $val = fn($col, $idx) => ($idx !== false && isset($col[$idx])) ? $col[$idx] : null;
+    $val = fn($col, $i) => ($i !== false && isset($col[$i])) ? $col[$i] : null;
 
     $lista = [];
     $inicio = $temCabecalho ? 1 : 0;
@@ -133,11 +141,13 @@ function parsear_csv_elegiveis(string $conteudo): array
         }
         $col = str_getcsv($linhas[$i], $delim);
         $lista[] = [
-            'cpf'             => $col[$idxCpf] ?? '',
-            'nome'            => $col[$idxNome] ?? '',
-            'data_nascimento' => $val($col, $idxNasc),
-            'tipo_vinculo'    => $val($col, $idxTipo),
-            'cpf_titular'     => $val($col, $idxTitular),
+            'cpf'             => $col[$idx['cpf']] ?? '',
+            'nome'            => $col[$idx['nome']] ?? '',
+            'data_nascimento' => $val($col, $idx['data_nascimento']),
+            'tipo_vinculo'    => $val($col, $idx['tipo_vinculo']),
+            'cpf_titular'     => $val($col, $idx['cpf_titular']),
+            'codigo_lotacao'  => $val($col, $idx['codigo_lotacao']),
+            'codigo_rh'       => $val($col, $idx['codigo_rh']),
         ];
     }
     return $lista;
@@ -160,6 +170,8 @@ function normalizar_elegiveis_json($itens): array
             'data_nascimento' => $it['data_nascimento'] ?? null,
             'tipo_vinculo'    => $it['tipo_vinculo'] ?? null,
             'cpf_titular'     => $it['cpf_titular'] ?? null,
+            'codigo_lotacao'  => $it['codigo_lotacao'] ?? null,
+            'codigo_rh'       => $it['codigo_rh'] ?? null,
         ];
     }
     return $lista;

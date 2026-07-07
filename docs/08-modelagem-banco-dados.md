@@ -114,6 +114,8 @@ Documentar entidades, tabelas, campos, relacionamentos, índices, migrations e c
 | origem | VARCHAR(20) | sim |  | upload / api / autoelegivel |
 | tipo_vinculo | VARCHAR(20) | sim* |  | colaborador / dependente / terceiro (RN-016). Migration 010 |
 | cpf_titular | VARCHAR(11) | cond. |  | obrigatório quando tipo=dependente (RN-017). Migration 010 |
+| codigo_lotacao | VARCHAR(60) | sim* |  | código do cliente (RN-018). Migration 011 |
+| codigo_rh | VARCHAR(60) | sim* | IDX | código/matrícula do cliente (RN-018). Migration 011 |
 | status | VARCHAR(20) | sim | IDX | pendente / aplicado / recusado / inelegivel / ausente / expirado (RN-005, RN-015) |
 | importacao_id | BIGINT | não | FK | lote de origem |
 | criado_em / atualizado_em | DATETIME | — |  |  |
@@ -159,6 +161,11 @@ Documentar entidades, tabelas, campos, relacionamentos, índices, migrations e c
 | lote | VARCHAR(60) | sim |  | rastreabilidade sanitária |
 | via_administracao | VARCHAR(30) | não |  | ex.: intramuscular |
 | local_aplicacao | VARCHAR(160) | não |  | local físico / endereço in company |
+| cidade | VARCHAR(120) | sim* |  | lastro do local (RN-019). Migration 011 |
+| uf | CHAR(2) | sim* |  | UF do local (RN-019). Migration 011 |
+| unidade | VARCHAR(120) | não |  | código/nome da unidade de vacinação (RN-019). Migration 011 |
+| profissional_nome | VARCHAR(120) | sim* |  | profissional que aplicou (RN-019). Migration 011 |
+| profissional_cpf | VARCHAR(11) | sim* |  | CPF do profissional (RN-019). Migration 011 |
 | executor_tipo | VARCHAR(20) | sim | IDX | profissional_saude / clinica_credenciada |
 | executor_id | BIGINT | sim |  | → usuario ou clinica_credenciada |
 | origem | VARCHAR(20) | sim |  | app / api |

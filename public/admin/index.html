@@ -130,9 +130,9 @@
           <select id="elegCampanha"><option value="">— liste as campanhas —</option></select>
         </div>
       </div>
-      <label>Cole os elegíveis — <span class="muted">cpf,nome,data_nascimento,tipo_vinculo,cpf_titular</span> (tipo = colaborador | dependente | terceiro; cpf_titular só para dependente)</label>
+      <label>Cole os elegíveis — <span class="muted">cpf,nome,data_nascimento,tipo_vinculo,cpf_titular,codigo_lotacao,codigo_rh</span> (nascimento opcional; tipo = colaborador|dependente|terceiro; cpf_titular só p/ dependente; lotação e RH obrigatórios)</label>
       <textarea id="elegCsv" rows="4" style="width:100%;padding:8px;background:#0b1220;border:1px solid var(--line);border-radius:6px;color:var(--txt)"
-        placeholder="52998224725,Maria Silva,1990-05-10,colaborador,&#10;16899535009,Filho da Maria,2015-11-02,dependente,52998224725"></textarea>
+        placeholder="52998224725,Maria Silva,1990-05-10,colaborador,,LOT-01,RH-1001&#10;16899535009,Filho da Maria,2015-11-02,dependente,52998224725,LOT-01,RH-1001"></textarea>
       <div style="margin-top:12px" class="row">
         <button onclick="importarElegiveis()">Importar (JSON)</button>
         <button class="sec" onclick="listarElegiveis()">Listar elegíveis</button>
@@ -156,9 +156,9 @@
       </div>
       <label>Token emitido (cole aqui para testar; só aparece uma vez)</label>
       <input id="credToken" placeholder="token..." />
-      <label style="margin-top:8px">Elegíveis via API do parceiro (cpf,nome,data_nascimento,tipo_vinculo,cpf_titular)</label>
+      <label style="margin-top:8px">Elegíveis via API (cpf,nome,data_nascimento,tipo_vinculo,cpf_titular,codigo_lotacao,codigo_rh)</label>
       <textarea id="ingCsv" rows="3" style="width:100%;padding:8px;background:#0b1220;border:1px solid var(--line);border-radius:6px;color:var(--txt)"
-        placeholder="52998224725,Ana Costa,1992-03-01,terceiro,"></textarea>
+        placeholder="52998224725,Ana Costa,1992-03-01,terceiro,,LOT-02,RH-2001"></textarea>
       <div style="margin-top:12px"><button onclick="testarIngestaoParceiro()">Testar ingestão via API (Bearer)</button></div>
     </div>
 
@@ -182,6 +182,15 @@
       <div class="row">
         <div><label>Lote</label><input id="aplicLote" value="ABC-2026-77" /></div>
         <div><label>Data/hora da aplicação</label><input id="aplicData" type="datetime-local" value="2026-07-15T10:00" /></div>
+      </div>
+      <div class="row">
+        <div><label>Profissional (nome)</label><input id="aplicProfNome" value="Enf. Ana" /></div>
+        <div><label>Profissional (CPF)</label><input id="aplicProfCpf" value="52998224725" /></div>
+      </div>
+      <div class="row">
+        <div><label>Cidade</label><input id="aplicCidade" value="São Paulo" /></div>
+        <div style="flex:0;min-width:90px"><label>UF</label><input id="aplicUf" value="SP" maxlength="2" /></div>
+        <div><label>Unidade/local (opcional)</label><input id="aplicUnidade" value="Sede - 3º andar" /></div>
       </div>
       <div style="margin-top:12px"><button onclick="registrarAplicacao()">Registrar aplicação</button></div>
     </div>
@@ -238,11 +247,17 @@
       <div class="row">
         <div><label>Lote</label><input id="redeLote" value="RED-2026-01" /></div>
         <div><label>Data/hora</label><input id="redeData" type="datetime-local" value="2026-07-16T09:00" /></div>
-        <div style="flex:0"><label>&nbsp;</label><button onclick="registrarViaClinica()">Registrar via API clínica</button></div>
       </div>
-      <label style="margin-top:8px">Registro em LOTE (uma linha por vacinado: <span class="muted">elegivel_id;vacina_id;dose;lote;data</span>)</label>
+      <div class="row">
+        <div><label>Profissional (nome)</label><input id="redeProfNome" value="Enf. Clínica A" /></div>
+        <div><label>Profissional (CPF)</label><input id="redeProfCpf" value="11144477735" /></div>
+        <div><label>Cidade</label><input id="redeCidade" value="Campinas" /></div>
+        <div style="flex:0;min-width:80px"><label>UF</label><input id="redeUf" value="SP" maxlength="2" /></div>
+      </div>
+      <div style="margin-top:8px"><button onclick="registrarViaClinica()">Registrar via API clínica</button></div>
+      <label style="margin-top:8px">Registro em LOTE (uma linha: <span class="muted">elegivel_id;vacina_id;dose;lote;data;prof_nome;prof_cpf;cidade;uf</span>)</label>
       <textarea id="redeLote2" rows="3" style="width:100%;padding:8px;background:#0b1220;border:1px solid var(--line);border-radius:6px;color:var(--txt)"
-        placeholder="12;5;1;RED-2026-01;2026-07-16 09:00&#10;13;5;1;RED-2026-01;2026-07-16 09:10"></textarea>
+        placeholder="12;5;1;RED-2026-01;2026-07-16 09:00;Enf. A;11144477735;Campinas;SP&#10;13;5;1;RED-2026-01;2026-07-16 09:10;Enf. A;11144477735;Campinas;SP"></textarea>
       <div style="margin-top:8px"><button onclick="registrarLoteClinica()">Registrar em lote (API)</button></div>
     </div>
 
@@ -427,8 +442,12 @@ async function registrarLoteClinica() {
   if (!token) return log('Emita/cole um token da clínica.');
   const aplicacoes = document.getElementById('redeLote2').value.split(/\r?\n/)
     .map(l => l.trim()).filter(Boolean).map(l => {
-      const p = l.split(/[;,]/).map(x => x.trim());
-      return { elegivel_id: Number(p[0]), vacina_id: Number(p[1]), dose: Number(p[2]), lote: p[3], aplicado_em: p[4] };
+      const p = l.split(';').map(x => x.trim());
+      return {
+        elegivel_id: Number(p[0]), vacina_id: Number(p[1]), dose: Number(p[2]),
+        lote: p[3], aplicado_em: p[4],
+        profissional_nome: p[5], profissional_cpf: p[6], cidade: p[7], uf: p[8],
+      };
     });
   await apiBearer('/parceiro/aplicacoes-lote', 'POST', { aplicacoes }, token);
 }
@@ -441,6 +460,10 @@ async function registrarViaClinica() {
     dose: Number(document.getElementById('redeDose').value),
     lote: document.getElementById('redeLote').value,
     aplicado_em: document.getElementById('redeData').value.replace('T', ' ') + ':00',
+    profissional_nome: document.getElementById('redeProfNome').value,
+    profissional_cpf: document.getElementById('redeProfCpf').value,
+    cidade: document.getElementById('redeCidade').value,
+    uf: document.getElementById('redeUf').value,
   };
   await apiBearer('/parceiro/aplicacoes', 'POST', body, token);
 }
@@ -481,6 +504,11 @@ async function registrarAplicacao() {
     dose: Number(document.getElementById('aplicDose').value),
     lote: document.getElementById('aplicLote').value,
     aplicado_em: document.getElementById('aplicData').value.replace('T', ' ') + ':00',
+    profissional_nome: document.getElementById('aplicProfNome').value,
+    profissional_cpf: document.getElementById('aplicProfCpf').value,
+    cidade: document.getElementById('aplicCidade').value,
+    uf: document.getElementById('aplicUf').value,
+    unidade: document.getElementById('aplicUnidade').value,
   };
   await api('/interno/aplicacoes', 'POST', body);
 }

@@ -32,11 +32,21 @@ function processar_aplicacao(array $ctx): array
     $erro = fn(int $http, string $code, string $msg, ?string $field = null) =>
         ['ok' => false, 'http' => $http, 'code' => $code, 'message' => $msg, 'field' => $field];
 
-    // Campos mínimos.
-    foreach (['elegivel_id', 'vacina_id', 'dose', 'lote', 'aplicado_em'] as $campo) {
+    // Campos mínimos (inclui lastro/rastreabilidade — RN-019).
+    foreach (['elegivel_id', 'vacina_id', 'dose', 'lote', 'aplicado_em',
+              'profissional_nome', 'profissional_cpf', 'cidade', 'uf'] as $campo) {
         if (!isset($ctx[$campo]) || $ctx[$campo] === '' || $ctx[$campo] === null) {
             return $erro(400, 'CAMPO_OBRIGATORIO', "O campo '$campo' é obrigatório.", $campo);
         }
+    }
+    // RN-019: CPF do profissional válido e UF com 2 letras.
+    $profCpf = so_digitos($ctx['profissional_cpf']);
+    if (!validar_cpf($profCpf)) {
+        return $erro(400, 'CPF_PROFISSIONAL_INVALIDO', 'CPF do profissional inválido.', 'profissional_cpf');
+    }
+    $uf = strtoupper(trim((string) $ctx['uf']));
+    if (!preg_match('/^[A-Z]{2}$/', $uf)) {
+        return $erro(400, 'UF_INVALIDA', 'UF deve ter 2 letras.', 'uf');
     }
 
     // Elegível + dados da campanha.
@@ -89,10 +99,12 @@ function processar_aplicacao(array $ctx): array
         db_executar(
             "INSERT INTO aplicacao
                 (tenant_id, campanha_id, elegivel_id, paciente_id, vacina_id, dose, lote,
-                 via_administracao, local_aplicacao, executor_tipo, executor_id, origem,
+                 via_administracao, local_aplicacao, cidade, uf, unidade,
+                 profissional_nome, profissional_cpf, executor_tipo, executor_id, origem,
                  status, aplicado_em, criado_por)
              SELECT c.tenant_id, e.campanha_id, e.id, e.paciente_id, :vacina, :dose, :lote,
-                    :via, :local, :etipo, :eid, :origem, 'confirmada', :aplicado_em, :criado_por
+                    :via, :local, :cidade, :uf, :unidade,
+                    :pnome, :pcpf, :etipo, :eid, :origem, 'confirmada', :aplicado_em, :criado_por
                FROM elegivel e JOIN campanha c ON c.id = e.campanha_id
               WHERE e.id = :elegivel",
             [
@@ -101,6 +113,11 @@ function processar_aplicacao(array $ctx): array
                 ':lote'        => trim((string) $ctx['lote']),
                 ':via'         => $ctx['via_administracao'] ?? null,
                 ':local'       => $ctx['local_aplicacao'] ?? null,
+                ':cidade'      => trim((string) $ctx['cidade']),
+                ':uf'          => $uf,
+                ':unidade'     => $ctx['unidade'] ?? null,
+                ':pnome'       => trim((string) $ctx['profissional_nome']),
+                ':pcpf'        => $profCpf,
                 ':etipo'       => $ctx['executor_tipo'],
                 ':eid'         => (int) $ctx['executor_id'],
                 ':origem'      => $ctx['origem'],
