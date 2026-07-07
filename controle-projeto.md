@@ -74,7 +74,7 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | Arquitetura | feito | doc 05: multi-tenant por tenant_id, API interno/parceiro, public/ docroot |
 | Mapa de telas | feito | doc 07: telas admin/portal/app + fluxos A–E |
 | Design/UX/UI | pendente |  |
-| Banco de dados | validado (homolog) | migrations 000..010 (010 = elegivel.tipo_vinculo+cpf_titular, RN-016/017). Auto-migração no deploy via entrypoint. |
+| Banco de dados | validado (homolog) | migrations 000..011 (011 = elegivel.codigo_lotacao/rh + aplicacao cidade/uf/unidade/profissional, RN-018/019). Auto-migração no deploy. |
 | Backend/API/PHP | validado (homolog) | blocos 1, 2 e 3 VALIDADOS em homolog via /admin (cliente→campanha→elegíveis→aplicação→tabela verdade/dashboard). Falta: extração CSV, rede credenciada testada com clínica real, refino. |
 | Frontend | em andamento | public/admin/index.html: console de testes (login/health/clientes/campanhas) via Fetch; validar no deploy |
 | Segurança/auditoria | em andamento | doc 10 preenchido (auth, escopo, auditoria, LGPD, criptografia); implementação nos middlewares pendente |
@@ -146,7 +146,8 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | 8b | ~~RN-012 isolamento por clínica~~ (migration 009 aplicada) | usuário/deploy | alta | validado no /admin |
 | 8c | RN-013/014/015 regras de faturamento (commit 791f9cb) — deploy e testar | usuário/deploy | alta | em andamento |
 | 8d | Registro de aplicações em LOTE interno/parceiro (commit 4f09e6b); elegíveis já em lote | especialista-backend | média | em andamento |
-| 8e | RN-016/017 tipo_vinculo + data nascimento obrigatória + cpf_titular (commit 3cc41c5) — migration 010 auto no deploy | usuário/deploy | alta | em andamento |
+| 8e | RN-016/017 tipo_vinculo + cpf_titular (commit 3cc41c5) | usuário/deploy | alta | em andamento |
+| 8f | RN-018/019 códigos do cliente (lotação/RH) + lastro do vacinado (profissional/cidade/UF/unidade) (commit 8e1b241) — migration 011 auto | usuário/deploy | alta | em andamento |
 | 9 | Telas reais (portal B2B / painel operador) saindo do console de testes | especialista-design/frontend | média | pendente |
 | 10 | Preencher docs pendentes (11 integrações, 12 QA, 14 backup, 15 changelog, 16 handoff) | especialista-documentacao | média | pendente |
 | 6 | (paralelo) Guia visual/UX (doc 06) ao iniciar frontend | especialista-design | média | pendente |
