@@ -151,7 +151,7 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | 8g | RN-020 motivo de não-vacinação (commit 30613a4) — migration 012 auto | usuário/deploy | média | em andamento |
 | 8h | RN-021/022 histórico (elegível/aplicação) + editar elegível + estornar/desvacinar (commit a490beb) — migration 013 auto | usuário/deploy | alta | em andamento |
 | 8i | Batch 1 robustez (concorrência/idempotência/isolamento/titular/remoção — RN-013 rev, RN-023..026) — migration 014 APLICADA em homolog | usuário/deploy | alta | feito |
-| 9a | (próximo) Ingestão assíncrona em lotes (~100k por lista) | especialista-backend | alta | pendente |
+| 9a | Ingestão assíncrona em lotes + relatório de erros ao cliente (commit c98204b) — migration 015 auto; requer cron do worker | usuário/deploy | alta | em andamento |
 | 9b | Rate limit por credencial (item 12) | especialista-seguranca | alta | pendente |
 | 9c | Vacinado perpétuo/carteira + relatório ano a ano (itens 9/14) | especialista-backend | média | pendente |
 | 9d | Voucher p/ estrangeiro sem CPF (item 8); keyset (10); observabilidade (13) | especialista-backend | média | pendente |
@@ -185,7 +185,7 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | Superfície de segurança de APIs públicas (rede + ingestão) na V1 | segurança/integração | alta | Credencial por parceiro, escopo por campanha, rate limit e auditoria já no MVP | aberto |
 | Concorrência duplicar vacinado (pagamento em dobro) | integridade/financeiro | crítica | RESOLVIDO: UNIQUE (elegivel,vacina,dose) confirmada + idempotência (mig 014) | mitigado |
 | Vazamento de dados entre clientes no paciente global | privacidade | alta | RESOLVIDO: nome/nascimento por elegível (RN-023, mig 014) | mitigado |
-| Ingestão síncrona não escala p/ ~100k por lista (500 clientes) | performance | alta | PENDENTE: processar importação assíncrona em lotes (item 3) | aberto |
+| Ingestão síncrona não escala p/ ~100k por lista (500 clientes) | performance | alta | RESOLVIDO: importação assíncrona em chunks + worker cron + relatório de erros (mig 015, commit c98204b) | mitigado |
 | Retenção/particionamento de histórico e auditoria em milhões/ano | operação/escala | alta | PENDENTE: política de arquivamento + partição; vacinado perpétuo p/ carteira (item 9) | aberto |
 | Sem rate limit real nas APIs (500 clientes podem travar) | segurança/escala | alta | PENDENTE: limitar acessos/consultas por credencial (item 12) | aberto |
 | Sem módulo de faturamento (pagar clínica / cobrar cliente) | negócio | alta | ADIADO pelo usuário (item 4) | aberto |
