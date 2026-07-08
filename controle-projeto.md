@@ -160,7 +160,7 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | 13 | Observabilidade: health+versão, /metricas, /auditoria (commit 6d682b9) | usuário/deploy | média | feito |
 | 10 | keyset pagination (commit 8976e5d) | usuário/deploy | baixa | feito |
 | 4 | Faturamento: preços [cliente,modalidade,vacina] e [clínica,vacina] + relatórios a cobrar/a pagar (commit 356a72a) — migration 018 auto | usuário/deploy | alta | feito |
-| INT-A | Fundação integração: webhooks de saída (assinatura+entrega+worker+HMAC+retry) + admin | especialista-integracoes | alta | pendente (doc 11) |
+| INT-A | Fundação integração: webhooks de saída (assinatura+entrega+worker+HMAC+retry) + admin (commit 63d6429) — migration 019 auto; cron do worker | usuário/deploy | alta | feito |
 | INT-A3 | API externa formalizada (contrato/versão) + carteira/consulta por token/escopo | especialista-backend | alta | pendente |
 | INT-B | Sync de turnover por diferença (RH) | especialista-backend | média | pendente |
 | INT-C | Token de app in company + PWA offline | especialista-backend | média | pendente |
@@ -204,7 +204,7 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | Estrangeiro sem CPF | cobertura | média | RESOLVIDO: identidade por voucher/identificador (mig 017, commit fab47d4) | mitigado |
 | Sem relatório longitudinal ano a ano / carteira consolidada | produto | média | RESOLVIDO: carteira por CPF + resumo ano a ano (commit 695865c) | mitigado |
 | Observabilidade só /health | operação | média | RESOLVIDO: health+versão, /metricas, /auditoria, doc 14 (commit 6d682b9) | mitigado |
-| Sem webhooks de saída / painel de integrações (função 7) | integração | alta | PENDENTE: Fase A do doc 11 (fundação de integração) antes do portal | aberto |
+| Sem webhooks de saída / painel de integrações (função 7) | integração | alta | RESOLVIDO: webhooks de saída + painel (Fase A, commit 63d6429) | mitigado |
 | API externa sem contrato publicado/versão (funções 3/5/8) | integração | média | PENDENTE: Fase A3 (doc 09/11) | aberto |
 | Portal antes da fundação de integração = retrabalho | produto/risco | alta | Mitigação: fazer Fase A/B/C do doc 11 antes do PORTAL | aberto |
 | Paginação por OFFSET lenta em milhões | performance | média | RESOLVIDO: keyset/cursor em elegíveis e tabela verdade (commit 8976e5d) | mitigado |
