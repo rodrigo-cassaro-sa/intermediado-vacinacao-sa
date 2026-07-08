@@ -9,7 +9,10 @@ Documentar eventos, webhooks, APIs externas, notificações, filas, retry e idem
 > WEBHOOK_EVENTOS), fila `webhook_entrega`, worker `scripts/processar_webhooks.php` (cron),
 > assinatura **HMAC-SHA256** (header `X-Assinatura`), retry com backoff e status `dead`.
 > Endpoints do painel: `POST/GET /interno/webhooks`, `/webhooks/{id}/desativar|entregas|testar`.
-> Falta ainda: A3 (contrato externo publicado/versão + carteira/consulta por token).
+>
+> **A3 IMPLEMENTADO:** token tipo `consulta` (escopo = cliente/tenant) + API externa de leitura
+> (`GET /parceiro/carteira/{cpf}`, `GET /parceiro/campanhas/{id}/tabela-verdade`), com contrato
+> público v1 no doc 09 §3.9. Fundação de integração (A) concluída.
 
 ---
 

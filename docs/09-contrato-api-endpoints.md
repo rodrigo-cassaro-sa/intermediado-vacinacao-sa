@@ -324,6 +324,38 @@ Permissão: operador / cliente_b2b (própria campanha). Filtra por tenant_id + c
 
 ---
 
+# 3.9 API EXTERNA (parceiros/integrações) — contrato público v1
+
+Base: `https://{dominio}/api/v1`. Autenticação: `Authorization: Bearer {token}`.
+Rate limit por credencial (429 + Retry-After). Versão atual: **v1** (mudança incompatível → v2).
+
+**Tipos de credencial (token de máquina):**
+
+| Tipo | Escopo | Uso | Endpoints |
+|---|---|---|---|
+| `ingestao_b2b` | 1 campanha | cliente/RH envia elegíveis | POST `/parceiro/campanhas/{id}/elegiveis` |
+| `rede_credenciada` | 1 campanha + 1 clínica | clínica consulta/registra vacinado | GET `/parceiro/campanhas/{id}/elegiveis/{cpf}`, POST `/parceiro/aplicacoes[-lote]`, POST `/parceiro/elegiveis/{id}/situacao` |
+| `consulta` | 1 cliente (tenant) | sistema de carteira / RH / BI lê dados do cliente | GET `/parceiro/carteira/{cpf}`, GET `/parceiro/campanhas/{id}/tabela-verdade` |
+
+**Consulta — exemplos:**
+
+```txt
+GET /api/v1/parceiro/carteira/{cpf|voucher}     (token consulta)
+  → { paciente:{identidade,nome}, total_doses, doses:[{aplicado_em,vacina,dose,lote,campanha,cidade,uf}] }
+  Só doses do PRÓPRIO cliente (escopo do token). CPF mascarado.
+
+GET /api/v1/parceiro/campanhas/{id}/tabela-verdade?apos=&por_pagina=   (token consulta)
+  → { itens:[{cpf,nome,situacao_elegivel,total_aplicacoes,ultima_aplicacao_em}] }, meta.proximo_cursor
+  Campanha precisa pertencer ao cliente do token (senão 403 FORA_DO_ESCOPO).
+```
+
+**Webhooks de saída (o cliente recebe eventos):** ver docs/11. Assinatura `X-Assinatura`
+(HMAC-SHA256 do corpo), `X-Entrega-Id` para idempotência, retry com backoff.
+
+**Idempotência de escrita:** header `Idempotency-Key` nos POSTs de máquina (evita duplicar em retry).
+
+---
+
 # 4. Regras
 
 - API não expõe erro técnico bruto (stack/SQL); erro interno → `500` + `code=ERRO_INTERNO` + `request_id`.

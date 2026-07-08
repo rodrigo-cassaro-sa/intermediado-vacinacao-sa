@@ -383,6 +383,17 @@
         <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="desativarWebhook()">Desativar</button></div>
       </div>
       <table id="tblWebhooks"></table>
+      <hr style="border:0;border-top:1px solid var(--line);margin:14px 0" />
+      <p class="muted">API externa de consulta (token do cliente — sistema de carteira / RH):</p>
+      <div class="row">
+        <div style="flex:0;min-width:110px"><label>Cliente ID</label><input id="tcCliente" placeholder="1" /></div>
+        <div style="flex:0"><label>&nbsp;</label><button onclick="emitirTokenConsulta()">Emitir token de consulta</button></div>
+        <div><label>Token de consulta</label><input id="tcToken" placeholder="token..." /></div>
+      </div>
+      <div class="row">
+        <div><label>Consultar carteira (CPF/voucher)</label><input id="tcCpf" placeholder="52998224725" /></div>
+        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="consultarCarteiraExterna()">Consultar (API externa)</button></div>
+      </div>
     </div>
 
     <!-- RESPOSTA -->
@@ -921,6 +932,20 @@ async function entregasWebhook() {
   document.getElementById('tblWebhooks').innerHTML =
     '<tr><th>Entrega</th><th>Evento</th><th>Status</th><th>Tent.</th><th>HTTP</th><th>Próx. tentativa</th><th>Entregue</th></tr>' +
     (d.data.itens || []).map(e => `<tr><td>${e.id}</td><td>${e.evento}</td><td>${e.status}</td><td>${e.tentativas}</td><td>${e.ultimo_status_code||'—'}</td><td>${e.proxima_tentativa_em||''}</td><td>${e.entregue_em||'—'}</td></tr>`).join('');
+}
+
+async function emitirTokenConsulta() {
+  const id = document.getElementById('tcCliente').value;
+  if (!id) return log('Informe o Cliente ID.');
+  const d = await api('/interno/credenciais', 'POST', { tipo: 'consulta', cliente_b2b_id: Number(id) });
+  if (d.success) document.getElementById('tcToken').value = d.data.token;
+}
+
+async function consultarCarteiraExterna() {
+  const token = document.getElementById('tcToken').value.trim();
+  const cpf = document.getElementById('tcCpf').value.trim();
+  if (!token || !cpf) return log('Informe o token de consulta e o CPF/voucher.');
+  await apiBearer(`/parceiro/carteira/${encodeURIComponent(cpf)}`, 'GET', null, token);
 }
 
 // Ao abrir, checa a saúde do serviço.

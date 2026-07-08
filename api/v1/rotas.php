@@ -95,4 +95,8 @@ return [
     'GET  /api/v1/parceiro/campanhas/{id}/elegiveis/{cpf}'  => ['arquivo' => 'parceiro/aplicacoes.php', 'funcao' => 'rota_parceiro_consultar_elegivel'],
     'POST /api/v1/parceiro/aplicacoes'                      => ['arquivo' => 'parceiro/aplicacoes.php', 'funcao' => 'rota_parceiro_registrar_aplicacao'],
     'POST /api/v1/parceiro/aplicacoes-lote'                 => ['arquivo' => 'parceiro/aplicacoes.php', 'funcao' => 'rota_parceiro_registrar_aplicacoes_lote'],
+
+    // --- API externa de CONSULTA (token tipo consulta, escopo tenant) — Fase A3 ---
+    'GET  /api/v1/parceiro/carteira/{cpf}'                  => ['arquivo' => 'parceiro/consulta.php', 'funcao' => 'rota_consulta_carteira'],
+    'GET  /api/v1/parceiro/campanhas/{id}/tabela-verdade'   => ['arquivo' => 'parceiro/consulta.php', 'funcao' => 'rota_consulta_tabela_verdade'],
 ];
