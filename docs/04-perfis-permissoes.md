@@ -70,6 +70,68 @@ Definir quem pode acessar cada área e executar cada ação.
 
 ---
 
+# 4.1 PORTAL — hierarquia de usuários e escopos (novo)
+
+O portal introduz **níveis hierárquicos com escopo**, substituindo o `perfil` plano por
+**atribuições** (um usuário pode ter várias). Regra central: **quem está acima gere quem está abaixo**,
+dentro do seu escopo.
+
+## Níveis (do maior para o menor alcance)
+
+| Nível | Escopo | Alcance | Exemplo |
+|---|---|---|---|
+| `gestao_interna` | global (nós) | todos os clientes/grupos | equipe da prestadora |
+| `grupo` | 1 grupo empresarial (carteira de clientes) | todos os clientes do grupo | holding, franqueadora, corretora |
+| `negocio` | 1 cliente (empresa) | tudo da empresa (todas as unidades) | RH/gestor de saúde da empresa |
+| `local` | 1 unidade/lotação/planta | só a unidade onde ocorre a vacinação | responsável da planta |
+
+## Modelo de dados (planejado)
+
+```txt
+grupo_empresarial (id, nome)                         -- carteira de clientes
+cliente_b2b.grupo_empresarial_id (nullable)          -- cliente pertence a um grupo
+unidade (id, cliente_b2b_id, nome, codigo_lotacao, cidade, uf)  -- local de vacinação/lotação
+elegivel.unidade_id (nullable)                       -- elegível vinculado a uma unidade (além do codigo_lotacao)
+
+usuario_atribuicao (id, usuario_id, nivel, escopo_tipo, escopo_id, criado_por, criado_em)
+  nivel: gestao_interna | grupo | negocio | local
+  escopo_tipo: NULL(interna) | grupo_empresarial | cliente_b2b | unidade
+  escopo_id: id do escopo
+  -- UNIQUE(usuario_id, nivel, escopo_tipo, escopo_id) — multi-atribuição
+```
+
+## Resolução de permissão (por requisição)
+
+Para um recurso (campanha do cliente T, unidade U), o acesso é concedido se **alguma atribuição**
+do usuário cobrir o recurso:
+
+```txt
+gestao_interna         → cobre tudo
+grupo (escopo G)       → cobre clientes onde cliente_b2b.grupo_empresarial_id = G (e suas unidades)
+negocio (escopo T)     → cobre o cliente T e todas as unidades de T
+local (escopo U)       → cobre apenas a unidade U (elegíveis/vacinados daquela lotação)
+```
+
+## Gestão de usuários (upper manages lower)
+
+- Um usuário só pode **criar/atribuir** usuários em nível **igual ou inferior** e **dentro do seu escopo**.
+- Ex.: nível `negocio` (cliente T) cria usuários `negocio` (T) e `local` (unidades de T); não cria `grupo`.
+- Toda atribuição/revogação é auditada.
+
+## Compatibilidade com o modelo atual
+
+- `super_admin`/`operador_interno` → `gestao_interna`.
+- `cliente_b2b` (com `tenant_id`) → `negocio` (escopo = cliente).
+- `profissional_saude`/`clinica_credenciada`/token de app → operação (não gestão) — permanecem.
+- Migração: criar `usuario_atribuicao` a partir do `perfil`/`tenant_id` atuais.
+
+## Onboarding e LGPD do usuário do portal
+
+- **Consentimento/aceite de termos** no 1º acesso (registrar `aceito_em`, `versao_termo`).
+- **Onboarding/assistente de primeiro uso** (flag `onboarding_em`) — guia até o 1º dashboard.
+
+---
+
 # 5. Checklist
 
 ```md

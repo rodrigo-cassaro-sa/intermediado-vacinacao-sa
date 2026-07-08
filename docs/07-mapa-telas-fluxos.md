@@ -147,6 +147,50 @@ Fluxo E (V2) — Paciente B2C:
 
 ---
 
+# 3.1 PORTAL do cliente/gestor — jornada e telas (novo)
+
+Foco: **autoatendimento** (o gestor de saúde faz sozinho, sem suporte) + um **modo avançado**
+para o técnico (integrações/Power BI). Hierarquia e escopos: ver doc 04 §4.1.
+
+## Jornada (primeiro acesso → uso recorrente)
+
+```txt
+cadastro/login
+  → consentimento LGPD (aceite de termos, versão registrada)
+  → onboarding de utilização (o que é o produto, como funciona)
+  → assistente de primeiro uso (passo a passo: criar/entrar na campanha, importar elegíveis)
+  → primeiro uso do dashboard (estado guiado, dicas)
+Uso recorrente:
+  dashboard → atualizar elegíveis (adicionar/remover/sincronizar) → extrair vacinados
+```
+
+## Telas do portal
+
+| Código | Tela | Nível mínimo | Função |
+|---|---|---|---|
+| PT-001 | Login / cadastro | — | autenticação do gestor |
+| PT-002 | Consentimento LGPD | qualquer | aceite de termos (bloqueia até aceitar) |
+| PT-003 | Onboarding + assistente 1º uso | qualquer | guia inicial |
+| PT-010 | Dashboard da(s) campanha(s) | local+ | cobertura, pendentes, aplicados; visão por escopo |
+| PT-020 | Elegíveis — importar/sincronizar | negocio/local | upload CSV, sync (add/remove), relatório de erros |
+| PT-021 | Elegíveis — lista/edição | negocio/local | ver/corrigir/remover (respeitando escopo) |
+| PT-030 | Vacinados — extrair | negocio+ | tabela verdade + export CSV; carteira por CPF |
+| PT-040 | Gestão de usuários | negocio+ (upper→lower) | criar/atribuir usuários no escopo (níveis abaixo) |
+| PT-050 | **Painel de integrações (avançado)** | negocio+ (técnico) | doc de API (contrato v1), **gerar tokens** (consulta/ingestão/app), **registrar webhooks** e ver entregas, guia Power BI/automação |
+
+## Dois modos
+
+- **Simples (gestor de saúde):** fluxos guiados PT-010/020/030. Linguagem de negócio, sem jargão.
+- **Avançado (técnico/integrações):** PT-050 — conectar **Power BI** (via token `consulta` + API/OData
+  ou export), **automatizar** com webhooks/tokens, ler a **documentação** da API.
+
+## Escopo aplicado nas telas
+
+Toda tela filtra pelo escopo das atribuições do usuário (doc 04 §4.1): `grupo` vê seus clientes;
+`negocio` vê a empresa; `local` vê só a unidade/lotação. Faturamento/preços: apenas `gestao_interna`.
+
+---
+
 # 4. Regras
 
 - Tela não cria regra de negócio sozinha — validação em `app/services` (backend).

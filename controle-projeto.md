@@ -164,7 +164,11 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | INT-A3 | API externa formalizada (contrato v1) + carteira/consulta por token 'consulta' (commit 51656eb) — sem migration | usuário/deploy | alta | feito |
 | INT-B | Sync de turnover por diferença (RH) — CSV + API (commit 0d9d369) — migration 020 auto | usuário/deploy | média | feito |
 | INT-C | Token de app in company (PWA/app/terceiro) (commit 00a5bfc) — sem migration; PWA offline opcional fica p/ frente | usuário/deploy | média | feito |
-| PORTAL | Portal cliente + gestor de campanha (sobre a fundação de integração) | especialista-design/frontend | alta | pendente |
+| PORTAL-D0 | Modelo de acesso: grupo_empresarial, unidade, usuario_atribuicao (níveis grupo/negocio/local + multi-atribuição, upper→lower) + resolução de permissão + gestão de usuários. Base de TUDO no portal (doc 04 §4.1) | especialista-seguranca/backend | alta | pendente |
+| PORTAL-D1 | Shell do portal + login + consentimento LGPD + onboarding/assistente 1º uso (doc 07 §3.1) | especialista-design/frontend | alta | pendente |
+| PORTAL-D2 | Fluxos simples: dashboard, atualizar elegíveis (add/remove/sync), extrair vacinados | frontend/backend | alta | pendente |
+| PORTAL-D3 | Painel avançado: doc de API, gerar tokens (self-service escopado), registrar webhooks, guia Power BI/automação | backend/frontend | média | pendente |
+| V2 | Autoadesão B2C (consentimento) + venda de voucher (pagamento) | — | baixa | pendente |
 | V2 | Autoadesão B2C (consentimento) + venda de voucher (pagamento) | — | baixa | pendente |
 | Banco: migrations até 017 | — | — | — | 017 = paciente voucher |
 | backlog | Rastreabilidade extra: fabricante/validade lote, conselho profissional, comprovante, idempotência (recomendado) | especialista-backend | baixa/média | pendente |
@@ -206,7 +210,9 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | Observabilidade só /health | operação | média | RESOLVIDO: health+versão, /metricas, /auditoria, doc 14 (commit 6d682b9) | mitigado |
 | Sem webhooks de saída / painel de integrações (função 7) | integração | alta | RESOLVIDO: webhooks de saída + painel (Fase A, commit 63d6429) | mitigado |
 | API externa sem contrato publicado/versão (funções 3/5/8) | integração | média | RESOLVIDO: contrato v1 (doc 09 §3.9) + token consulta (commit 51656eb) | mitigado |
-| Portal antes da fundação de integração = retrabalho | produto/risco | alta | Mitigação: fazer Fase A/B/C do doc 11 antes do PORTAL | aberto |
+| Portal antes da fundação de integração = retrabalho | produto/risco | alta | RESOLVIDO: Fase A/B/C prontas | mitigado |
+| Portal exige hierarquia/escopos (grupo/negocio/local) + multi-atribuição inexistente no modelo | segurança/produto | alta | PENDENTE: PORTAL-D0 (modelo de acesso) antes das telas; risco financeiro se isolamento falhar | aberto |
+| Self-service de tokens/webhooks pelo cliente (hoje só interno) | segurança | média | PENDENTE: expor emissão escopada ao próprio tenant no portal (D3) | aberto |
 | Paginação por OFFSET lenta em milhões | performance | média | RESOLVIDO: keyset/cursor em elegíveis e tabela verdade (commit 8976e5d) | mitigado |
 | API externa (rede) com escopo mal definido | integração/segurança | alta | Credencial por parceiro, escopo por campanha (RN-009) | aberto |
 | Registro de aplicação sem rastreabilidade (lote/dose) | banco/negócio | alta | RN-004 e RN-010 (imutabilidade + retificação auditada) | aberto |
