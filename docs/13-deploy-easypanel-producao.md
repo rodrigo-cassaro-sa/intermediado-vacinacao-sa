@@ -195,6 +195,19 @@ em `importacao_erro`) e atualiza o progresso. O cliente acompanha por
 > Sem esse cron, importações grandes ficam paradas em `pendente`. Listas pequenas continuam
 > sendo processadas na hora (inline), sem depender do worker.
 
+## Worker de webhooks (Fase A) — cron a cada minuto
+
+Entrega os webhooks de saída (eventos como `aplicacao.registrada`) com HMAC e retry/backoff:
+
+```bash
+php scripts/processar_webhooks.php
+```
+
+Cadastre 3 Cron Jobs no `imz-app`:
+- `php scripts/processar_importacoes.php`   (a cada minuto)
+- `php scripts/processar_webhooks.php`       (a cada minuto)
+- `php scripts/expirar_elegiveis.php`        (1x/dia)
+
 ---
 
 # 9. Checklist pré-deploy

@@ -25,6 +25,13 @@ return [
     'GET  /api/v1/interno/clinicas' => ['arquivo' => 'interno/clinicas.php', 'funcao' => 'rota_listar_clinicas'],
     'POST /api/v1/interno/campanhas/{id}/atribuir-clinica' => ['arquivo' => 'interno/clinicas.php', 'funcao' => 'rota_atribuir_clinica'],
 
+    // --- Integrações: webhooks (Fase A) ---
+    'POST /api/v1/interno/webhooks'                 => ['arquivo' => 'interno/webhooks.php', 'funcao' => 'rota_criar_webhook'],
+    'GET  /api/v1/interno/webhooks'                 => ['arquivo' => 'interno/webhooks.php', 'funcao' => 'rota_listar_webhooks'],
+    'POST /api/v1/interno/webhooks/{id}/desativar'  => ['arquivo' => 'interno/webhooks.php', 'funcao' => 'rota_desativar_webhook'],
+    'GET  /api/v1/interno/webhooks/{id}/entregas'   => ['arquivo' => 'interno/webhooks.php', 'funcao' => 'rota_entregas_webhook'],
+    'POST /api/v1/interno/webhooks/{id}/testar'     => ['arquivo' => 'interno/webhooks.php', 'funcao' => 'rota_testar_webhook'],
+
     // --- Preços e faturamento (item 4) ---
     'POST /api/v1/interno/clientes/{id}/precos'   => ['arquivo' => 'interno/precos.php', 'funcao' => 'rota_definir_preco_cliente'],
     'GET  /api/v1/interno/clientes/{id}/precos'   => ['arquivo' => 'interno/precos.php', 'funcao' => 'rota_listar_precos_cliente'],

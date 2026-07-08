@@ -12,6 +12,7 @@ require_once __DIR__ . '/../app/helpers/resposta.php';   // request_id (usado po
 require_once __DIR__ . '/../app/helpers/validacao.php';
 require_once __DIR__ . '/../app/helpers/auditoria.php';
 require_once __DIR__ . '/../app/services/historico.php';
+require_once __DIR__ . '/../app/services/webhooks.php';
 require_once __DIR__ . '/../app/services/elegiveis.php';
 require_once __DIR__ . '/../app/services/importacao.php';
 

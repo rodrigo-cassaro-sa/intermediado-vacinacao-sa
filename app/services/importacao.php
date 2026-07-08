@@ -75,6 +75,12 @@ function importacao_iniciar(int $tenantId, int $campanhaId, string $conteudo, st
              ':inv' => $res['rejeitados'], ':id' => $impId]
         );
 
+        registrar_auditoria('importacao.concluida', [
+            'tenant_id' => $tenantId, 'ator_tipo' => $ator['tipo'] ?? 'usuario', 'ator_id' => $ator['id'] ?? null,
+            'origem' => 'admin', 'entidade_tipo' => 'importacao', 'entidade_id' => $impId,
+            'metadata' => ['campanha_id' => $campanhaId, 'validos' => $res['criados'] + $res['atualizados'], 'rejeitados' => $res['rejeitados']],
+        ]);
+
         return [
             'status'        => 'concluida',
             'importacao_id' => $impId,
@@ -157,4 +163,10 @@ function importacao_processar(int $importacaoId): void
           WHERE id = :id",
         [':t' => $processados, ':v' => $totalValidos, ':inv' => $totalInvalidos, ':id' => $importacaoId]
     );
+
+    registrar_auditoria('importacao.concluida', [
+        'tenant_id' => $tenantId, 'ator_tipo' => 'usuario', 'ator_id' => $ator['id'] ?? null,
+        'origem' => 'api', 'entidade_tipo' => 'importacao', 'entidade_id' => $importacaoId,
+        'metadata' => ['campanha_id' => $campanhaId, 'validos' => $totalValidos, 'rejeitados' => $totalInvalidos],
+    ]);
 }

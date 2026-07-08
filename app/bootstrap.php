@@ -14,6 +14,7 @@ require_once __DIR__ . '/helpers/auditoria.php';
 require_once __DIR__ . '/helpers/idempotencia.php';
 require_once __DIR__ . '/helpers/rate_limit.php';
 require_once __DIR__ . '/services/historico.php';
+require_once __DIR__ . '/services/webhooks.php';
 
 require_once __DIR__ . '/middlewares/auth_sessao.php';
 require_once __DIR__ . '/middlewares/auth_api.php';

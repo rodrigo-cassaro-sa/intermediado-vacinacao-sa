@@ -21,8 +21,9 @@ function registrar_auditoria(string $evento, array $contexto = []): void
 {
     try {
         $metadata = $contexto['metadata'] ?? null;
-        if (is_array($metadata)) {
-            $metadata = json_encode(mascarar_metadata($metadata), JSON_UNESCAPED_UNICODE);
+        $metadataMasc = is_array($metadata) ? mascarar_metadata($metadata) : null;
+        if ($metadataMasc !== null) {
+            $metadata = json_encode($metadataMasc, JSON_UNESCAPED_UNICODE);
         }
 
         db_executar(
@@ -46,6 +47,16 @@ function registrar_auditoria(string $evento, array $contexto = []): void
     } catch (Throwable $e) {
         // Auditoria não pode derrubar a operação; só registra em log técnico.
         error_log('Falha ao registrar auditoria: ' . $e->getMessage());
+    }
+
+    // Dispara webhook de saída para eventos da whitelist (fail-safe).
+    if (function_exists('disparar_evento')) {
+        disparar_evento($evento, [
+            'entidade_tipo' => $contexto['entidade_tipo'] ?? null,
+            'entidade_id'   => $contexto['entidade_id']   ?? null,
+            'tenant_id'     => $contexto['tenant_id']     ?? null,
+            'metadata'      => $metadataMasc,
+        ], isset($contexto['tenant_id']) ? (int) $contexto['tenant_id'] : null);
     }
 }
 

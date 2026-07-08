@@ -360,6 +360,31 @@
       <table id="tblAuditoria"></table>
     </div>
 
+    <!-- INTEGRAÇÕES / WEBHOOKS -->
+    <div class="card full">
+      <h2>13. Integrações — Webhooks (Fase A)</h2>
+      <div class="row">
+        <div><label>Evento</label>
+          <select id="whEvento">
+            <option>aplicacao.registrada</option><option>aplicacao.estornada</option>
+            <option>elegivel.situacao_definida</option><option>importacao.concluida</option>
+            <option>campanha.encerrada</option><option>elegiveis.importados</option>
+          </select>
+        </div>
+        <div><label>URL de destino (https)</label><input id="whUrl" placeholder="https://sistema-cliente/webhook" /></div>
+        <div style="flex:0;min-width:90px"><label>Cliente (opcional)</label><input id="whTenant" placeholder="tenant" /></div>
+        <div style="flex:0"><label>&nbsp;</label><button onclick="criarWebhook()">Criar</button></div>
+        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="listarWebhooks()">Listar</button></div>
+      </div>
+      <div class="row">
+        <div style="flex:0;min-width:110px"><label>Webhook ID</label><input id="whId" placeholder="id" /></div>
+        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="testarWebhook()">Testar</button></div>
+        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="entregasWebhook()">Ver entregas</button></div>
+        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="desativarWebhook()">Desativar</button></div>
+      </div>
+      <table id="tblWebhooks"></table>
+    </div>
+
     <!-- RESPOSTA -->
     <div class="card full">
       <h2>Última resposta da API</h2>
@@ -859,6 +884,43 @@ async function verAuditoria() {
     '<tr><th>Data</th><th>Evento</th><th>Origem</th><th>Ator</th><th>Entidade</th><th>request_id</th></tr>' +
     (d.data.itens || []).map(a =>
       `<tr><td>${a.data_hora}</td><td>${a.evento}</td><td>${a.origem}</td><td>${a.ator_tipo}#${a.ator_id||''}</td><td>${a.entidade_tipo||''}#${a.entidade_id||''}</td><td>${a.request_id||''}</td></tr>`).join('');
+}
+
+async function criarWebhook() {
+  const url = document.getElementById('whUrl').value.trim();
+  if (!url) return log('Informe a URL de destino.');
+  const body = { evento: document.getElementById('whEvento').value, url };
+  const t = document.getElementById('whTenant').value; if (t) body.tenant_id = Number(t);
+  const d = await api('/interno/webhooks', 'POST', body);
+  if (d.success) { document.getElementById('whId').value = d.data.webhook_id; listarWebhooks(); }
+}
+
+async function listarWebhooks() {
+  const d = await api('/interno/webhooks');
+  if (!d.success) return;
+  document.getElementById('tblWebhooks').innerHTML =
+    '<tr><th>ID</th><th>Evento</th><th>URL</th><th>Cliente</th><th>Ativo</th></tr>' +
+    (d.data.itens || []).map(w => `<tr><td>${w.id}</td><td>${w.evento}</td><td>${w.url}</td><td>${w.tenant_id||'global'}</td><td>${w.ativo==1?'sim':'não'}</td></tr>`).join('');
+}
+
+async function testarWebhook() {
+  const id = document.getElementById('whId').value; if (!id) return log('Informe o Webhook ID.');
+  await api(`/interno/webhooks/${id}/testar`, 'POST');
+}
+
+async function desativarWebhook() {
+  const id = document.getElementById('whId').value; if (!id) return log('Informe o Webhook ID.');
+  await api(`/interno/webhooks/${id}/desativar`, 'POST');
+  listarWebhooks();
+}
+
+async function entregasWebhook() {
+  const id = document.getElementById('whId').value; if (!id) return log('Informe o Webhook ID.');
+  const d = await api(`/interno/webhooks/${id}/entregas`);
+  if (!d.success) return;
+  document.getElementById('tblWebhooks').innerHTML =
+    '<tr><th>Entrega</th><th>Evento</th><th>Status</th><th>Tent.</th><th>HTTP</th><th>Próx. tentativa</th><th>Entregue</th></tr>' +
+    (d.data.itens || []).map(e => `<tr><td>${e.id}</td><td>${e.evento}</td><td>${e.status}</td><td>${e.tentativas}</td><td>${e.ultimo_status_code||'—'}</td><td>${e.proxima_tentativa_em||''}</td><td>${e.entregue_em||'—'}</td></tr>`).join('');
 }
 
 // Ao abrir, checa a saúde do serviço.

@@ -5,7 +5,11 @@
 Documentar eventos, webhooks, APIs externas, notificações, filas, retry e idempotência.
 
 > Estado (2026-07): APIs de **entrada** implementadas (parceiro/rede, ingestão B2B, app interno).
-> Webhooks de **saída** e o painel de integrações ainda **não** existem — plano abaixo.
+> **Webhooks de saída IMPLEMENTADOS (Fase A):** disparo automático via auditoria (whitelist
+> WEBHOOK_EVENTOS), fila `webhook_entrega`, worker `scripts/processar_webhooks.php` (cron),
+> assinatura **HMAC-SHA256** (header `X-Assinatura`), retry com backoff e status `dead`.
+> Endpoints do painel: `POST/GET /interno/webhooks`, `/webhooks/{id}/desativar|entregas|testar`.
+> Falta ainda: A3 (contrato externo publicado/versão + carteira/consulta por token).
 
 ---
 
