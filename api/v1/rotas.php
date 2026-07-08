@@ -16,6 +16,17 @@ return [
     'POST /api/v1/interno/auth/logout' => ['arquivo' => 'interno/auth.php', 'funcao' => 'rota_logout'],
     'GET  /api/v1/interno/auth/eu'     => ['arquivo' => 'interno/auth.php', 'funcao' => 'rota_eu'],
 
+    // --- Portal D0: acesso (grupos, unidades, usuários, atribuições) ---
+    'GET  /api/v1/interno/acesso/eu'                => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_acesso_eu'],
+    'POST /api/v1/interno/grupos'                   => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_criar_grupo'],
+    'GET  /api/v1/interno/grupos'                   => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_listar_grupos'],
+    'POST /api/v1/interno/clientes/{id}/grupo'      => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_vincular_cliente_grupo'],
+    'POST /api/v1/interno/clientes/{id}/unidades'   => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_criar_unidade'],
+    'GET  /api/v1/interno/clientes/{id}/unidades'   => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_listar_unidades'],
+    'POST /api/v1/interno/usuarios'                 => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_criar_usuario_portal'],
+    'POST /api/v1/interno/usuarios/{id}/atribuicoes' => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_adicionar_atribuicao'],
+    'GET  /api/v1/interno/usuarios/{id}/atribuicoes' => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_listar_atribuicoes'],
+
     // --- Clientes B2B (tenants) ---
     'POST /api/v1/interno/clientes' => ['arquivo' => 'interno/clientes.php', 'funcao' => 'rota_criar_cliente'],
     'GET  /api/v1/interno/clientes' => ['arquivo' => 'interno/clientes.php', 'funcao' => 'rota_listar_clientes'],

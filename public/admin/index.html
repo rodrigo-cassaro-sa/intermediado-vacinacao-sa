@@ -406,6 +406,34 @@
       </div>
     </div>
 
+    <!-- ACESSO / HIERARQUIA (PORTAL D0) -->
+    <div class="card full">
+      <h2>14. Acesso e hierarquia (Portal D0)</h2>
+      <div class="row">
+        <div style="flex:0"><label>&nbsp;</label><button onclick="acessoEu()">Minhas atribuições</button></div>
+        <div><label>Novo grupo empresarial</label><input id="grpNome" placeholder="Holding X" /></div>
+        <div style="flex:0"><label>&nbsp;</label><button onclick="criarGrupo()">Criar grupo</button></div>
+        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="listarGrupos()">Listar grupos</button></div>
+      </div>
+      <div class="row">
+        <div style="flex:0;min-width:90px"><label>Cliente ID</label><input id="uniCliente" placeholder="1" /></div>
+        <div><label>Nova unidade</label><input id="uniNome" placeholder="Planta São Paulo" /></div>
+        <div><label>Cidade/UF</label><input id="uniCidade" placeholder="São Paulo" /></div>
+        <div style="flex:0;min-width:70px"><label>UF</label><input id="uniUf" placeholder="SP" maxlength="2" /></div>
+        <div style="flex:0"><label>&nbsp;</label><button onclick="criarUnidade()">Criar unidade</button></div>
+        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="listarUnidades()">Listar</button></div>
+      </div>
+      <p class="muted">Criar usuário do portal (nível + escopo):</p>
+      <div class="row">
+        <div><label>Nome</label><input id="usrNome" placeholder="Gestor RH" /></div>
+        <div><label>E-mail</label><input id="usrEmail" placeholder="rh@empresa.com" /></div>
+        <div><label>Senha</label><input id="usrSenha" placeholder="min 8" /></div>
+        <div><label>Nível</label><select id="usrNivel"><option>negocio</option><option>grupo</option><option>local</option><option>gestao_interna</option></select></div>
+        <div style="flex:0;min-width:100px"><label>Escopo ID</label><input id="usrEscopo" placeholder="cliente/grupo/unidade id" /></div>
+        <div style="flex:0"><label>&nbsp;</label><button onclick="criarUsuarioPortal()">Criar usuário</button></div>
+      </div>
+    </div>
+
     <!-- RESPOSTA -->
     <div class="card full">
       <h2>Última resposta da API</h2>
@@ -1007,6 +1035,38 @@ async function consultarCarteiraExterna() {
   const cpf = document.getElementById('tcCpf').value.trim();
   if (!token || !cpf) return log('Informe o token de consulta e o CPF/voucher.');
   await apiBearer(`/parceiro/carteira/${encodeURIComponent(cpf)}`, 'GET', null, token);
+}
+
+async function acessoEu() { await api('/interno/acesso/eu'); }
+async function criarGrupo() {
+  const nome = document.getElementById('grpNome').value.trim();
+  if (!nome) return log('Informe o nome do grupo.');
+  await api('/interno/grupos', 'POST', { nome });
+}
+async function listarGrupos() { await api('/interno/grupos'); }
+async function criarUnidade() {
+  const c = document.getElementById('uniCliente').value;
+  if (!c) return log('Informe o Cliente ID.');
+  await api(`/interno/clientes/${c}/unidades`, 'POST', {
+    nome: document.getElementById('uniNome').value,
+    cidade: document.getElementById('uniCidade').value,
+    uf: document.getElementById('uniUf').value,
+  });
+}
+async function listarUnidades() {
+  const c = document.getElementById('uniCliente').value;
+  if (!c) return log('Informe o Cliente ID.');
+  await api(`/interno/clientes/${c}/unidades`);
+}
+async function criarUsuarioPortal() {
+  const body = {
+    nome: document.getElementById('usrNome').value,
+    email: document.getElementById('usrEmail').value,
+    senha: document.getElementById('usrSenha').value,
+    nivel: document.getElementById('usrNivel').value,
+    escopo_id: Number(document.getElementById('usrEscopo').value || 0),
+  };
+  await api('/interno/usuarios', 'POST', body);
 }
 
 // Ao abrir, checa a saúde do serviço.

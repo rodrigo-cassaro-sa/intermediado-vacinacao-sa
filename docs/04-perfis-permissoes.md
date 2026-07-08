@@ -118,6 +118,14 @@ local (escopo U)       → cobre apenas a unidade U (elegíveis/vacinados daquel
 - Ex.: nível `negocio` (cliente T) cria usuários `negocio` (T) e `local` (unidades de T); não cria `grupo`.
 - Toda atribuição/revogação é auditada.
 
+## Status de implementação (D0)
+
+IMPLEMENTADO (migration 021): tabelas `grupo_empresarial`, `unidade` (elegivel.unidade_id),
+`usuario_atribuicao` + backfill; serviço `app/services/acesso.php` (resolução de escopo,
+`usuario_pode_cliente/unidade`, `usuario_pode_gerir`); endpoints `GET /interno/acesso/eu`,
+grupos, unidades, `POST /interno/usuarios` (+ atribuições). Falta (D2): **aplicar a resolução
+de escopo nas leituras/escritas** de campanhas/elegíveis/vacinados (hoje ainda usam perfil/tenant).
+
 ## Compatibilidade com o modelo atual
 
 - `super_admin`/`operador_interno` → `gestao_interna`.
