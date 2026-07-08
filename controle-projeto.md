@@ -56,7 +56,9 @@ Domínio com SSL. Sem framework e sem OO por padrão.
 # 3. Etapa atual
 
 ```txt
-Etapa atual: MVP FUNCIONAL COMPLETO validado em homologação. Ambas modalidades (in_company + rede credenciada com isolamento por clínica RN-012), elegíveis (upload/JSON/API), aplicação, tabela verdade/dashboard e extração CSV — tudo via /admin em https://imunizacao-imz-app.imx7lc.easypanel.host. Próximo: telas reais (sair do console) e/ou preparar produção.
+Etapa atual: MVP + robustez + faturamento. Migrations até 018. Todos os gaps da análise resolvidos (concorrência, idempotência, isolamento, voucher, ingestão assíncrona+relatório de erros, rate limit, carteira/relatório anual, observabilidade, keyset, faturamento). Aguardando deploy das migrations 015-018. Próximo natural: telas reais / preparar produção.
+
+Etapa anterior: MVP FUNCIONAL COMPLETO validado em homologação. Ambas modalidades (in_company + rede credenciada com isolamento por clínica RN-012), elegíveis (upload/JSON/API), aplicação, tabela verdade/dashboard e extração CSV — tudo via /admin em https://imunizacao-imz-app.imx7lc.easypanel.host. Próximo: telas reais (sair do console) e/ou preparar produção.
 Protocolo em uso: protocolo-criacao-projeto-zero.md
 Especialista principal: especialista-produto-planejamento.md
 Especialistas de apoio: especialista-negocio-saas.md, especialista-seguranca-auditoria.md, especialista-banco-dados.md, especialista-engajamento-integracoes.md, especialista-documentacao-memoria.md
@@ -157,7 +159,7 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | 9d-8 | Voucher p/ estrangeiro sem CPF (commit fab47d4) — migration 017 auto | usuário/deploy | média | feito |
 | 13 | Observabilidade: health+versão, /metricas, /auditoria (commit 6d682b9) | usuário/deploy | média | feito |
 | 10 | keyset pagination (commit 8976e5d) | usuário/deploy | baixa | feito |
-| 4 | Faturamento (pagar clínica por vacinado / cobrar cliente por elegível) — ADIADO, core do negócio | especialista-backend | alta | pendente |
+| 4 | Faturamento: preços [cliente,modalidade,vacina] e [clínica,vacina] + relatórios a cobrar/a pagar (commit 356a72a) — migration 018 auto | usuário/deploy | alta | feito |
 | Banco: migrations até 017 | — | — | — | 017 = paciente voucher |
 | backlog | Rastreabilidade extra: fabricante/validade lote, conselho profissional, comprovante, idempotência (recomendado) | especialista-backend | baixa/média | pendente |
 | 9 | Telas reais (portal B2B / painel operador) saindo do console de testes | especialista-design/frontend | média | pendente |
@@ -192,7 +194,7 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | Ingestão síncrona não escala p/ ~100k por lista (500 clientes) | performance | alta | RESOLVIDO: importação assíncrona em chunks + worker cron + relatório de erros (mig 015, commit c98204b) | mitigado |
 | Retenção/particionamento de histórico e auditoria em milhões/ano | operação/escala | alta | PENDENTE: política de arquivamento + partição; vacinado perpétuo p/ carteira (item 9) | aberto |
 | Sem rate limit real nas APIs (500 clientes podem travar) | segurança/escala | alta | RESOLVIDO: rate limit por credencial + login (mig 016, commit 9048c1b) | mitigado |
-| Sem módulo de faturamento (pagar clínica / cobrar cliente) | negócio | alta | ADIADO pelo usuário (item 4) | aberto |
+| Sem módulo de faturamento (pagar clínica / cobrar cliente) | negócio | alta | RESOLVIDO: preços + relatórios a cobrar/a pagar (mig 018, commit 356a72a) | mitigado |
 | Estrangeiro sem CPF | cobertura | média | RESOLVIDO: identidade por voucher/identificador (mig 017, commit fab47d4) | mitigado |
 | Sem relatório longitudinal ano a ano / carteira consolidada | produto | média | RESOLVIDO: carteira por CPF + resumo ano a ano (commit 695865c) | mitigado |
 | Observabilidade só /health | operação | média | RESOLVIDO: health+versão, /metricas, /auditoria, doc 14 (commit 6d682b9) | mitigado |
