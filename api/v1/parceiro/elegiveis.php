@@ -54,6 +54,18 @@ function rota_parceiro_definir_situacao(array $params): void
 /** POST /api/v1/parceiro/campanhas/{id}/elegiveis */
 function rota_parceiro_ingerir_elegiveis(array $params): void
 {
+    executar_ingestao_parceiro($params, false);
+}
+
+/** POST /api/v1/parceiro/campanhas/{id}/elegiveis/sincronizar — sync via API (RH). */
+function rota_parceiro_sincronizar_elegiveis(array $params): void
+{
+    executar_ingestao_parceiro($params, true);
+}
+
+/** Corpo compartilhado da ingestão/sync via API do parceiro (ingestao_b2b). */
+function executar_ingestao_parceiro(array $params, bool $sincronizar): void
+{
     $credencial = exigir_credencial('ingestao_b2b');
     idempotencia_replay('credencial:' . $credencial['id']);
     $id = id_campanha_rota($params['id'] ?? null);
@@ -83,7 +95,7 @@ function rota_parceiro_ingerir_elegiveis(array $params): void
 
     $conteudo = json_encode(['elegiveis' => $dados['elegiveis']], JSON_UNESCAPED_UNICODE);
     $r = importacao_iniciar((int) $campanha['tenant_id'], $id, $conteudo, 'json', 'api',
-        null, ator_credencial($credencial));
+        null, ator_credencial($credencial), $sincronizar);
 
     registrar_auditoria('elegiveis.importados', [
         'tenant_id'     => (int) $campanha['tenant_id'],
@@ -92,7 +104,7 @@ function rota_parceiro_ingerir_elegiveis(array $params): void
         'origem'        => 'api_parceiro',
         'entidade_tipo' => 'campanha',
         'entidade_id'   => $id,
-        'metadata'      => ['importacao_id' => $r['importacao_id'], 'status' => $r['status']],
+        'metadata'      => ['importacao_id' => $r['importacao_id'], 'status' => $r['status'], 'sincronizar' => $sincronizar ? 1 : 0],
     ]);
 
     responder_idempotente('credencial:' . $credencial['id'], $r, 'Elegíveis recebidos.', 201);

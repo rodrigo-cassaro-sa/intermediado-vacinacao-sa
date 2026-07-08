@@ -50,35 +50,39 @@ function importacao_salvar_arquivo(string $conteudo, string $formato): string
  *  - ['status'=>'concluida', 'importacao_id'=>, 'totais'=>[...]]  (inline)
  *  - ['status'=>'pendente',  'importacao_id'=>]                    (assíncrono)
  */
-function importacao_iniciar(int $tenantId, int $campanhaId, string $conteudo, string $formato, string $origem, ?int $criadoPor, array $ator): array
+function importacao_iniciar(int $tenantId, int $campanhaId, string $conteudo, string $formato, string $origem, ?int $criadoPor, array $ator, bool $sincronizar = false): array
 {
     $qtd = importacao_contar($conteudo, $formato);
+    $syncFlag = $sincronizar ? 1 : 0;
 
     if ($qtd <= IMPORTACAO_LIMITE_SINCRONO) {
         // Inline: cria importação, processa e finaliza.
+        $inicio = date('Y-m-d H:i:s');
         db_executar(
-            "INSERT INTO importacao_elegiveis (tenant_id, campanha_id, origem, formato, status, criado_por, criado_em, iniciado_em)
-             VALUES (:t, :c, :o, :f, 'processando', :cp, NOW(), NOW())",
-            [':t' => $tenantId, ':c' => $campanhaId, ':o' => $origem, ':f' => $formato, ':cp' => $criadoPor]
+            "INSERT INTO importacao_elegiveis (tenant_id, campanha_id, origem, formato, sincronizar, status, criado_por, criado_em, iniciado_em)
+             VALUES (:t, :c, :o, :f, :sync, 'processando', :cp, NOW(), :ini)",
+            [':t' => $tenantId, ':c' => $campanhaId, ':o' => $origem, ':f' => $formato, ':sync' => $syncFlag, ':cp' => $criadoPor, ':ini' => $inicio]
         );
         $impId = (int) db_ultimo_id();
 
         $lista = importacao_parsear($conteudo, $formato);
-        $res = ingerir_elegiveis($campanhaId, $tenantId, $lista, $origem, $impId, $ator);
+        $res = ingerir_elegiveis($campanhaId, $tenantId, $lista, $origem, $impId, $ator, null, 0, $sincronizar ? $inicio : null);
+
+        $removidos = $sincronizar ? sincronizar_remover_ausentes($campanhaId, $inicio) : 0;
 
         db_executar(
             "UPDATE importacao_elegiveis
-                SET total_linhas = :t, total_validos = :v, total_invalidos = :inv,
+                SET total_linhas = :t, total_validos = :v, total_invalidos = :inv, total_removidos = :rem,
                     total_processados = :t, status = 'concluida', finalizado_em = NOW()
               WHERE id = :id",
             [':t' => $res['recebidos'], ':v' => $res['criados'] + $res['atualizados'],
-             ':inv' => $res['rejeitados'], ':id' => $impId]
+             ':inv' => $res['rejeitados'], ':rem' => $removidos, ':id' => $impId]
         );
 
         registrar_auditoria('importacao.concluida', [
             'tenant_id' => $tenantId, 'ator_tipo' => $ator['tipo'] ?? 'usuario', 'ator_id' => $ator['id'] ?? null,
             'origem' => 'admin', 'entidade_tipo' => 'importacao', 'entidade_id' => $impId,
-            'metadata' => ['campanha_id' => $campanhaId, 'validos' => $res['criados'] + $res['atualizados'], 'rejeitados' => $res['rejeitados']],
+            'metadata' => ['campanha_id' => $campanhaId, 'validos' => $res['criados'] + $res['atualizados'], 'rejeitados' => $res['rejeitados'], 'removidos' => $removidos, 'sincronizar' => $syncFlag],
         ]);
 
         return [
@@ -88,6 +92,7 @@ function importacao_iniciar(int $tenantId, int $campanhaId, string $conteudo, st
                 'total'      => $res['recebidos'],
                 'validos'    => $res['criados'] + $res['atualizados'],
                 'rejeitados' => $res['rejeitados'],
+                'removidos'  => $removidos,
             ],
         ];
     }
@@ -95,12 +100,29 @@ function importacao_iniciar(int $tenantId, int $campanhaId, string $conteudo, st
     // Assíncrono: salva o arquivo e enfileira.
     $arquivo = importacao_salvar_arquivo($conteudo, $formato);
     db_executar(
-        "INSERT INTO importacao_elegiveis (tenant_id, campanha_id, origem, formato, arquivo, total_linhas, status, criado_por, criado_em)
-         VALUES (:t, :c, :o, :f, :arq, :tl, 'pendente', :cp, NOW())",
-        [':t' => $tenantId, ':c' => $campanhaId, ':o' => $origem, ':f' => $formato,
+        "INSERT INTO importacao_elegiveis (tenant_id, campanha_id, origem, formato, sincronizar, arquivo, total_linhas, status, criado_por, criado_em)
+         VALUES (:t, :c, :o, :f, :sync, :arq, :tl, 'pendente', :cp, NOW())",
+        [':t' => $tenantId, ':c' => $campanhaId, ':o' => $origem, ':f' => $formato, ':sync' => $syncFlag,
          ':arq' => $arquivo, ':tl' => $qtd, ':cp' => $criadoPor]
     );
     return ['status' => 'pendente', 'importacao_id' => (int) db_ultimo_id()];
+}
+
+/**
+ * Sincronização (RN turnover): marca como 'removido' os elegíveis da campanha que
+ * NÃO foram vistos neste sync (sincronizado_em < início) e não estão aplicados.
+ * Devolve a quantidade removida.
+ */
+function sincronizar_remover_ausentes(int $campanhaId, string $inicio): int
+{
+    $stmt = db_executar(
+        "UPDATE elegivel
+            SET status = 'removido', motivo_situacao = 'ausente na sincronização'
+          WHERE campanha_id = :id AND status NOT IN ('aplicado', 'removido')
+            AND (sincronizado_em IS NULL OR sincronizado_em < :inicio)",
+        [':id' => $campanhaId, ':inicio' => $inicio]
+    );
+    return $stmt->rowCount();
 }
 
 /**
@@ -113,7 +135,10 @@ function importacao_processar(int $importacaoId): void
     if ($imp === null || $imp['status'] !== 'pendente') {
         return;
     }
-    db_executar("UPDATE importacao_elegiveis SET status = 'processando', iniciado_em = NOW() WHERE id = :id", [':id' => $importacaoId]);
+    $inicioSync = date('Y-m-d H:i:s');
+    $ehSync = (int) ($imp['sincronizar'] ?? 0) === 1;
+    db_executar("UPDATE importacao_elegiveis SET status = 'processando', iniciado_em = :ini WHERE id = :id",
+        [':ini' => $inicioSync, ':id' => $importacaoId]);
 
     $caminho = BASE_PATH . '/storage/uploads/' . $imp['arquivo'];
     $conteudo = is_file($caminho) ? file_get_contents($caminho) : '';
@@ -141,7 +166,7 @@ function importacao_processar(int $importacaoId): void
         $offset = (int) array_key_first($chunk);
         try {
             pdo()->beginTransaction();
-            $res = ingerir_elegiveis($campanhaId, $tenantId, array_values($chunk), $imp['origem'], $importacaoId, $ator, $colaboradores, $offset);
+            $res = ingerir_elegiveis($campanhaId, $tenantId, array_values($chunk), $imp['origem'], $importacaoId, $ator, $colaboradores, $offset, $ehSync ? $inicioSync : null);
             pdo()->commit();
         } catch (Throwable $e) {
             if (pdo()->inTransaction()) { pdo()->rollBack(); }
@@ -156,17 +181,19 @@ function importacao_processar(int $importacaoId): void
             [':p' => $processados, ':id' => $importacaoId]);
     }
 
+    $removidos = $ehSync ? sincronizar_remover_ausentes($campanhaId, $inicioSync) : 0;
+
     db_executar(
         "UPDATE importacao_elegiveis
-            SET total_linhas = :t, total_validos = :v, total_invalidos = :inv,
+            SET total_linhas = :t, total_validos = :v, total_invalidos = :inv, total_removidos = :rem,
                 total_processados = :t, status = 'concluida', finalizado_em = NOW()
           WHERE id = :id",
-        [':t' => $processados, ':v' => $totalValidos, ':inv' => $totalInvalidos, ':id' => $importacaoId]
+        [':t' => $processados, ':v' => $totalValidos, ':inv' => $totalInvalidos, ':rem' => $removidos, ':id' => $importacaoId]
     );
 
     registrar_auditoria('importacao.concluida', [
         'tenant_id' => $tenantId, 'ator_tipo' => 'usuario', 'ator_id' => $ator['id'] ?? null,
         'origem' => 'api', 'entidade_tipo' => 'importacao', 'entidade_id' => $importacaoId,
-        'metadata' => ['campanha_id' => $campanhaId, 'validos' => $totalValidos, 'rejeitados' => $totalInvalidos],
+        'metadata' => ['campanha_id' => $campanhaId, 'validos' => $totalValidos, 'rejeitados' => $totalInvalidos, 'removidos' => $removidos, 'sincronizar' => $ehSync ? 1 : 0],
     ]);
 }

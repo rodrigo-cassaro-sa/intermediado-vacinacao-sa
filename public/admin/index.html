@@ -135,6 +135,7 @@
         placeholder="52998224725,Maria Silva,1990-05-10,colaborador,,LOT-01,RH-1001,&#10;,John Doe,1988-02-10,terceiro,,LOT-01,RH-2002,VOUCHER-123"></textarea>
       <div style="margin-top:12px" class="row">
         <button onclick="importarElegiveis()">Importar (JSON)</button>
+        <button onclick="sincronizarElegiveis()">Sincronizar (remove ausentes)</button>
         <button class="sec" onclick="listarElegiveis()">Listar elegíveis</button>
         <button class="sec" onclick="statusImportacao()">Status da importação</button>
         <button class="sec" onclick="baixarErrosImportacao()">Baixar relatório de erros</button>
@@ -707,6 +708,22 @@ async function importarElegiveis() {
     document.getElementById('impInfo').textContent = t
       ? `Importação #${d.data.importacao_id} (${d.data.status}) — válidos: ${t.validos}, rejeitados: ${t.rejeitados}`
       : `Importação #${d.data.importacao_id} (${d.data.status}) — processando em segundo plano; use "Status".`;
+  }
+  listarElegiveis();
+}
+
+async function sincronizarElegiveis() {
+  const id = document.getElementById('elegCampanha').value;
+  if (!id) return log('Selecione uma campanha.');
+  if (!confirm('Sincronizar: quem NÃO estiver nesta lista (e não vacinado) será marcado como removido. Continuar?')) return;
+  const elegiveis = parseElegiveis(document.getElementById('elegCsv').value);
+  const d = await api(`/interno/campanhas/${id}/elegiveis/sincronizar`, 'POST', { elegiveis });
+  if (d.success) {
+    ULTIMA_IMPORTACAO = d.data.importacao_id;
+    const t = d.data.totais;
+    document.getElementById('impInfo').textContent = t
+      ? `Sync #${d.data.importacao_id} (${d.data.status}) — válidos: ${t.validos}, removidos: ${t.removidos}, rejeitados: ${t.rejeitados}`
+      : `Sync #${d.data.importacao_id} (${d.data.status}) — processando; use "Status".`;
   }
   listarElegiveis();
 }

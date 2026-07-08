@@ -60,7 +60,8 @@ return [
     'POST /api/v1/interno/campanhas/{id}/encerrar'  => ['arquivo' => 'interno/campanhas.php', 'funcao' => 'rota_encerrar_campanha'],
 
     // --- Elegíveis (bloco 2) ---
-    'POST /api/v1/interno/campanhas/{id}/elegiveis/importar' => ['arquivo' => 'interno/elegiveis.php', 'funcao' => 'rota_importar_elegiveis'],
+    'POST /api/v1/interno/campanhas/{id}/elegiveis/importar'    => ['arquivo' => 'interno/elegiveis.php', 'funcao' => 'rota_importar_elegiveis'],
+    'POST /api/v1/interno/campanhas/{id}/elegiveis/sincronizar' => ['arquivo' => 'interno/elegiveis.php', 'funcao' => 'rota_sincronizar_elegiveis'],
     'GET  /api/v1/interno/campanhas/{id}/elegiveis'          => ['arquivo' => 'interno/elegiveis.php', 'funcao' => 'rota_listar_elegiveis'],
     'POST /api/v1/interno/campanhas/{id}/elegiveis/remover'  => ['arquivo' => 'interno/elegiveis.php', 'funcao' => 'rota_remover_elegiveis'],
 
@@ -90,7 +91,8 @@ return [
     'GET  /api/v1/interno/campanhas/{id}/exportar'       => ['arquivo' => 'interno/tabela_verdade.php', 'funcao' => 'rota_exportar_tabela_verdade'],
 
     // --- Grupo parceiro (Bearer + escopo) ---
-    'POST /api/v1/parceiro/campanhas/{id}/elegiveis'        => ['arquivo' => 'parceiro/elegiveis.php', 'funcao' => 'rota_parceiro_ingerir_elegiveis'],
+    'POST /api/v1/parceiro/campanhas/{id}/elegiveis'             => ['arquivo' => 'parceiro/elegiveis.php', 'funcao' => 'rota_parceiro_ingerir_elegiveis'],
+    'POST /api/v1/parceiro/campanhas/{id}/elegiveis/sincronizar' => ['arquivo' => 'parceiro/elegiveis.php', 'funcao' => 'rota_parceiro_sincronizar_elegiveis'],
     'POST /api/v1/parceiro/elegiveis/{id}/situacao'         => ['arquivo' => 'parceiro/elegiveis.php', 'funcao' => 'rota_parceiro_definir_situacao'],
     'GET  /api/v1/parceiro/campanhas/{id}/elegiveis/{cpf}'  => ['arquivo' => 'parceiro/aplicacoes.php', 'funcao' => 'rota_parceiro_consultar_elegivel'],
     'POST /api/v1/parceiro/aplicacoes'                      => ['arquivo' => 'parceiro/aplicacoes.php', 'funcao' => 'rota_parceiro_registrar_aplicacao'],

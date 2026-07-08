@@ -109,8 +109,11 @@ Ordem recomendada (o portal vai *surfacar* estes controles, então precisam exis
 - **A2. Admin de integrações:** ligar/desligar webhook por evento, gerar/rotacionar **tokens de consulta**, ver **logs de entrega**. (surge no portal, mas os endpoints já ficam prontos)
 - **A3. API externa formalizada:** publicar o **contrato** (doc 09) + versão; expor **carteira** e **consultas** por token com escopo (para sistema de carteira/RH).
 
-## Fase B — Turnover/RH (função 5)
-- **B1. Sync por diferença:** endpoint que recebe a lista completa e **marca como removidos** os elegíveis ausentes (não vacinados), gerando webhook `elegivel.situacao_alterada`.
+## Fase B — Turnover/RH (função 5) ✅ IMPLEMENTADO
+- **B1. Sync por diferença:** `POST /interno/campanhas/{id}/elegiveis/sincronizar` (CSV/JSON) e
+  `POST /parceiro/campanhas/{id}/elegiveis/sincronizar` (API). Recebe a lista completa, atualiza
+  os presentes e **marca como `removido`** os ausentes não vacinados (via carimbo `sincronizado_em`).
+  Escala em 100k (assíncrono no worker). RN-030.
 
 ## Fase C — App in company (função 4)
 - **C1. Credencial/token de app** (tipo `app_in_company`) para o app do profissional; opcional **PWA offline-first** com fila de sincronização.

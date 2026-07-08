@@ -12,7 +12,7 @@
  * Cria/reutiliza paciente por CPF e cria elegivel (UNIQUE campanha+paciente).
  * Devolve contagens e os primeiros erros por item.
  */
-function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string $origem, ?int $importacaoId, array $ator = ['tipo' => 'usuario', 'id' => null], ?array $colaboradoresArquivo = null, int $offsetLinha = 0): array
+function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string $origem, ?int $importacaoId, array $ator = ['tipo' => 'usuario', 'id' => null], ?array $colaboradoresArquivo = null, int $offsetLinha = 0, ?string $sincronizarEm = null): array
 {
     $recebidos = 0; $criados = 0; $atualizados = 0; $rejeitados = 0;
     $erros = [];
@@ -120,8 +120,8 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
         );
         if ($eleg === null) {
             db_executar(
-                "INSERT INTO elegivel (tenant_id, campanha_id, paciente_id, nome, data_nascimento, origem, tipo_vinculo, cpf_titular, codigo_lotacao, codigo_rh, status, importacao_id)
-                 VALUES (:tenant, :campanha, :paciente, :enome, :enasc, :origem, :tipo, :titular, :lotacao, :rh, 'pendente', :imp)",
+                "INSERT INTO elegivel (tenant_id, campanha_id, paciente_id, nome, data_nascimento, origem, tipo_vinculo, cpf_titular, codigo_lotacao, codigo_rh, status, importacao_id, sincronizado_em)
+                 VALUES (:tenant, :campanha, :paciente, :enome, :enasc, :origem, :tipo, :titular, :lotacao, :rh, 'pendente', :imp, :sync)",
                 [
                     ':tenant'   => $tenantId,
                     ':campanha' => $campanhaId,
@@ -134,6 +134,7 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
                     ':lotacao'  => $codLotacao,
                     ':rh'       => $codRh,
                     ':imp'      => $importacaoId,
+                    ':sync'     => $sincronizarEm,
                 ]
             );
             $novoId = (int) db_ultimo_id();
@@ -146,11 +147,17 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
             ]);
         } else {
             // Já elegível nesta campanha (dedup) — atualiza dados sem duplicar.
+            $bindUpd = [':enome' => $nome, ':enasc' => $nasc, ':tipo' => $tipo, ':titular' => $cpfTitular,
+                        ':lotacao' => $codLotacao, ':rh' => $codRh, ':id' => (int) $eleg['id']];
+            $setSync = '';
+            if ($sincronizarEm !== null) {
+                $setSync = ', sincronizado_em = :sync';
+                $bindUpd[':sync'] = $sincronizarEm;
+            }
             db_executar(
                 "UPDATE elegivel SET nome = :enome, data_nascimento = :enasc, tipo_vinculo = :tipo,
-                        cpf_titular = :titular, codigo_lotacao = :lotacao, codigo_rh = :rh WHERE id = :id",
-                [':enome' => $nome, ':enasc' => $nasc, ':tipo' => $tipo, ':titular' => $cpfTitular,
-                 ':lotacao' => $codLotacao, ':rh' => $codRh, ':id' => (int) $eleg['id']]
+                        cpf_titular = :titular, codigo_lotacao = :lotacao, codigo_rh = :rh$setSync WHERE id = :id",
+                $bindUpd
             );
             $atualizados++;
             historico_elegivel((int) $eleg['id'], 'reingerido', $ator, null, [

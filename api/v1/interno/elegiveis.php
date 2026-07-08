@@ -13,6 +13,18 @@ const PERFIS_IMPORTA_ELEGIVEIS = ['super_admin', 'operador_interno', 'cliente_b2
 /** POST /api/v1/interno/campanhas/{id}/elegiveis/importar */
 function rota_importar_elegiveis(array $params): void
 {
+    executar_importacao_interno($params, false);
+}
+
+/** POST /api/v1/interno/campanhas/{id}/elegiveis/sincronizar — sync (remove ausentes). */
+function rota_sincronizar_elegiveis(array $params): void
+{
+    executar_importacao_interno($params, true);
+}
+
+/** Corpo compartilhado: importa (ou sincroniza) elegíveis via upload CSV ou JSON. */
+function executar_importacao_interno(array $params, bool $sincronizar): void
+{
     $usuario = exigir_login();
     if (!in_array($usuario['perfil'], PERFIS_IMPORTA_ELEGIVEIS, true)) {
         responder_erro('Sem permissão para importar elegíveis.', 403, [
@@ -56,7 +68,7 @@ function rota_importar_elegiveis(array $params): void
     }
 
     $r = importacao_iniciar((int) $campanha['tenant_id'], $id, $conteudo, $formato, 'upload',
-        (int) $usuario['id'], ator_usuario($usuario));
+        (int) $usuario['id'], ator_usuario($usuario), $sincronizar);
 
     registrar_auditoria('elegiveis.importados', [
         'tenant_id'     => (int) $campanha['tenant_id'],
@@ -65,11 +77,12 @@ function rota_importar_elegiveis(array $params): void
         'origem'        => 'admin',
         'entidade_tipo' => 'campanha',
         'entidade_id'   => $id,
-        'metadata'      => ['importacao_id' => $r['importacao_id'], 'status' => $r['status']],
+        'metadata'      => ['importacao_id' => $r['importacao_id'], 'status' => $r['status'], 'sincronizar' => $sincronizar ? 1 : 0],
     ]);
 
     responder_sucesso($r, $r['status'] === 'concluida'
-        ? 'Importação processada.' : 'Importação recebida; processando em segundo plano.', 201);
+        ? ($sincronizar ? 'Sincronização processada.' : 'Importação processada.')
+        : 'Recebido; processando em segundo plano.', 201);
 }
 
 /**
