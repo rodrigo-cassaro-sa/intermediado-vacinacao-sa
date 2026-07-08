@@ -115,8 +115,11 @@ Ordem recomendada (o portal vai *surfacar* estes controles, então precisam exis
   os presentes e **marca como `removido`** os ausentes não vacinados (via carimbo `sincronizado_em`).
   Escala em 100k (assíncrono no worker). RN-030.
 
-## Fase C — App in company (função 4)
-- **C1. Credencial/token de app** (tipo `app_in_company`) para o app do profissional; opcional **PWA offline-first** com fila de sincronização.
+## Fase C — App in company (função 4) ✅ IMPLEMENTADO (token)
+- **C1. Credencial `app_in_company`** (escopo por campanha) + endpoints `GET /parceiro/incompany/
+  campanhas/{id}/elegiveis/{cpf}`, `POST /parceiro/incompany/aplicacoes[-lote]`. Compatível com
+  **PWA, app próprio ou sistema de terceiro** (mesmo token/contrato). Idempotência + rate limit.
+  Falta apenas (opcional): PWA offline-first com fila de sincronização no cliente.
 
 ## Fase D — Portal (cliente + gestor de campanha)
 - Construir **sobre** a fundação A/B/C: gestão de campanhas, importação, tabela verdade, faturamento, **painel de integrações/webhooks**, relatórios.

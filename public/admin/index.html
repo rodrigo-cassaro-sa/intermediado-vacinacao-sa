@@ -210,6 +210,15 @@
         <div><label>Unidade/local (opcional)</label><input id="aplicUnidade" value="Sede - 3º andar" /></div>
       </div>
       <div style="margin-top:12px"><button onclick="registrarAplicacao()">Registrar aplicação</button></div>
+      <hr style="border:0;border-top:1px solid var(--line);margin:14px 0" />
+      <p class="muted">App in company via TOKEN (PWA / app próprio / terceiro):</p>
+      <div class="row">
+        <div style="flex:0"><label>&nbsp;</label><button onclick="emitirTokenApp()">Emitir token do app</button></div>
+        <div><label>Token do app</label><input id="appToken" placeholder="token..." /></div>
+        <div><label>Consultar CPF</label><input id="appCpf" placeholder="52998224725" /></div>
+        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="appConsultar()">Consultar (API)</button></div>
+        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="appRegistrar()">Registrar (API)</button></div>
+      </div>
     </div>
 
     <!-- TABELA VERDADE -->
@@ -647,6 +656,41 @@ async function registrarAplicacao() {
     unidade: document.getElementById('aplicUnidade').value,
   };
   await api('/interno/aplicacoes', 'POST', body);
+}
+
+async function emitirTokenApp() {
+  const id = document.getElementById('aplicCampanha').value;
+  if (!id) return log('Selecione a campanha (seção 6).');
+  const d = await api('/interno/credenciais', 'POST', { tipo: 'app_in_company', campanha_id: Number(id) });
+  if (d.success) document.getElementById('appToken').value = d.data.token;
+}
+
+async function appConsultar() {
+  const id = document.getElementById('aplicCampanha').value;
+  const token = document.getElementById('appToken').value.trim();
+  const cpf = document.getElementById('appCpf').value.trim();
+  if (!id || !token || !cpf) return log('Selecione campanha, emita token e informe CPF.');
+  const d = await apiBearer(`/parceiro/incompany/campanhas/${id}/elegiveis/${encodeURIComponent(cpf)}`, 'GET', null, token);
+  if (d.success) document.getElementById('aplicElegivel').innerHTML =
+    `<option value="${d.data.elegivel_id}">${d.data.paciente.nome} — ${d.data.status}</option>`;
+}
+
+async function appRegistrar() {
+  const token = document.getElementById('appToken').value.trim();
+  if (!token) return log('Emita/cole o token do app.');
+  const body = {
+    elegivel_id: Number(document.getElementById('aplicElegivel').value),
+    vacina_id: Number(document.getElementById('aplicVacina').value),
+    dose: Number(document.getElementById('aplicDose').value),
+    lote: document.getElementById('aplicLote').value,
+    aplicado_em: document.getElementById('aplicData').value.replace('T', ' ') + ':00',
+    profissional_nome: document.getElementById('aplicProfNome').value,
+    profissional_cpf: document.getElementById('aplicProfCpf').value,
+    cidade: document.getElementById('aplicCidade').value,
+    uf: document.getElementById('aplicUf').value,
+    unidade: document.getElementById('aplicUnidade').value,
+  };
+  await apiBearer('/parceiro/incompany/aplicacoes', 'POST', body, token);
 }
 
 async function verTabelaVerdade() {

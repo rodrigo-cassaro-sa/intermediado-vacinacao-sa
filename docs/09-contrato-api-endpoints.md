@@ -335,6 +335,7 @@ Rate limit por credencial (429 + Retry-After). Versão atual: **v1** (mudança i
 |---|---|---|---|
 | `ingestao_b2b` | 1 campanha | cliente/RH envia elegíveis | POST `/parceiro/campanhas/{id}/elegiveis` |
 | `rede_credenciada` | 1 campanha + 1 clínica | clínica consulta/registra vacinado | GET `/parceiro/campanhas/{id}/elegiveis/{cpf}`, POST `/parceiro/aplicacoes[-lote]`, POST `/parceiro/elegiveis/{id}/situacao` |
+| `app_in_company` | 1 campanha | app/PWA/terceiro registra vacinado in company | GET `/parceiro/incompany/campanhas/{id}/elegiveis/{cpf}`, POST `/parceiro/incompany/aplicacoes[-lote]` |
 | `consulta` | 1 cliente (tenant) | sistema de carteira / RH / BI lê dados do cliente | GET `/parceiro/carteira/{cpf}`, GET `/parceiro/campanhas/{id}/tabela-verdade` |
 
 **Consulta — exemplos:**

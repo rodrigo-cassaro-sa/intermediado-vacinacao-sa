@@ -6,8 +6,9 @@
 // O token cru só aparece UMA vez, na emissão; guardamos apenas o hash.
 // ============================================================================
 
-// ingestao_b2b/rede_credenciada = escopo por campanha; consulta = escopo por tenant (cliente).
-const CREDENCIAL_TIPOS = ['ingestao_b2b', 'rede_credenciada', 'consulta'];
+// Escopo por campanha: ingestao_b2b, rede_credenciada, app_in_company.
+// Escopo por tenant (cliente): consulta.
+const CREDENCIAL_TIPOS = ['ingestao_b2b', 'rede_credenciada', 'consulta', 'app_in_company'];
 
 /** POST /api/v1/interno/credenciais — emite um token de máquina. */
 function rota_emitir_credencial(array $params): void
@@ -63,7 +64,8 @@ function rota_emitir_credencial(array $params): void
         $escopoCampanha = (int) $campanha['id'];
         $tenantId = (int) $campanha['tenant_id'];
 
-        if ($tipo === 'ingestao_b2b') {
+        if (in_array($tipo, ['ingestao_b2b', 'app_in_company'], true)) {
+            // Titular é o cliente B2B dono da campanha (app in company: PWA/app/terceiro).
             $titularTipo = 'cliente_b2b';
             $titularId   = (int) $campanha['tenant_id'];
         } else {

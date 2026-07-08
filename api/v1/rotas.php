@@ -98,6 +98,11 @@ return [
     'POST /api/v1/parceiro/aplicacoes'                      => ['arquivo' => 'parceiro/aplicacoes.php', 'funcao' => 'rota_parceiro_registrar_aplicacao'],
     'POST /api/v1/parceiro/aplicacoes-lote'                 => ['arquivo' => 'parceiro/aplicacoes.php', 'funcao' => 'rota_parceiro_registrar_aplicacoes_lote'],
 
+    // --- App IN COMPANY por token (PWA/app/terceiro) — Fase C ---
+    'GET  /api/v1/parceiro/incompany/campanhas/{id}/elegiveis/{cpf}' => ['arquivo' => 'parceiro/incompany.php', 'funcao' => 'rota_incompany_consultar_elegivel'],
+    'POST /api/v1/parceiro/incompany/aplicacoes'                     => ['arquivo' => 'parceiro/incompany.php', 'funcao' => 'rota_incompany_registrar_aplicacao'],
+    'POST /api/v1/parceiro/incompany/aplicacoes-lote'                => ['arquivo' => 'parceiro/incompany.php', 'funcao' => 'rota_incompany_registrar_aplicacoes_lote'],
+
     // --- API externa de CONSULTA (token tipo consulta, escopo tenant) — Fase A3 ---
     'GET  /api/v1/parceiro/carteira/{cpf}'                  => ['arquivo' => 'parceiro/consulta.php', 'funcao' => 'rota_consulta_carteira'],
     'GET  /api/v1/parceiro/campanhas/{id}/tabela-verdade'   => ['arquivo' => 'parceiro/consulta.php', 'funcao' => 'rota_consulta_tabela_verdade'],
