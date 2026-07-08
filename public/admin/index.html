@@ -321,6 +321,33 @@
       <table id="tblCarteira"></table>
     </div>
 
+    <!-- FATURAMENTO -->
+    <div class="card full">
+      <h2>12. Faturamento (item 4)</h2>
+      <p class="muted">Preços — cliente (por modalidade e vacina) e clínica (por vacina):</p>
+      <div class="row">
+        <div style="flex:0;min-width:90px"><label>Cliente ID</label><input id="pcCliente" placeholder="1" /></div>
+        <div><label>Modalidade</label><select id="pcModal"><option value="in_company">in_company</option><option value="rede_credenciada">rede_credenciada</option></select></div>
+        <div style="flex:0;min-width:90px"><label>Vacina ID</label><input id="pcVacina" placeholder="1" /></div>
+        <div style="flex:0;min-width:90px"><label>Valor</label><input id="pcValor" placeholder="35.00" /></div>
+        <div style="flex:0"><label>&nbsp;</label><button onclick="definirPrecoCliente()">Preço cliente</button></div>
+      </div>
+      <div class="row">
+        <div style="flex:0;min-width:90px"><label>Clínica ID</label><input id="pclClinica" placeholder="1" /></div>
+        <div style="flex:0;min-width:90px"><label>Vacina ID</label><input id="pclVacina" placeholder="1" /></div>
+        <div style="flex:0;min-width:90px"><label>Valor</label><input id="pclValor" placeholder="20.00" /></div>
+        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="definirPrecoClinica()">Preço clínica</button></div>
+      </div>
+      <hr style="border:0;border-top:1px solid var(--line);margin:14px 0" />
+      <div class="row">
+        <div style="flex:0;min-width:110px"><label>Campanha ID</label><input id="fatCampanha" placeholder="1" /></div>
+        <div style="flex:0"><label>&nbsp;</label><button onclick="faturamentoCliente()">A cobrar do cliente</button></div>
+        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="faturamentoClinicas()">A pagar às clínicas</button></div>
+      </div>
+      <p id="fatInfo" class="muted"></p>
+      <table id="tblFaturamento"></table>
+    </div>
+
     <!-- OBSERVABILIDADE -->
     <div class="card full">
       <h2>11. Observabilidade (item 13)</h2>
@@ -759,6 +786,58 @@ async function verResumoCliente() {
     '<tr><th>Ano</th><th>Campanha</th><th>Modalidade</th><th>Período</th><th>Elegíveis</th><th>Aplicados</th><th>Cobertura</th></tr>' +
     (d.data.itens || []).map(c =>
       `<tr><td>${c.ano||''}</td><td>${c.nome}</td><td>${c.modalidade}</td><td>${c.periodo_inicio}→${c.periodo_fim}</td><td>${c.elegiveis}</td><td>${c.aplicados}</td><td>${c.cobertura_percentual}%</td></tr>`).join('');
+}
+
+async function definirPrecoCliente() {
+  const id = document.getElementById('pcCliente').value;
+  if (!id) return log('Informe o Cliente ID.');
+  await api(`/interno/clientes/${id}/precos`, 'POST', {
+    modalidade: document.getElementById('pcModal').value,
+    vacina_id: Number(document.getElementById('pcVacina').value),
+    valor: Number(document.getElementById('pcValor').value),
+  });
+}
+
+async function definirPrecoClinica() {
+  const id = document.getElementById('pclClinica').value;
+  if (!id) return log('Informe a Clínica ID.');
+  await api(`/interno/clinicas/${id}/precos`, 'POST', {
+    vacina_id: Number(document.getElementById('pclVacina').value),
+    valor: Number(document.getElementById('pclValor').value),
+  });
+}
+
+async function faturamentoCliente() {
+  const id = document.getElementById('fatCampanha').value;
+  if (!id) return log('Informe a Campanha ID.');
+  const d = await api(`/interno/campanhas/${id}/faturamento-cliente`);
+  if (!d.success) return;
+  const x = d.data;
+  document.getElementById('fatInfo').textContent =
+    `Cobrar (${x.campanha.modalidade}, base: ${x.base}) — TOTAL R$ ${x.total}` +
+    (x.sem_preco.length ? ` · sem preço: ${x.sem_preco.join(', ')}` : '');
+  document.getElementById('tblFaturamento').innerHTML =
+    '<tr><th>Vacina</th><th>Qtd</th><th>Valor unit.</th><th>Subtotal</th></tr>' +
+    (x.itens || []).map(i => `<tr><td>${i.vacina}</td><td>${i.quantidade}</td><td>${i.valor_unitario ?? '—'}</td><td>${i.subtotal}</td></tr>`).join('');
+}
+
+async function faturamentoClinicas() {
+  const id = document.getElementById('fatCampanha').value;
+  if (!id) return log('Informe a Campanha ID.');
+  const d = await api(`/interno/campanhas/${id}/faturamento-clinicas`);
+  if (!d.success) return;
+  const x = d.data;
+  document.getElementById('fatInfo').textContent =
+    `Pagar às clínicas — TOTAL R$ ${x.total_geral ?? 0}` + (x.observacao ? ` · ${x.observacao}` : '') +
+    (x.sem_preco && x.sem_preco.length ? ` · sem preço: ${x.sem_preco.join(', ')}` : '');
+  let html = '<tr><th>Clínica</th><th>Vacina</th><th>Qtd</th><th>Valor unit.</th><th>Subtotal</th></tr>';
+  (x.clinicas || []).forEach(c => {
+    (c.itens || []).forEach(i => {
+      html += `<tr><td>${c.clinica}</td><td>${i.vacina}</td><td>${i.quantidade}</td><td>${i.valor_unitario ?? '—'}</td><td>${i.subtotal}</td></tr>`;
+    });
+    html += `<tr><td colspan="4" style="text-align:right"><b>Subtotal ${c.clinica}</b></td><td><b>${c.total}</b></td></tr>`;
+  });
+  document.getElementById('tblFaturamento').innerHTML = html;
 }
 
 async function verMetricas() {

@@ -25,6 +25,14 @@ return [
     'GET  /api/v1/interno/clinicas' => ['arquivo' => 'interno/clinicas.php', 'funcao' => 'rota_listar_clinicas'],
     'POST /api/v1/interno/campanhas/{id}/atribuir-clinica' => ['arquivo' => 'interno/clinicas.php', 'funcao' => 'rota_atribuir_clinica'],
 
+    // --- Preços e faturamento (item 4) ---
+    'POST /api/v1/interno/clientes/{id}/precos'   => ['arquivo' => 'interno/precos.php', 'funcao' => 'rota_definir_preco_cliente'],
+    'GET  /api/v1/interno/clientes/{id}/precos'   => ['arquivo' => 'interno/precos.php', 'funcao' => 'rota_listar_precos_cliente'],
+    'POST /api/v1/interno/clinicas/{id}/precos'   => ['arquivo' => 'interno/precos.php', 'funcao' => 'rota_definir_preco_clinica'],
+    'GET  /api/v1/interno/clinicas/{id}/precos'   => ['arquivo' => 'interno/precos.php', 'funcao' => 'rota_listar_precos_clinica'],
+    'GET  /api/v1/interno/campanhas/{id}/faturamento-cliente'  => ['arquivo' => 'interno/faturamento.php', 'funcao' => 'rota_faturamento_cliente'],
+    'GET  /api/v1/interno/campanhas/{id}/faturamento-clinicas' => ['arquivo' => 'interno/faturamento.php', 'funcao' => 'rota_faturamento_clinicas'],
+
     // --- Observabilidade (item 13) ---
     'GET  /api/v1/interno/metricas'  => ['arquivo' => 'interno/observabilidade.php', 'funcao' => 'rota_metricas'],
     'GET  /api/v1/interno/auditoria' => ['arquivo' => 'interno/observabilidade.php', 'funcao' => 'rota_auditoria_recente'],

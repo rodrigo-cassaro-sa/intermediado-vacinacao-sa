@@ -30,6 +30,8 @@ Documentar entidades, tabelas, campos, relacionamentos, índices, migrations e c
 | Log de auditoria | Trilha de acesso/ações críticas | `log_auditoria` |
 | Histórico do elegível | Lastro de mudanças do elegível (RN-021) | `elegivel_historico` |
 | Histórico da aplicação | Lastro da aplicação: registrada/retificada/estornada (RN-022) | `aplicacao_historico` |
+| Preço do cliente | Quanto cobramos por (cliente, modalidade, vacina) — RN-029 | `preco_cliente` |
+| Preço da clínica | Quanto pagamos por (clínica, vacina) — RN-029 | `preco_clinica` |
 
 ---
 
