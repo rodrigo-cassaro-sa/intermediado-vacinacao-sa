@@ -162,7 +162,7 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | 4 | Faturamento: preços [cliente,modalidade,vacina] e [clínica,vacina] + relatórios a cobrar/a pagar (commit 356a72a) — migration 018 auto | usuário/deploy | alta | feito |
 | INT-A | Fundação integração: webhooks de saída (assinatura+entrega+worker+HMAC+retry) + admin (commit 63d6429) — migration 019 auto; cron do worker | usuário/deploy | alta | feito |
 | INT-A3 | API externa formalizada (contrato v1) + carteira/consulta por token 'consulta' (commit 51656eb) — sem migration | usuário/deploy | alta | feito |
-| INT-B | Sync de turnover por diferença (RH) | especialista-backend | média | pendente |
+| INT-B | Sync de turnover por diferença (RH) — CSV + API (commit 0d9d369) — migration 020 auto | usuário/deploy | média | feito |
 | INT-C | Token de app in company + PWA offline | especialista-backend | média | pendente |
 | PORTAL | Portal cliente + gestor de campanha (sobre a fundação de integração) | especialista-design/frontend | alta | pendente |
 | V2 | Autoadesão B2C (consentimento) + venda de voucher (pagamento) | — | baixa | pendente |
