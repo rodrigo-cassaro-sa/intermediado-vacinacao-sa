@@ -16,11 +16,13 @@ function rota_editar_elegivel(array $params): void
 
     $id = (int) ($params['id'] ?? 0);
     $atual = db_primeiro(
-        "SELECT e.id, e.campanha_id, e.tipo_vinculo, e.cpf_titular, e.codigo_lotacao, e.codigo_rh, e.clinica_id,
+        "SELECT e.id, e.campanha_id, c.tenant_id, e.tipo_vinculo, e.cpf_titular, e.codigo_lotacao, e.codigo_rh, e.clinica_id,
                 e.paciente_id, p.cpf,
                 COALESCE(e.nome, p.nome) AS nome,
                 COALESCE(e.data_nascimento, p.data_nascimento) AS data_nascimento
-           FROM elegivel e JOIN paciente p ON p.id = e.paciente_id
+           FROM elegivel e
+           JOIN paciente p ON p.id = e.paciente_id
+           JOIN campanha c ON c.id = e.campanha_id
           WHERE e.id = :id LIMIT 1",
         [':id' => $id]
     );
@@ -154,7 +156,7 @@ function rota_editar_elegivel(array $params): void
     }
 
     registrar_auditoria('elegivel.editado', [
-        'tenant_id'     => null,
+        'tenant_id'     => (int) $atual['tenant_id'],
         'ator_tipo'     => 'usuario',
         'ator_id'       => (int) $usuario['id'],
         'origem'        => 'admin',

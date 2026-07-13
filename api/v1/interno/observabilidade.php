@@ -67,3 +67,47 @@ function rota_auditoria_recente(array $params): void
     );
     responder_sucesso(['itens' => $itens], 'OK.');
 }
+
+/**
+ * GET /api/v1/interno/portal/auditoria?evento=&limit=
+ * Trilha de auditoria do PORTAL: o que aconteceu, quem fez e quando — restrita
+ * aos clientes que o usuário gere (isolamento financeiro/LGPD, RN-012).
+ * Junta o nome do ator (quando é usuário) e devolve metadata já mascarada.
+ */
+function rota_auditoria_portal(array $params): void
+{
+    $usuario = exigir_login();
+
+    $limit = isset($_GET['limit']) && is_numeric($_GET['limit']) ? min(200, max(1, (int) $_GET['limit'])) : 80;
+    $where = 'la.tenant_id IS NOT NULL';
+    $bind = [];
+
+    // Escopo: interno vê tudo; demais só a auditoria dos clientes que gerem.
+    $geridos = clientes_geridos_pelo_usuario($usuario);
+    if ($geridos !== ['*']) {
+        if (!$geridos) {
+            responder_sucesso(['itens' => []], 'OK.');
+        }
+        $ph = [];
+        foreach ($geridos as $i => $cid) { $ph[] = ":c_$i"; $bind[":c_$i"] = (int) $cid; }
+        $where .= ' AND la.tenant_id IN (' . implode(',', $ph) . ')';
+    }
+
+    if (!empty($_GET['evento'])) {
+        $where .= ' AND la.evento = :e';
+        $bind[':e'] = (string) $_GET['evento'];
+    }
+
+    $itens = db_todos(
+        "SELECT la.id, la.tenant_id, la.evento, la.origem, la.ator_tipo, la.ator_id,
+                la.entidade_tipo, la.entidade_id, la.metadata, la.data_hora,
+                u.nome AS ator_nome
+           FROM log_auditoria la
+           LEFT JOIN usuario u ON u.id = la.ator_id AND la.ator_tipo = 'usuario'
+          WHERE $where
+          ORDER BY la.id DESC
+          LIMIT $limit",
+        $bind
+    );
+    responder_sucesso(['itens' => $itens], 'OK.');
+}

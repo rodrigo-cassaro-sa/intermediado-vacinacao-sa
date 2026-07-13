@@ -100,7 +100,12 @@ function rota_definir_situacao_elegivel(array $params): void
     exigir_csrf();
 
     $id = (int) ($params['id'] ?? 0);
-    $eleg = db_primeiro("SELECT id, campanha_id FROM elegivel WHERE id = :id LIMIT 1", [':id' => $id]);
+    $eleg = db_primeiro(
+        "SELECT e.id, e.campanha_id, c.tenant_id
+           FROM elegivel e JOIN campanha c ON c.id = e.campanha_id
+          WHERE e.id = :id LIMIT 1",
+        [':id' => $id]
+    );
     if ($eleg === null) {
         responder_erro('Elegível inexistente.', 404, [
             ['field' => null, 'code' => 'NAO_ELEGIVEL', 'message' => 'Elegível não encontrado.'],
@@ -117,6 +122,7 @@ function rota_definir_situacao_elegivel(array $params): void
     }
 
     registrar_auditoria('elegivel.situacao_definida', [
+        'tenant_id'     => (int) $eleg['tenant_id'],
         'ator_tipo'     => 'usuario',
         'ator_id'       => (int) $usuario['id'],
         'origem'        => 'admin',

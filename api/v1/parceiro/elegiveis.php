@@ -16,7 +16,12 @@ function rota_parceiro_definir_situacao(array $params): void
 {
     $cred = exigir_credencial('rede_credenciada');
     $id = (int) ($params['id'] ?? 0);
-    $eleg = db_primeiro("SELECT id, campanha_id, clinica_id FROM elegivel WHERE id = :id LIMIT 1", [':id' => $id]);
+    $eleg = db_primeiro(
+        "SELECT e.id, e.campanha_id, e.clinica_id, c.tenant_id
+           FROM elegivel e JOIN campanha c ON c.id = e.campanha_id
+          WHERE e.id = :id LIMIT 1",
+        [':id' => $id]
+    );
     if ($eleg === null) {
         responder_erro('Elegível inexistente.', 404, [
             ['field' => null, 'code' => 'NAO_ELEGIVEL', 'message' => 'Elegível não encontrado.'],
@@ -38,6 +43,7 @@ function rota_parceiro_definir_situacao(array $params): void
     }
 
     registrar_auditoria('elegivel.situacao_definida', [
+        'tenant_id'     => (int) $eleg['tenant_id'],
         'ator_tipo'     => 'credencial_api',
         'ator_id'       => (int) $cred['id'],
         'origem'        => 'api_parceiro',

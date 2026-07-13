@@ -169,6 +169,8 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | PORTAL-D2a | Aplicar escopo hierárquico nas leituras/escritas (campanhas/clientes/elegíveis/tabela verdade/dashboard/export) + unidade por lotação (commit 7029e88, mig 022) — fecha isolamento | usuário/deploy | alta | feito |
 | PORTAL-D2b | Fluxos do portal: dashboard, elegíveis (importar/sincronizar/listar/remover + relatório de erros), vacinados (tabela verdade/extrair), usuários (listar/criar no escopo) (commit f2b48fe) | usuário/deploy | alta | feito |
 | PORTAL-D3 | Painel avançado: doc de API, gerar tokens (self-service escopado), registrar webhooks, guia Power BI/automação — aba Integrações no portal; credenciais.php/webhooks.php reforçados p/ escopo (usuario_pode_cliente/titular gerido), portal não emite rede_credenciada | backend/frontend | média | feito |
+| PORTAL-AUD | Auditoria no portal (o quê/quem/quando) escopada aos clientes geridos — GET /interno/portal/auditoria (join nome do ator, metadata mascarada) + aba Auditoria; eventos elegivel.editado/situacao_definida passaram a gravar tenant_id | backend/frontend | média | feito |
+| MARCA | Identidade visual "S&A Imunizações" (tema claro azul+verde; public/assets/marca.css + favicon; portal e admin) | frontend | média | feito |
 | V2 | Autoadesão B2C (consentimento) + venda de voucher (pagamento) | — | baixa | pendente |
 | V2 | Autoadesão B2C (consentimento) + venda de voucher (pagamento) | — | baixa | pendente |
 | Banco: migrations até 017 | — | — | — | 017 = paciente voucher |

@@ -177,6 +177,7 @@ Uso recorrente:
 | PT-030 | Vacinados — extrair | negocio+ | tabela verdade + export CSV · **D2b ✅** |
 | PT-040 | Gestão de usuários | negocio+ (upper→lower) | criar/listar usuários no escopo · **D2b ✅** |
 | PT-050 | **Painel de integrações (avançado)** | negocio+ (técnico) | doc de API (contrato v1), **gerar tokens** (consulta/ingestão/app), **registrar webhooks** e ver entregas, guia Power BI/automação · **D3 ✅** (aba Integrações no portal, escopo por cliente gerido) |
+| PT-060 | **Auditoria (o quê / quem / quando)** | negocio+ | trilha somente-leitura das ações nos clientes do gestor (importações, aplicações, situação/edição de elegível, estornos, tokens, webhooks, usuários), filtro por evento · **✅** (`GET /interno/portal/auditoria`, escopo `tenant_id IN` clientes geridos) |
 
 ## Dois modos
 

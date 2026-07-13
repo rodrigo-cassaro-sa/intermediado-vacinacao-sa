@@ -60,6 +60,7 @@ return [
     // --- Observabilidade (item 13) ---
     'GET  /api/v1/interno/metricas'  => ['arquivo' => 'interno/observabilidade.php', 'funcao' => 'rota_metricas'],
     'GET  /api/v1/interno/auditoria' => ['arquivo' => 'interno/observabilidade.php', 'funcao' => 'rota_auditoria_recente'],
+    'GET  /api/v1/interno/portal/auditoria' => ['arquivo' => 'interno/observabilidade.php', 'funcao' => 'rota_auditoria_portal'],
 
     // --- Relatórios: carteira consolidada (9c) e resumo ano a ano ---
     'GET  /api/v1/interno/pacientes/{cpf}/carteira'         => ['arquivo' => 'interno/relatorios.php', 'funcao' => 'rota_carteira_paciente'],

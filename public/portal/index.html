@@ -107,6 +107,7 @@
           <button class="sec navb" data-v="vac" onclick="showView('vac')">Vacinados</button>
           <button class="sec navb hide" id="navUsr" data-v="usr" onclick="showView('usr')">Usuários</button>
           <button class="sec navb hide" id="navInt" data-v="int" onclick="showView('int')">Integrações</button>
+          <button class="sec navb hide" id="navAud" data-v="aud" onclick="showView('aud')">Auditoria</button>
         </div>
         <div class="row">
           <label style="margin:0">Campanha</label>
@@ -224,6 +225,33 @@
         3) URL: <code id="pbiUrl"></code> &nbsp; 4) Cabeçalho HTTP: <code>Authorization</code> = <code>Bearer SEU_TOKEN</code>. &nbsp;
         5) Atualize periodicamente (agendamento do Power BI). Para grandes volumes, pagine com <code>?apos=</code>.</p>
     </div>
+
+    <!-- VIEW AUDITORIA -->
+    <div id="vAud" class="card hide">
+      <h2>Auditoria — o que aconteceu, quem fez e quando</h2>
+      <p class="pill">Registro das ações nos seus clientes (importações, aplicações, correções, estornos,
+        tokens, webhooks e usuários). Somente leitura — restrito ao seu escopo.</p>
+      <div class="row">
+        <select id="audEvento">
+          <option value="">Todos os eventos</option>
+          <option value="elegiveis.importados">Elegíveis importados</option>
+          <option value="importacao.concluida">Importação concluída</option>
+          <option value="elegivel.situacao_definida">Situação de elegível</option>
+          <option value="elegivel.editado">Elegível editado</option>
+          <option value="aplicacao.registrada">Aplicação registrada</option>
+          <option value="aplicacao.estornada">Aplicação estornada (desvacinado)</option>
+          <option value="campanha.encerrada">Campanha encerrada</option>
+          <option value="credencial.emitida">Token emitido</option>
+          <option value="credencial.revogada">Token revogado</option>
+          <option value="webhook.criado">Webhook criado</option>
+          <option value="usuario.criado">Usuário criado</option>
+        </select>
+        <button onclick="verAuditoria()">Filtrar</button>
+        <button class="sec" onclick="document.getElementById('audEvento').value='';verAuditoria()">Limpar</button>
+      </div>
+      <p class="pill" id="audResumo"></p>
+      <table id="tblAud"></table>
+    </div>
   </div>
 </div>
 
@@ -263,6 +291,7 @@ async function rotearJornada(){
   tela('scDash');
   document.getElementById('navUsr').classList.toggle('hide', !podeGerirUsuarios());
   document.getElementById('navInt').classList.toggle('hide', !podeGerirUsuarios());
+  document.getElementById('navAud').classList.toggle('hide', !podeGerirUsuarios());
   document.getElementById('apiBase').textContent = location.origin + '/api/v1';
   document.getElementById('pbiUrl').textContent = location.origin + '/api/v1/parceiro/campanhas/{id}/tabela-verdade';
   await listar();
@@ -286,13 +315,14 @@ function campId(){ return document.getElementById('campSel').value; }
 
 function showView(v){
   VIEW=v;
-  ['dash','eleg','vac','usr','int'].forEach(x=>document.getElementById('v'+x[0].toUpperCase()+x.slice(1)).classList.toggle('hide',x!==v));
-  document.querySelectorAll('.navb').forEach(b=>b.style.background = b.dataset.v===v ? 'var(--pri)' : '');
+  ['dash','eleg','vac','usr','int','aud'].forEach(x=>document.getElementById('v'+x[0].toUpperCase()+x.slice(1)).classList.toggle('hide',x!==v));
+  document.querySelectorAll('.navb').forEach(b=>{const on=b.dataset.v===v;b.style.background=on?'var(--pri)':'';b.style.color=on?'#fff':'';});
   if(v==='dash') carregarDash();
   if(v==='eleg') listarEleg();
   if(v==='vac') verVerdade();
   if(v==='usr') listarUsuarios();
   if(v==='int'){ listarTokens(); listarWebhooks(); }
+  if(v==='aud') verAuditoria();
 }
 function onCampanha(){ showView(VIEW); }
 
@@ -452,6 +482,40 @@ async function entregasWebhook(id){
   document.getElementById('tblWhEnt').innerHTML='<tr><th colspan="5">Entregas do webhook #'+id+'</th></tr>'+
     '<tr><th>ID</th><th>Evento</th><th>Status</th><th>HTTP</th><th>Quando</th></tr>'+
     (d.data.itens||[]).map(e=>`<tr><td>${e.id}</td><td>${e.evento}</td><td>${e.status}</td><td>${e.ultimo_status_code||'—'}</td><td>${(e.entregue_em||e.criado_em||'').substring(0,19).replace('T',' ')}</td></tr>`).join('');
+}
+
+// ---- Auditoria ----
+const AUD_LABEL={
+  'elegiveis.importados':'Elegíveis importados','importacao.concluida':'Importação concluída',
+  'elegivel.situacao_definida':'Situação de elegível definida','elegivel.editado':'Elegível editado',
+  'aplicacao.registrada':'Aplicação registrada','aplicacao.estornada':'Aplicação estornada (desvacinado)',
+  'campanha.encerrada':'Campanha encerrada','credencial.emitida':'Token emitido','credencial.revogada':'Token revogado',
+  'webhook.criado':'Webhook criado','webhook.desativado':'Webhook desativado','usuario.criado':'Usuário criado',
+  'login.sucesso':'Login','consentimento.aceito':'Consentimento LGPD aceito'};
+function audEventoLabel(e){ return AUD_LABEL[e]||e; }
+function audAtor(a){
+  if(a.ator_tipo==='usuario') return a.ator_nome?a.ator_nome:('usuário #'+(a.ator_id||'?'));
+  if(a.ator_tipo==='credencial_api') return 'integração/API (token #'+(a.ator_id||'?')+')';
+  return a.ator_tipo||'—';
+}
+function audDetalhe(a){
+  const partes=[];
+  if(a.entidade_tipo) partes.push(a.entidade_tipo+(a.entidade_id?(' #'+a.entidade_id):''));
+  if(a.metadata){ try{ const m=typeof a.metadata==='string'?JSON.parse(a.metadata):a.metadata;
+    Object.keys(m||{}).slice(0,4).forEach(k=>{ const v=m[k]; if(v!==null&&typeof v!=='object') partes.push(k+': '+v); });
+  }catch(e){} }
+  return partes.join(' · ')||'—';
+}
+async function verAuditoria(){
+  const ev=document.getElementById('audEvento').value;
+  const d=await api('/interno/portal/auditoria'+(ev?('?evento='+encodeURIComponent(ev)):''));
+  if(!d.success){document.getElementById('audResumo').textContent='Não foi possível carregar.';return;}
+  const itens=d.data.itens||[];
+  document.getElementById('audResumo').textContent=itens.length?`${itens.length} evento(s)`:'Nenhum evento no seu escopo ainda.';
+  document.getElementById('tblAud').innerHTML=itens.length
+    ? '<tr><th>Quando</th><th>O que aconteceu</th><th>Quem fez</th><th>Origem</th><th>Detalhes</th></tr>'+
+      itens.map(a=>`<tr><td>${(a.data_hora||'').substring(0,19).replace('T',' ')}</td><td>${audEventoLabel(a.evento)}</td><td>${audAtor(a)}</td><td>${a.origem||'—'}</td><td class="pill">${audDetalhe(a)}</td></tr>`).join('')
+    : '';
 }
 
 async function sair(){ await api('/interno/auth/logout','POST'); CSRF=null; tela('scLogin'); }
