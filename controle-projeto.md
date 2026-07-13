@@ -167,7 +167,7 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | PORTAL-D0 | Modelo de acesso: grupo_empresarial, unidade, usuario_atribuicao (níveis grupo/negocio/local + multi-atribuição, upper→lower) + resolução de permissão + gestão de usuários. Base de TUDO no portal (doc 04 §4.1) | especialista-seguranca/backend | alta | pendente |
 | PORTAL-D1 | Shell + login + consentimento LGPD + onboarding/assistente (commit b0ff665, mig 023) — em public/portal | usuário/deploy | alta | feito |
 | PORTAL-D2a | Aplicar escopo hierárquico nas leituras/escritas (campanhas/clientes/elegíveis/tabela verdade/dashboard/export) + unidade por lotação (commit 7029e88, mig 022) — fecha isolamento | usuário/deploy | alta | feito |
-| PORTAL-D2b | Fluxos simples do portal (telas): dashboard, atualizar elegíveis, extrair vacinados | frontend | alta | pendente |
+| PORTAL-D2b | Fluxos do portal: dashboard, elegíveis (importar/sincronizar/listar/remover + relatório de erros), vacinados (tabela verdade/extrair), usuários (listar/criar no escopo) (commit f2b48fe) | usuário/deploy | alta | feito |
 | PORTAL-D3 | Painel avançado: doc de API, gerar tokens (self-service escopado), registrar webhooks, guia Power BI/automação | backend/frontend | média | pendente |
 | V2 | Autoadesão B2C (consentimento) + venda de voucher (pagamento) | — | baixa | pendente |
 | V2 | Autoadesão B2C (consentimento) + venda de voucher (pagamento) | — | baixa | pendente |
