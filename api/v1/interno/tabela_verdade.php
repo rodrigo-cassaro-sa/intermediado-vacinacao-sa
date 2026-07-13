@@ -10,26 +10,27 @@ function rota_tabela_verdade(array $params): void
 {
     $usuario = exigir_login();
     $id = id_campanha_rota($params['id'] ?? null);
-    exigir_campanha_do_usuario($usuario, $id);
+    $campanha = exigir_campanha_do_usuario($usuario, $id);
+    [$fUni, $bUni] = filtro_unidade_sql($usuario, (int) $campanha['tenant_id'], 'v');
 
     // Keyset por paciente_id (único por campanha na VIEW) — escala em milhões (item 10).
     [$apos, $porPagina] = paginacao_keyset();
 
-    $resumo = resumo_situacao($id);
+    $resumo = resumo_situacao($id, $usuario, (int) $campanha['tenant_id']);
     $total = array_sum($resumo);
 
-    $where = 'campanha_id = :id';
-    $bind  = [':id' => $id];
+    $where = 'v.campanha_id = :id' . $fUni;
+    $bind  = array_merge([':id' => $id], $bUni);
     if ($apos > 0) {
-        $where .= ' AND paciente_id > :apos';
+        $where .= ' AND v.paciente_id > :apos';
         $bind[':apos'] = $apos;
     }
 
     $itens = db_todos(
-        "SELECT paciente_id, cpf, nome, situacao_elegivel, total_aplicacoes, ultima_aplicacao_em
-           FROM vw_tabela_verdade
+        "SELECT v.paciente_id, v.cpf, v.nome, v.situacao_elegivel, v.total_aplicacoes, v.ultima_aplicacao_em
+           FROM vw_tabela_verdade v
           WHERE $where
-          ORDER BY paciente_id ASC
+          ORDER BY v.paciente_id ASC
           LIMIT $porPagina",
         $bind
     );
@@ -50,22 +51,24 @@ function rota_dashboard(array $params): void
 {
     $usuario = exigir_login();
     $id = id_campanha_rota($params['id'] ?? null);
-    exigir_campanha_do_usuario($usuario, $id);
+    $campanha = exigir_campanha_do_usuario($usuario, $id);
 
-    $resumo = resumo_situacao($id);
+    $resumo = resumo_situacao($id, $usuario, (int) $campanha['tenant_id']);
     $totalElegiveis = array_sum($resumo);
     $aplicados = $resumo['aplicado'] ?? 0;
     $cobertura = $totalElegiveis > 0 ? round($aplicados * 100 / $totalElegiveis, 1) : 0;
 
-    // Aplicações confirmadas por vacina.
+    // Aplicações confirmadas por vacina (respeita a restrição de unidade).
+    [$fUni, $bUni] = filtro_unidade_sql($usuario, (int) $campanha['tenant_id'], 'e');
     $porVacina = db_todos(
-        "SELECT v.nome, COUNT(a.id) AS aplicacoes
+        "SELECT vc.nome, COUNT(a.id) AS aplicacoes
            FROM aplicacao a
-           JOIN vacina v ON v.id = a.vacina_id
-          WHERE a.campanha_id = :id AND a.status = 'confirmada'
-          GROUP BY v.id, v.nome
+           JOIN elegivel e ON e.id = a.elegivel_id
+           JOIN vacina vc ON vc.id = a.vacina_id
+          WHERE a.campanha_id = :id AND a.status = 'confirmada'$fUni
+          GROUP BY vc.id, vc.nome
           ORDER BY aplicacoes DESC",
-        [':id' => $id]
+        array_merge([':id' => $id], $bUni)
     );
 
     responder_sucesso([
@@ -88,6 +91,7 @@ function rota_exportar_tabela_verdade(array $params): void
     $id = id_campanha_rota($params['id'] ?? null);
     $campanha = exigir_campanha_do_usuario($usuario, $id);
 
+    [$fUni, $bUni] = filtro_unidade_sql($usuario, (int) $campanha['tenant_id'], 'e');
     $linhas = db_todos(
         "SELECT p.cpf, COALESCE(e.nome, p.nome) AS nome, e.status AS situacao,
                 COUNT(a.id) AS total_aplicacoes,
@@ -97,10 +101,10 @@ function rota_exportar_tabela_verdade(array $params): void
            JOIN paciente p ON p.id = e.paciente_id
       LEFT JOIN aplicacao a ON a.elegivel_id = e.id AND a.status = 'confirmada'
       LEFT JOIN vacina v ON v.id = a.vacina_id
-          WHERE e.campanha_id = :id
+          WHERE e.campanha_id = :id$fUni
        GROUP BY e.id, p.cpf, p.nome, e.status
        ORDER BY p.nome",
-        [':id' => $id]
+        array_merge([':id' => $id], $bUni)
     );
 
     registrar_auditoria('tabela_verdade.exportada', [
@@ -132,12 +136,16 @@ function rota_exportar_tabela_verdade(array $params): void
     exit;
 }
 
-/** Contagem de elegíveis por situação (base da tabela verdade). */
-function resumo_situacao(int $campanhaId): array
+/** Contagem de elegíveis por situação (base da tabela verdade), com restrição de unidade. */
+function resumo_situacao(int $campanhaId, ?array $usuario = null, ?int $clienteId = null): array
 {
+    $fUni = ''; $bUni = [];
+    if ($usuario !== null && $clienteId !== null) {
+        [$fUni, $bUni] = filtro_unidade_sql($usuario, $clienteId, 'e');
+    }
     $linhas = db_todos(
-        "SELECT status, COUNT(*) AS total FROM elegivel WHERE campanha_id = :id GROUP BY status",
-        [':id' => $campanhaId]
+        "SELECT e.status, COUNT(*) AS total FROM elegivel e WHERE e.campanha_id = :id$fUni GROUP BY e.status",
+        array_merge([':id' => $campanhaId], $bUni)
     );
     $resumo = ['pendente' => 0, 'aplicado' => 0, 'recusado' => 0, 'inelegivel' => 0, 'ausente' => 0, 'expirado' => 0, 'removido' => 0];
     foreach ($linhas as $r) {

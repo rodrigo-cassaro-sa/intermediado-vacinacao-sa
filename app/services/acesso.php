@@ -153,3 +153,70 @@ function clientes_geridos_pelo_usuario(array $usuario): array
     }
     return array_keys($ids);
 }
+
+/** Cliente_ids que o usuário pode ACESSAR (leitura), incluindo o nível local. */
+function clientes_acessiveis_pelo_usuario(array $usuario): array
+{
+    if (usuario_eh_interno($usuario)) {
+        return ['*'];
+    }
+    $ids = [];
+    if (($usuario['perfil'] ?? '') === 'cliente_b2b' && !empty($usuario['tenant_id'])) {
+        $ids[(int) $usuario['tenant_id']] = true;
+    }
+    foreach (atribuicoes_do_usuario((int) $usuario['id']) as $a) {
+        if ($a['nivel'] === 'negocio') {
+            $ids[(int) $a['escopo_id']] = true;
+        } elseif ($a['nivel'] === 'grupo') {
+            foreach (db_todos("SELECT id FROM cliente_b2b WHERE grupo_empresarial_id = :g AND excluido_em IS NULL", [':g' => (int) $a['escopo_id']]) as $c) {
+                $ids[(int) $c['id']] = true;
+            }
+        } elseif ($a['nivel'] === 'local') {
+            $cli = cliente_da_unidade((int) $a['escopo_id']);
+            if ($cli !== null) $ids[$cli] = true;
+        }
+    }
+    return array_keys($ids);
+}
+
+/**
+ * Restrição de unidade para o usuário no cliente:
+ *  - null  = sem restrição (interna/grupo/negocio veem o cliente inteiro)
+ *  - array = lista de unidade_ids (usuário só-local vê apenas essas unidades)
+ */
+function unidades_restritas_do_usuario(array $usuario, int $clienteId): ?array
+{
+    if (usuario_eh_interno($usuario)) return null;
+    if (($usuario['perfil'] ?? '') === 'cliente_b2b' && (int) ($usuario['tenant_id'] ?? 0) === $clienteId) return null;
+
+    $unidades = [];
+    foreach (atribuicoes_do_usuario((int) $usuario['id']) as $a) {
+        if ($a['nivel'] === 'negocio' && (int) $a['escopo_id'] === $clienteId) return null;
+        if ($a['nivel'] === 'grupo' && grupo_do_cliente($clienteId) !== null && (int) $a['escopo_id'] === grupo_do_cliente($clienteId)) return null;
+        if ($a['nivel'] === 'local' && cliente_da_unidade((int) $a['escopo_id']) === $clienteId) {
+            $unidades[(int) $a['escopo_id']] = true;
+        }
+    }
+    return array_keys($unidades);
+}
+
+/**
+ * Fragmento SQL + bind para restringir por unidade (usuário local).
+ * Devolve ['', []] se não houver restrição; ' AND alias.unidade_id IN (...)' caso contrário.
+ */
+function filtro_unidade_sql(array $usuario, int $clienteId, string $alias = 'e'): array
+{
+    $restr = unidades_restritas_do_usuario($usuario, $clienteId);
+    if ($restr === null) {
+        return ['', []];
+    }
+    if (!$restr) {
+        return [' AND 1 = 0', []]; // usuário local sem unidade => nada
+    }
+    $ph = []; $bind = [];
+    foreach ($restr as $i => $uid) {
+        $ph[] = ":u_$i";
+        $bind[":u_$i"] = $uid;
+    }
+    return [' AND ' . $alias . '.unidade_id IN (' . implode(',', $ph) . ')', $bind];
+}

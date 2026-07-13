@@ -97,6 +97,9 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
         if ($codLotacao === '') { $rejeita($linha, $idErro, $nome, 'CODIGO_LOTACAO_OBRIGATORIO'); continue; }
         if ($codRh === '')      { $rejeita($linha, $idErro, $nome, 'CODIGO_RH_OBRIGATORIO'); continue; }
 
+        // Portal D2: vincula à unidade (local de vacinação) pelo código de lotação, se existir.
+        $unidadeId = unidade_por_lotacao($tenantId, $codLotacao);
+
         // Identidade global: por CPF (RN-008) ou por identificador/voucher (RN-028).
         if ($temCpf) {
             $paciente = db_primeiro("SELECT id FROM paciente WHERE cpf = :v LIMIT 1", [':v' => $cpf]);
@@ -120,11 +123,12 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
         );
         if ($eleg === null) {
             db_executar(
-                "INSERT INTO elegivel (tenant_id, campanha_id, paciente_id, nome, data_nascimento, origem, tipo_vinculo, cpf_titular, codigo_lotacao, codigo_rh, status, importacao_id, sincronizado_em)
-                 VALUES (:tenant, :campanha, :paciente, :enome, :enasc, :origem, :tipo, :titular, :lotacao, :rh, 'pendente', :imp, :sync)",
+                "INSERT INTO elegivel (tenant_id, campanha_id, unidade_id, paciente_id, nome, data_nascimento, origem, tipo_vinculo, cpf_titular, codigo_lotacao, codigo_rh, status, importacao_id, sincronizado_em)
+                 VALUES (:tenant, :campanha, :unidade, :paciente, :enome, :enasc, :origem, :tipo, :titular, :lotacao, :rh, 'pendente', :imp, :sync)",
                 [
                     ':tenant'   => $tenantId,
                     ':campanha' => $campanhaId,
+                    ':unidade'  => $unidadeId,
                     ':paciente' => $pacienteId,
                     ':enome'    => $nome,
                     ':enasc'    => $nasc,
@@ -148,7 +152,7 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
         } else {
             // Já elegível nesta campanha (dedup) — atualiza dados sem duplicar.
             $bindUpd = [':enome' => $nome, ':enasc' => $nasc, ':tipo' => $tipo, ':titular' => $cpfTitular,
-                        ':lotacao' => $codLotacao, ':rh' => $codRh, ':id' => (int) $eleg['id']];
+                        ':lotacao' => $codLotacao, ':rh' => $codRh, ':unidade' => $unidadeId, ':id' => (int) $eleg['id']];
             $setSync = '';
             if ($sincronizarEm !== null) {
                 $setSync = ', sincronizado_em = :sync';
@@ -156,7 +160,7 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
             }
             db_executar(
                 "UPDATE elegivel SET nome = :enome, data_nascimento = :enasc, tipo_vinculo = :tipo,
-                        cpf_titular = :titular, codigo_lotacao = :lotacao, codigo_rh = :rh$setSync WHERE id = :id",
+                        cpf_titular = :titular, codigo_lotacao = :lotacao, codigo_rh = :rh, unidade_id = :unidade$setSync WHERE id = :id",
                 $bindUpd
             );
             $atualizados++;
@@ -174,6 +178,24 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
         'rejeitados'  => $rejeitados,
         'erros'       => $erros,
     ];
+}
+
+/** Resolve unidade (local) pelo código de lotação do cliente (cache por requisição). */
+function unidade_por_lotacao(int $tenantId, string $codLotacao): ?int
+{
+    static $cache = [];
+    if ($codLotacao === '') {
+        return null;
+    }
+    $k = $tenantId . '|' . $codLotacao;
+    if (!array_key_exists($k, $cache)) {
+        $r = db_primeiro(
+            "SELECT id FROM unidade WHERE cliente_b2b_id = :t AND codigo_lotacao = :c AND excluido_em IS NULL LIMIT 1",
+            [':t' => $tenantId, ':c' => $codLotacao]
+        );
+        $cache[$k] = $r ? (int) $r['id'] : null;
+    }
+    return $cache[$k];
 }
 
 /**

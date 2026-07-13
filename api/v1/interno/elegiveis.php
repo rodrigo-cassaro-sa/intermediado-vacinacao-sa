@@ -191,15 +191,18 @@ function rota_listar_elegiveis(array $params): void
 {
     $usuario = exigir_login();
     $id = id_campanha_rota($params['id'] ?? null);
-    exigir_campanha_do_usuario($usuario, $id);
+    $campanha = exigir_campanha_do_usuario($usuario, $id);
+
+    // Restrição por unidade (usuário local vê só a sua unidade — doc 04 §4.1).
+    [$fUni, $bUni] = filtro_unidade_sql($usuario, (int) $campanha['tenant_id'], 'e');
 
     // Paginação por cursor (keyset) — escala em milhões (item 10).
     [$apos, $porPagina] = paginacao_keyset();
 
-    // Resumo por status (usa o índice (campanha_id, status) — RN-005).
+    // Resumo por status (respeita a restrição de unidade).
     $resumoLinhas = db_todos(
-        "SELECT status, COUNT(*) AS total FROM elegivel WHERE campanha_id = :id GROUP BY status",
-        [':id' => $id]
+        "SELECT status, COUNT(*) AS total FROM elegivel e WHERE e.campanha_id = :id$fUni GROUP BY status",
+        array_merge([':id' => $id], $bUni)
     );
     $resumo = ['pendente' => 0, 'aplicado' => 0, 'recusado' => 0, 'inelegivel' => 0, 'ausente' => 0, 'expirado' => 0, 'removido' => 0];
     foreach ($resumoLinhas as $r) {
@@ -207,8 +210,8 @@ function rota_listar_elegiveis(array $params): void
     }
     $total = array_sum($resumo);
 
-    $where = 'e.campanha_id = :id';
-    $bind  = [':id' => $id];
+    $where = 'e.campanha_id = :id' . $fUni;
+    $bind  = array_merge([':id' => $id], $bUni);
     if ($apos > 0) {
         $where .= ' AND e.id < :apos';   // ordem por id DESC
         $bind[':apos'] = $apos;

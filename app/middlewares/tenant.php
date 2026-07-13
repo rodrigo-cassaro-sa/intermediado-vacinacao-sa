@@ -23,26 +23,22 @@ function exigir_campanha_do_usuario(array $usuario, int $campanhaId): array
         ]);
     }
 
-    $internos = ['super_admin', 'operador_interno'];
-    if (in_array($usuario['perfil'], $internos, true)) {
-        return $campanha; // acesso global
+    // Resolução hierárquica de escopo (gestao_interna/grupo/negocio/local) — doc 04 §4.1.
+    if (usuario_pode_cliente($usuario, (int) $campanha['tenant_id'])) {
+        return $campanha;
     }
 
-    // Demais perfis: campanha precisa ser do mesmo tenant do usuário.
-    if ($usuario['tenant_id'] === null || (int) $campanha['tenant_id'] !== (int) $usuario['tenant_id']) {
-        registrar_auditoria('permissao.negada', [
-            'tenant_id'     => $usuario['tenant_id'],
-            'ator_tipo'     => 'usuario',
-            'ator_id'       => $usuario['id'],
-            'origem'        => 'portal',
-            'entidade_tipo' => 'campanha',
-            'entidade_id'   => $campanhaId,
-        ]);
-        responder_erro('Sem acesso a esta campanha.', 403, [
-            ['field' => null, 'code' => 'FORA_DO_ESCOPO', 'message' => 'Você não tem acesso a esta campanha.'],
-        ]);
-    }
-    return $campanha;
+    registrar_auditoria('permissao.negada', [
+        'tenant_id'     => $usuario['tenant_id'] ?? null,
+        'ator_tipo'     => 'usuario',
+        'ator_id'       => $usuario['id'],
+        'origem'        => 'portal',
+        'entidade_tipo' => 'campanha',
+        'entidade_id'   => $campanhaId,
+    ]);
+    responder_erro('Sem acesso a esta campanha.', 403, [
+        ['field' => null, 'code' => 'FORA_DO_ESCOPO', 'message' => 'Você não tem acesso a esta campanha.'],
+    ]);
 }
 
 /** Lê o id de campanha da rota como inteiro válido (ou 404). */

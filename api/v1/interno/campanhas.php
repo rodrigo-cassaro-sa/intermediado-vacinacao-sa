@@ -90,19 +90,19 @@ function rota_listar_campanhas(array $params): void
     $where = 'c.excluido_em IS NULL';
     $bind  = [];
 
-    if (in_array($usuario['perfil'], PERFIS_INTERNOS, true)) {
-        // Interno pode filtrar por cliente opcionalmente.
-        if (!empty($_GET['cliente_b2b_id']) && is_numeric($_GET['cliente_b2b_id'])) {
-            $where .= ' AND c.tenant_id = :tenant';
-            $bind[':tenant'] = (int) $_GET['cliente_b2b_id'];
-        }
-    } else {
-        // Demais perfis: só o próprio tenant.
-        if ($usuario['tenant_id'] === null) {
+    // Escopo hierárquico: interna vê tudo; demais só clientes acessíveis (doc 04 §4.1).
+    $acessiveis = clientes_acessiveis_pelo_usuario($usuario);
+    if ($acessiveis !== ['*']) {
+        if (!$acessiveis) {
             responder_sucesso(['itens' => []], 'OK.', 200, ['page' => $page, 'por_pagina' => $porPagina, 'total' => 0]);
         }
+        $ph = [];
+        foreach ($acessiveis as $i => $cid) { $ph[] = ":c_$i"; $bind[":c_$i"] = (int) $cid; }
+        $where .= ' AND c.tenant_id IN (' . implode(',', $ph) . ')';
+    } elseif (!empty($_GET['cliente_b2b_id']) && is_numeric($_GET['cliente_b2b_id'])) {
+        // Interno pode filtrar por cliente opcionalmente.
         $where .= ' AND c.tenant_id = :tenant';
-        $bind[':tenant'] = (int) $usuario['tenant_id'];
+        $bind[':tenant'] = (int) $_GET['cliente_b2b_id'];
     }
 
     $total = (int) (db_primeiro("SELECT COUNT(*) AS t FROM campanha c WHERE $where", $bind)['t'] ?? 0);

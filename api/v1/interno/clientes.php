@@ -49,17 +49,26 @@ function rota_criar_cliente(array $params): void
     responder_sucesso(['cliente_b2b_id' => $id], 'Cliente B2B criado.', 201);
 }
 
-/** GET /api/v1/interno/clientes — lista clientes B2B. */
+/** GET /api/v1/interno/clientes — lista clientes B2B do escopo do usuário. */
 function rota_listar_clientes(array $params): void
 {
     $usuario = exigir_login();
-    exigir_perfil($usuario, ['super_admin', 'operador_interno']);
+
+    $acessiveis = clientes_acessiveis_pelo_usuario($usuario);
+    $where = 'excluido_em IS NULL';
+    $bind = [];
+    if ($acessiveis !== ['*']) {
+        if (!$acessiveis) {
+            responder_sucesso(['itens' => []], 'OK.');
+        }
+        $ph = [];
+        foreach ($acessiveis as $i => $cid) { $ph[] = ":c_$i"; $bind[":c_$i"] = (int) $cid; }
+        $where .= ' AND id IN (' . implode(',', $ph) . ')';
+    }
 
     $itens = db_todos(
-        "SELECT id, razao_social, cnpj, status, criado_em
-           FROM cliente_b2b
-          WHERE excluido_em IS NULL
-          ORDER BY razao_social"
+        "SELECT id, razao_social, cnpj, status, criado_em FROM cliente_b2b WHERE $where ORDER BY razao_social",
+        $bind
     );
     responder_sucesso(['itens' => $itens], 'OK.');
 }

@@ -123,8 +123,14 @@ local (escopo U)       → cobre apenas a unidade U (elegíveis/vacinados daquel
 IMPLEMENTADO (migration 021): tabelas `grupo_empresarial`, `unidade` (elegivel.unidade_id),
 `usuario_atribuicao` + backfill; serviço `app/services/acesso.php` (resolução de escopo,
 `usuario_pode_cliente/unidade`, `usuario_pode_gerir`); endpoints `GET /interno/acesso/eu`,
-grupos, unidades, `POST /interno/usuarios` (+ atribuições). Falta (D2): **aplicar a resolução
-de escopo nas leituras/escritas** de campanhas/elegíveis/vacinados (hoje ainda usam perfil/tenant).
+grupos, unidades, `POST /interno/usuarios` (+ atribuições).
+
+IMPLEMENTADO (D2, migration 022): a resolução de escopo já é **aplicada nas leituras/escritas**:
+- `exigir_campanha_do_usuario` usa `usuario_pode_cliente` (gestao_interna/grupo/negocio/local).
+- `listar_campanhas`/`listar_clientes` filtram por **clientes acessíveis** do usuário.
+- Elegíveis, tabela verdade, dashboard e exportação aplicam **restrição por unidade** (usuário
+  `local` vê só a sua unidade) via `filtro_unidade_sql`; a VIEW `vw_tabela_verdade` expõe `unidade_id`.
+- Ingestão vincula o elegível à **unidade** pelo `codigo_lotacao` (se houver unidade com esse código).
 
 ## Compatibilidade com o modelo atual
 
