@@ -174,6 +174,36 @@ function rota_adicionar_atribuicao(array $params): void
     responder_sucesso(['usuario_id' => $uid], 'Atribuição adicionada.', 201);
 }
 
+/** GET /api/v1/interno/usuarios — lista usuários do escopo gerido pelo ator. */
+function rota_listar_usuarios(array $params): void
+{
+    $ator = exigir_login();
+    $managed = clientes_geridos_pelo_usuario($ator);
+    if ($managed === ['*']) {
+        $itens = db_todos("SELECT id, nome, email, perfil, status, criado_em FROM usuario WHERE excluido_em IS NULL ORDER BY nome LIMIT 200");
+        responder_sucesso(['itens' => $itens], 'OK.');
+    }
+    if (!$managed) {
+        responder_sucesso(['itens' => []], 'OK.');
+    }
+    $ph = []; $bind = [];
+    foreach ($managed as $i => $c) { $ph[] = ":c_$i"; $bind[":c_$i"] = (int) $c; }
+    $in = implode(',', $ph);
+    $itens = db_todos(
+        "SELECT DISTINCT u.id, u.nome, u.email, u.perfil, u.status, u.criado_em
+           FROM usuario u
+           JOIN usuario_atribuicao ua ON ua.usuario_id = u.id
+      LEFT JOIN unidade un ON ua.escopo_tipo = 'unidade' AND un.id = ua.escopo_id
+          WHERE u.excluido_em IS NULL AND (
+                (ua.escopo_tipo = 'cliente_b2b' AND ua.escopo_id IN ($in)) OR
+                (ua.escopo_tipo = 'unidade' AND un.cliente_b2b_id IN ($in))
+          )
+          ORDER BY u.nome LIMIT 200",
+        $bind
+    );
+    responder_sucesso(['itens' => $itens], 'OK.');
+}
+
 /** GET /api/v1/interno/usuarios/{id}/atribuicoes */
 function rota_listar_atribuicoes(array $params): void
 {

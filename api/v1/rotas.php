@@ -28,6 +28,7 @@ return [
     'POST /api/v1/interno/clientes/{id}/grupo'      => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_vincular_cliente_grupo'],
     'POST /api/v1/interno/clientes/{id}/unidades'   => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_criar_unidade'],
     'GET  /api/v1/interno/clientes/{id}/unidades'   => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_listar_unidades'],
+    'GET  /api/v1/interno/usuarios'                 => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_listar_usuarios'],
     'POST /api/v1/interno/usuarios'                 => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_criar_usuario_portal'],
     'POST /api/v1/interno/usuarios/{id}/atribuicoes' => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_adicionar_atribuicao'],
     'GET  /api/v1/interno/usuarios/{id}/atribuicoes' => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_listar_atribuicoes'],

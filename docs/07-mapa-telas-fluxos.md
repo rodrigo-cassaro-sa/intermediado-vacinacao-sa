@@ -171,11 +171,11 @@ Uso recorrente:
 | PT-001 | Login / cadastro | — | autenticação do gestor · **D1 ✅** (`public/portal/`) |
 | PT-002 | Consentimento LGPD | qualquer | aceite de termos (bloqueia até aceitar) · **D1 ✅** (usuario.consentimento_em/versao_termo) |
 | PT-003 | Onboarding + assistente 1º uso | qualquer | guia inicial (3 passos) · **D1 ✅** (usuario.onboarding_em) |
-| PT-010 | Dashboard da(s) campanha(s) | local+ | cobertura, pendentes, aplicados; visão por escopo |
-| PT-020 | Elegíveis — importar/sincronizar | negocio/local | upload CSV, sync (add/remove), relatório de erros |
-| PT-021 | Elegíveis — lista/edição | negocio/local | ver/corrigir/remover (respeitando escopo) |
-| PT-030 | Vacinados — extrair | negocio+ | tabela verdade + export CSV; carteira por CPF |
-| PT-040 | Gestão de usuários | negocio+ (upper→lower) | criar/atribuir usuários no escopo (níveis abaixo) |
+| PT-010 | Dashboard da(s) campanha(s) | local+ | cobertura, pendentes, aplicados; visão por escopo · **D2b ✅** |
+| PT-020 | Elegíveis — importar/sincronizar | negocio/local | upload CSV/colar, sync (add/remove), relatório de erros · **D2b ✅** |
+| PT-021 | Elegíveis — lista/remover | negocio/local | ver/remover (respeitando escopo) · **D2b ✅** |
+| PT-030 | Vacinados — extrair | negocio+ | tabela verdade + export CSV · **D2b ✅** |
+| PT-040 | Gestão de usuários | negocio+ (upper→lower) | criar/listar usuários no escopo · **D2b ✅** |
 | PT-050 | **Painel de integrações (avançado)** | negocio+ (técnico) | doc de API (contrato v1), **gerar tokens** (consulta/ingestão/app), **registrar webhooks** e ver entregas, guia Power BI/automação |
 
 ## Dois modos

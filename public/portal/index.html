@@ -86,24 +86,81 @@
     </div>
   </div>
 
-  <!-- DASHBOARD -->
+  <!-- APP (pós-login) -->
   <div id="scDash" class="hide">
     <div class="top">
       <div>Olá, <b id="dashNome"></b> <span class="pill" id="dashPapel"></span></div>
       <button class="ghost" onclick="sair()">Sair</button>
     </div>
+
     <div class="card">
-      <h2>Suas campanhas</h2>
+      <div class="row" style="justify-content:space-between">
+        <div class="row" id="nav">
+          <button class="sec navb" data-v="dash" onclick="showView('dash')">Dashboard</button>
+          <button class="sec navb" data-v="eleg" onclick="showView('eleg')">Elegíveis</button>
+          <button class="sec navb" data-v="vac" onclick="showView('vac')">Vacinados</button>
+          <button class="sec navb hide" id="navUsr" data-v="usr" onclick="showView('usr')">Usuários</button>
+        </div>
+        <div class="row">
+          <label style="margin:0">Campanha</label>
+          <select id="campSel" onchange="onCampanha()"><option value="">— selecione —</option></select>
+          <button class="sec" onclick="listar()">↻</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW DASHBOARD -->
+    <div id="vDash" class="card">
+      <h2>Cobertura da campanha</h2>
+      <div class="tiles" id="tiles"></div>
+      <table id="tblPorVacina" style="margin-top:12px"></table>
+      <p class="pill" id="dashMsg">Selecione uma campanha.</p>
+    </div>
+
+    <!-- VIEW ELEGÍVEIS -->
+    <div id="vEleg" class="card hide">
+      <h2>Atualizar elegíveis</h2>
+      <p class="pill">Formato por linha: <b>cpf,nome,data_nascimento,tipo_vinculo,cpf_titular,codigo_lotacao,codigo_rh,identificador</b>
+        (tipo = colaborador|dependente|terceiro; sem CPF? use identificador/voucher no fim).</p>
+      <textarea id="elegTxt" rows="5" style="width:100%;padding:10px;background:#0b1526;border:1px solid var(--line);border-radius:8px;color:var(--txt)"
+        placeholder="52998224725,Maria Silva,1990-05-10,colaborador,,LOT-01,RH-1001,"></textarea>
+      <div class="row" style="margin-top:10px">
+        <button onclick="importarEleg(false)">Importar (adicionar/atualizar)</button>
+        <button class="sec" onclick="importarEleg(true)">Sincronizar (remove ausentes)</button>
+        <input type="file" id="elegFile" accept=".csv,.txt" style="max-width:220px" />
+        <button class="sec" onclick="enviarArquivo()">Enviar arquivo</button>
+      </div>
+      <p class="pill" id="elegMsg"></p>
+      <div class="row" style="margin-top:8px">
+        <button class="sec" onclick="listarEleg()">Ver lista</button>
+        <input id="remCpfs" placeholder="CPFs para remover (vírgula)" style="max-width:360px" />
+        <button class="sec" onclick="removerEleg()">Remover</button>
+      </div>
+      <p class="pill" id="elegResumo"></p>
+      <table id="tblEleg"></table>
+    </div>
+
+    <!-- VIEW VACINADOS -->
+    <div id="vVac" class="card hide">
+      <h2>Vacinados — tabela verdade</h2>
+      <div class="row"><button onclick="verVerdade()">Atualizar</button><button class="sec" onclick="extrair()">Extrair CSV</button></div>
+      <p class="pill" id="vacResumo"></p>
+      <table id="tblVac"></table>
+    </div>
+
+    <!-- VIEW USUÁRIOS -->
+    <div id="vUsr" class="card hide">
+      <h2>Usuários do seu escopo</h2>
       <div class="row">
-        <select id="campSel" onchange="carregarDash()"><option value="">— selecione —</option></select>
-        <button class="sec" onclick="listar()">Atualizar lista</button>
+        <input id="uNome" placeholder="Nome" />
+        <input id="uEmail" placeholder="email@empresa.com" />
+        <input id="uSenha" placeholder="senha (min 8)" />
+        <select id="uNivel"><option value="negocio">negócio (empresa)</option><option value="local">local (unidade)</option></select>
+        <input id="uEscopo" placeholder="cliente id ou unidade id" style="max-width:150px" />
+        <button onclick="criarUsuario()">Criar</button>
+        <button class="sec" onclick="listarUsuarios()">Listar</button>
       </div>
-      <div class="tiles" id="tiles" style="margin-top:14px"></div>
-      <div class="row" style="margin-top:14px">
-        <button onclick="irElegiveis()">Atualizar elegíveis</button>
-        <button class="sec" onclick="extrair()">Extrair vacinados (CSV)</button>
-      </div>
-      <p class="pill" id="dashMsg"></p>
+      <table id="tblUsr"></table>
     </div>
   </div>
 </div>
@@ -141,7 +198,10 @@ async function rotearJornada(){
   document.getElementById('dashPapel').textContent=ESTADO.interno?'(gestão interna)':'';
   if(!ESTADO.consentido){ tela('scLgpd'); return; }
   if(!ESTADO.onboarding_concluido){ OB=0; renderOb(); tela('scOnb'); return; }
-  tela('scDash'); listar();
+  tela('scDash');
+  document.getElementById('navUsr').classList.toggle('hide', !podeGerirUsuarios());
+  await listar();
+  showView('dash');
 }
 
 async function consentir(){ const d=await api('/interno/consentimento','POST',{}); if(d.success) rotearJornada(); }
@@ -155,6 +215,21 @@ function renderOb(){
 function obPrev(){ if(OB>0){OB--;renderOb();} }
 async function obNext(){ if(OB<2){OB++;renderOb();return;} const d=await api('/interno/onboarding/concluir','POST',{}); if(d.success) rotearJornada(); }
 
+let VIEW='dash', ULTIMA_IMP=null;
+function podeGerirUsuarios(){ return ESTADO && (ESTADO.interno || (ESTADO.atribuicoes||[]).some(a=>['gestao_interna','grupo','negocio'].includes(a.nivel))); }
+function campId(){ return document.getElementById('campSel').value; }
+
+function showView(v){
+  VIEW=v;
+  ['dash','eleg','vac','usr'].forEach(x=>document.getElementById('v'+x[0].toUpperCase()+x.slice(1)).classList.toggle('hide',x!==v));
+  document.querySelectorAll('.navb').forEach(b=>b.style.background = b.dataset.v===v ? 'var(--pri)' : '');
+  if(v==='dash') carregarDash();
+  if(v==='eleg') listarEleg();
+  if(v==='vac') verVerdade();
+  if(v==='usr') listarUsuarios();
+}
+function onCampanha(){ showView(VIEW); }
+
 async function listar(){
   const d=await api('/interno/campanhas');
   if(!d.success)return;
@@ -163,7 +238,8 @@ async function listar(){
 }
 
 async function carregarDash(){
-  const id=document.getElementById('campSel').value; if(!id){document.getElementById('tiles').innerHTML='';return;}
+  const id=campId(); if(!id){document.getElementById('tiles').innerHTML='';document.getElementById('dashMsg').textContent='Selecione uma campanha.';return;}
+  document.getElementById('dashMsg').textContent='';
   const d=await api(`/interno/campanhas/${id}/dashboard`);
   if(!d.success)return;
   const x=d.data;
@@ -171,13 +247,82 @@ async function carregarDash(){
     ['Cobertura',x.cobertura_percentual+'%'],['Elegíveis',x.total_elegiveis],
     ['Aplicados',x.aplicados],['Pendentes',x.pendentes],['Recusados',x.recusados],
   ].map(t=>`<div class="tile"><div class="n">${t[1]}</div><div class="l">${t[0]}</div></div>`).join('');
+  document.getElementById('tblPorVacina').innerHTML = (x.aplicacoes_por_vacina||[]).length
+    ? '<tr><th>Vacina</th><th>Aplicações</th></tr>'+x.aplicacoes_por_vacina.map(v=>`<tr><td>${v.nome}</td><td>${v.aplicacoes}</td></tr>`).join('') : '';
 }
 
-function irElegiveis(){ document.getElementById('dashMsg').textContent='Fluxo de atualização de elegíveis chega na próxima etapa (D2b). Por ora, use o console /admin ou a API.'; }
-function extrair(){
-  const id=document.getElementById('campSel').value; if(!id){document.getElementById('dashMsg').textContent='Selecione uma campanha.';return;}
-  window.open(`/api/v1/interno/campanhas/${id}/exportar`,'_blank');
+// ---- Elegíveis ----
+function parseElegiveis(t){
+  const limpa=s=>(s||'').trim().replace(/^"(.*)"$/,'$1').trim();
+  return t.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(l=>{
+    const p=l.split(/[;,]/).map(limpa);
+    return {cpf:p[0]||'',nome:p[1]||'',data_nascimento:p[2]||null,tipo_vinculo:p[3]||null,cpf_titular:p[4]||null,codigo_lotacao:p[5]||null,codigo_rh:p[6]||null,identificador:p[7]||null};
+  });
 }
+function msgImport(d){
+  if(!d.success){document.getElementById('elegMsg').textContent='Erro: '+(d.errors&&d.errors[0]?d.errors[0].message:d.message);return;}
+  ULTIMA_IMP=d.data.importacao_id; const t=d.data.totais;
+  document.getElementById('elegMsg').innerHTML = (t
+    ? `Importação #${d.data.importacao_id} — válidos: ${t.validos}, rejeitados: ${t.rejeitados}${t.removidos!==undefined?', removidos: '+t.removidos:''}. `
+    : `Importação #${d.data.importacao_id} (${d.data.status}) — processando em segundo plano. `)
+    + `<a href="#" onclick="baixarErros();return false;">Baixar relatório de erros</a>`;
+  listarEleg();
+}
+async function importarEleg(sync){
+  const id=campId(); if(!id)return alert('Selecione uma campanha.');
+  const elegiveis=parseElegiveis(document.getElementById('elegTxt').value);
+  const rota=sync?'sincronizar':'importar';
+  msgImport(await api(`/interno/campanhas/${id}/elegiveis/${rota}`,'POST',{elegiveis}));
+}
+async function enviarArquivo(){
+  const id=campId(); if(!id)return alert('Selecione uma campanha.');
+  const f=document.getElementById('elegFile').files[0]; if(!f)return alert('Escolha um arquivo CSV.');
+  const fd=new FormData(); fd.append('arquivo',f);
+  const r=await fetch(`/api/v1/interno/campanhas/${id}/elegiveis/importar`,{method:'POST',headers:{'X-CSRF-Token':CSRF},credentials:'same-origin',body:fd});
+  msgImport(await r.json());
+}
+function baixarErros(){ if(ULTIMA_IMP) window.open(`/api/v1/interno/importacoes/${ULTIMA_IMP}/erros/exportar`,'_blank'); }
+async function listarEleg(){
+  const id=campId(); if(!id)return;
+  const d=await api(`/interno/campanhas/${id}/elegiveis`); if(!d.success)return;
+  const r=d.data.resumo||{};
+  document.getElementById('elegResumo').textContent=`Pendentes ${r.pendente||0} · Aplicados ${r.aplicado||0} · Recusados ${r.recusado||0} · Removidos ${r.removido||0} · Total ${d.meta?.total||0}`;
+  document.getElementById('tblEleg').innerHTML='<tr><th>ID</th><th>CPF</th><th>Nome</th><th>Tipo</th><th>Status</th></tr>'+
+    (d.data.itens||[]).map(e=>`<tr><td>${e.id}</td><td>${e.cpf}</td><td>${e.nome}</td><td>${e.tipo_vinculo||'—'}</td><td>${e.status}</td></tr>`).join('');
+}
+async function removerEleg(){
+  const id=campId(); if(!id)return alert('Selecione uma campanha.');
+  const cpfs=document.getElementById('remCpfs').value.split(/[;,\n]/).map(s=>s.trim()).filter(Boolean);
+  if(!cpfs.length)return alert('Informe CPFs.');
+  const d=await api(`/interno/campanhas/${id}/elegiveis/remover`,'POST',{cpfs});
+  if(d.success)document.getElementById('elegMsg').textContent=`Removidos: ${d.data.removidos} · bloqueados (vacinados): ${(d.data.bloqueados_vacinados||[]).length}`;
+  listarEleg();
+}
+
+// ---- Vacinados ----
+async function verVerdade(){
+  const id=campId(); if(!id)return;
+  const d=await api(`/interno/campanhas/${id}/tabela-verdade`); if(!d.success)return;
+  const r=d.data.resumo||{};
+  document.getElementById('vacResumo').textContent=`Aplicados ${r.aplicado||0} · Pendentes ${r.pendente||0} · Total ${d.meta?.total||0}`;
+  document.getElementById('tblVac').innerHTML='<tr><th>CPF</th><th>Nome</th><th>Situação</th><th>Doses</th><th>Última</th></tr>'+
+    (d.data.itens||[]).map(i=>`<tr><td>${i.cpf}</td><td>${i.nome}</td><td>${i.situacao_elegivel}</td><td>${i.total_aplicacoes}</td><td>${(i.ultima_aplicacao_em||'').substring(0,10)||'—'}</td></tr>`).join('');
+}
+function extrair(){ const id=campId(); if(!id)return alert('Selecione uma campanha.'); window.open(`/api/v1/interno/campanhas/${id}/exportar`,'_blank'); }
+
+// ---- Usuários ----
+async function listarUsuarios(){
+  const d=await api('/interno/usuarios'); if(!d.success)return;
+  document.getElementById('tblUsr').innerHTML='<tr><th>ID</th><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Status</th></tr>'+
+    (d.data.itens||[]).map(u=>`<tr><td>${u.id}</td><td>${u.nome}</td><td>${u.email}</td><td>${u.perfil}</td><td>${u.status}</td></tr>`).join('');
+}
+async function criarUsuario(){
+  const body={nome:document.getElementById('uNome').value,email:document.getElementById('uEmail').value,senha:document.getElementById('uSenha').value,nivel:document.getElementById('uNivel').value,escopo_id:Number(document.getElementById('uEscopo').value||0)};
+  const d=await api('/interno/usuarios','POST',body);
+  document.getElementById('tblUsr').insertAdjacentHTML('beforebegin','');
+  if(!d.success)alert('Erro: '+(d.errors&&d.errors[0]?d.errors[0].message:d.message)); else listarUsuarios();
+}
+
 async function sair(){ await api('/interno/auth/logout','POST'); CSRF=null; tela('scLogin'); }
 </script>
 </body>
