@@ -334,6 +334,27 @@
       <table id="tblCarteira"></table>
     </div>
 
+    <!-- IMPORTAR VACINADOS HISTÓRICOS -->
+    <div class="card full">
+      <h2>10b. Importar vacinados de anos anteriores (histórico — RN-027)</h2>
+      <p class="muted">Migração retrocompatível: cria automaticamente a campanha
+        <b>“Histórico — {vacina} {ano}”</b> por cliente/vacina/ano e grava a carteira perpétua.
+        Ignora período/elegibilidade de propósito (uso interno). A <b>vacina precisa existir no catálogo</b>
+        (mesmo nome). Sem lote? usa “HISTORICO”. Data pode ser <code>AAAA-MM-DD</code> ou só o ano <code>AAAA</code>.</p>
+      <div class="row">
+        <div>
+          <label>Cliente B2B</label>
+          <select id="vhCliente"><option value="">— carregue os clientes (seção 2) —</option></select>
+        </div>
+      </div>
+      <label>Colar CSV — <span class="muted">cpf,nome,data_nascimento,vacina,dose,lote,aplicado_em,codigo_lotacao,cidade,uf,identificador</span></label>
+      <textarea id="vhCsv" rows="5" style="width:100%;padding:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;color:var(--txt)"
+        placeholder="52998224725,Maria Silva,1990-05-10,Gripe,1,LOTE-2023-A,2023-04-15,LOT-01,São Paulo,SP&#10;,John Doe,1988-02-10,Gripe,1,,2022,LOT-02,Campinas,SP,PASS-XYZ"></textarea>
+      <div style="margin-top:12px"><button onclick="importarVacinadosHistorico()">Importar histórico</button></div>
+      <p id="vhInfo" class="muted"></p>
+      <table id="tblVh"></table>
+    </div>
+
     <!-- FATURAMENTO -->
     <div class="card full">
       <h2>12. Faturamento (item 4)</h2>
@@ -518,8 +539,10 @@ async function listarClientes() {
   const itens = d.data.itens || [];
   tbl.innerHTML = '<tr><th>ID</th><th>Razão social</th><th>CNPJ</th><th>Status</th></tr>' +
     itens.map(c => `<tr><td>${c.id}</td><td>${c.razao_social}</td><td>${c.cnpj}</td><td>${c.status}</td></tr>`).join('');
-  sel.innerHTML = '<option value="">— selecione —</option>' +
+  const opcoes = '<option value="">— selecione —</option>' +
     itens.map(c => `<option value="${c.id}">${c.razao_social} (#${c.id})</option>`).join('');
+  sel.innerHTML = opcoes;
+  const selVh = document.getElementById('vhCliente'); if (selVh) selVh.innerHTML = opcoes;
 }
 
 async function carregarVacinas() {
@@ -914,6 +937,25 @@ async function verResumoCliente() {
     '<tr><th>Ano</th><th>Campanha</th><th>Modalidade</th><th>Período</th><th>Elegíveis</th><th>Aplicados</th><th>Cobertura</th></tr>' +
     (d.data.itens || []).map(c =>
       `<tr><td>${c.ano||''}</td><td>${c.nome}</td><td>${c.modalidade}</td><td>${c.periodo_inicio}→${c.periodo_fim}</td><td>${c.elegiveis}</td><td>${c.aplicados}</td><td>${c.cobertura_percentual}%</td></tr>`).join('');
+}
+
+async function importarVacinadosHistorico() {
+  const id = document.getElementById('vhCliente').value;
+  if (!id) return log('Selecione o cliente (liste os clientes na seção 2).');
+  const csv = document.getElementById('vhCsv').value;
+  if (!csv.trim()) return log('Cole ao menos uma linha de vacinado histórico.');
+  const d = await api(`/interno/clientes/${id}/vacinados-historico/importar`, 'POST', { csv });
+  if (!d.success) {
+    document.getElementById('vhInfo').textContent = 'Erro: ' + (d.errors && d.errors[0] ? d.errors[0].message : d.message);
+    return;
+  }
+  const r = d.data;
+  document.getElementById('vhInfo').textContent =
+    `Recebidos ${r.recebidos} · aplicações criadas ${r.aplicacoes_criadas} · duplicados ${r.duplicados} · ` +
+    `rejeitados ${r.rejeitados} · campanhas históricas criadas ${r.campanhas_criadas}`;
+  document.getElementById('tblVh').innerHTML = (r.erros && r.erros.length)
+    ? '<tr><th>Linha</th><th>Erro</th></tr>' + r.erros.map(e => `<tr><td>${e.linha}</td><td>${e.code}</td></tr>`).join('')
+    : '';
 }
 
 async function definirPrecoCliente() {

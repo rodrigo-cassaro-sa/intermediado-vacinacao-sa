@@ -66,6 +66,9 @@ return [
     'GET  /api/v1/interno/pacientes/{cpf}/carteira'         => ['arquivo' => 'interno/relatorios.php', 'funcao' => 'rota_carteira_paciente'],
     'GET  /api/v1/interno/clientes/{id}/campanhas-resumo'   => ['arquivo' => 'interno/relatorios.php', 'funcao' => 'rota_resumo_campanhas_cliente'],
 
+    // --- Migração: importar vacinados de anos anteriores (RN-027, interno-only) ---
+    'POST /api/v1/interno/clientes/{id}/vacinados-historico/importar' => ['arquivo' => 'interno/vacinados_historico.php', 'funcao' => 'rota_importar_vacinados_historico'],
+
     // --- Catálogo de vacinas ---
     'GET  /api/v1/interno/vacinas' => ['arquivo' => 'interno/campanhas.php', 'funcao' => 'rota_listar_vacinas'],
 

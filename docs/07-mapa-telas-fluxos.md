@@ -23,6 +23,7 @@ Registrar todas as telas, seus objetivos, dados, ações e permissões.
 | TL-007 | Acompanhamento de aplicações | Ver/retificar registros de aplicação | operador_interno, super_admin | rascunho |
 | TL-008 | Tabela verdade da campanha | Elegível x aplicado x pendente x recusado | operador_interno, cliente_b2b (própria) | rascunho |
 | TL-009 | Logs/auditoria | Consultar acessos e ações críticas | super_admin, operador_interno (parcial) | rascunho |
+| TL-010 | Importar vacinados históricos | Migrar vacinados de anos anteriores (RN-027) — auto-cria campanha "Histórico — {vacina} {ano}" | super_admin, operador_interno | **✅** (console admin §10b · `POST /interno/clientes/{id}/vacinados-historico/importar`) |
 | TL-101 | Login (portal B2B) | Autenticar gestor do cliente | cliente_b2b | rascunho |
 | TL-102 | Dashboard da campanha (B2B) | Números e evolução da campanha | cliente_b2b | rascunho |
 | TL-103 | Enviar elegíveis (B2B) | Upload de planilha/CSV | cliente_b2b | rascunho |
