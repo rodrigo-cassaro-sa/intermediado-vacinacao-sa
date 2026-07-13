@@ -165,7 +165,7 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | INT-B | Sync de turnover por diferença (RH) — CSV + API (commit 0d9d369) — migration 020 auto | usuário/deploy | média | feito |
 | INT-C | Token de app in company (PWA/app/terceiro) (commit 00a5bfc) — sem migration; PWA offline opcional fica p/ frente | usuário/deploy | média | feito |
 | PORTAL-D0 | Modelo de acesso: grupo_empresarial, unidade, usuario_atribuicao (níveis grupo/negocio/local + multi-atribuição, upper→lower) + resolução de permissão + gestão de usuários. Base de TUDO no portal (doc 04 §4.1) | especialista-seguranca/backend | alta | pendente |
-| PORTAL-D1 | Shell do portal + login + consentimento LGPD + onboarding/assistente 1º uso (doc 07 §3.1) | especialista-design/frontend | alta | pendente |
+| PORTAL-D1 | Shell + login + consentimento LGPD + onboarding/assistente (commit b0ff665, mig 023) — em public/portal | usuário/deploy | alta | feito |
 | PORTAL-D2a | Aplicar escopo hierárquico nas leituras/escritas (campanhas/clientes/elegíveis/tabela verdade/dashboard/export) + unidade por lotação (commit 7029e88, mig 022) — fecha isolamento | usuário/deploy | alta | feito |
 | PORTAL-D2b | Fluxos simples do portal (telas): dashboard, atualizar elegíveis, extrair vacinados | frontend | alta | pendente |
 | PORTAL-D3 | Painel avançado: doc de API, gerar tokens (self-service escopado), registrar webhooks, guia Power BI/automação | backend/frontend | média | pendente |
