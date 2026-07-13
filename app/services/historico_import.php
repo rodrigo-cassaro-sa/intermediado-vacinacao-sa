@@ -13,6 +13,9 @@
 
 require_once BASE_PATH . '/app/services/elegiveis.php'; // unidade_por_lotacao()
 
+const HIST_IMPORT_LIMITE_SINCRONO = 2000;  // acima disso, vai para a fila (worker)
+const HIST_IMPORT_CHUNK           = 1000;  // tamanho do lote processado por vez
+
 /**
  * Importa uma lista de vacinados históricos para um cliente.
  * $linhas: [ ['cpf'|'identificador','nome','data_nascimento'?,'vacina','dose'?,
@@ -20,10 +23,10 @@ require_once BASE_PATH . '/app/services/elegiveis.php'; // unidade_por_lotacao()
  * $ator: ['tipo'=>'usuario','id'=>int]  (quem está migrando).
  * Devolve contagens + amostra de erros (não persiste — retorno inline).
  */
-function importar_vacinados_historico(int $tenantId, array $linhas, array $ator): array
+function importar_vacinados_historico(int $tenantId, array $linhas, array $ator, int $offsetLinha = 0): array
 {
     $recebidos = 0; $aplicacoes = 0; $duplicados = 0; $rejeitados = 0;
-    $campanhasCriadas = 0; $erros = [];
+    $campanhasCriadas = 0; $vacinasCriadas = 0; $erros = [];
     $cacheVacina = [];   // nome normalizado -> id
     $cacheCampanha = []; // "vacina|ano" -> campanha_id
     $atorId = (int) ($ator['id'] ?? 0);
@@ -37,13 +40,14 @@ function importar_vacinados_historico(int $tenantId, array $linhas, array $ator)
 
     foreach ($linhas as $i => $item) {
         $recebidos++;
-        $linha = $i + 1;
+        $linha = $offsetLinha + $i + 1;
 
         $cpf   = so_digitos($item['cpf'] ?? '');
         $identificador = trim((string) ($item['identificador'] ?? ''));
         $nome  = trim((string) ($item['nome'] ?? ''));
         $nasc  = trim((string) ($item['data_nascimento'] ?? ''));
-        $vacinaNome = trim((string) ($item['vacina'] ?? ''));
+        // Normaliza o nome da vacina (colapsa espaços) para reduzir catálogo duplicado.
+        $vacinaNome = trim(preg_replace('/\s+/', ' ', (string) ($item['vacina'] ?? '')));
         $dose  = (int) ($item['dose'] ?? 1); if ($dose < 1) { $dose = 1; }
         $lote  = trim((string) ($item['lote'] ?? '')); if ($lote === '') { $lote = 'HISTORICO'; }
         $quando = trim((string) ($item['aplicado_em'] ?? ''));
@@ -77,16 +81,20 @@ function importar_vacinados_historico(int $tenantId, array $linhas, array $ator)
         }
         if ($ano < 1990 || $ano > (int) date('Y')) { $rejeita($linha, 'ANO_FORA_DO_INTERVALO'); continue; }
 
-        // ---- Vacina: precisa existir no catálogo (evita duplicar catálogo com typos).
-        // A coluna é utf8mb4_unicode_ci (case-insensitive), então a comparação já ignora
-        // maiúsculas/minúsculas sem precisar de LOWER()/mbstring.
+        // ---- Vacina: casa por nome (coluna utf8mb4_unicode_ci = case-insensitive,
+        // sem precisar de LOWER()/mbstring). Se não existir, cria no catálogo.
         $chaveV = strtolower($vacinaNome); // só p/ chave de cache (ASCII-fold basta)
         if (!array_key_exists($chaveV, $cacheVacina)) {
-            $v = db_primeiro("SELECT id FROM vacina WHERE nome = :n AND status = 'ativa' LIMIT 1", [':n' => $vacinaNome]);
-            $cacheVacina[$chaveV] = $v ? (int) $v['id'] : null;
+            $v = db_primeiro("SELECT id FROM vacina WHERE nome = :n LIMIT 1", [':n' => $vacinaNome]);
+            if ($v !== null) {
+                $cacheVacina[$chaveV] = (int) $v['id'];
+            } else {
+                db_executar("INSERT INTO vacina (nome, doses_padrao, status) VALUES (:n, 1, 'ativa')", [':n' => $vacinaNome]);
+                $cacheVacina[$chaveV] = (int) db_ultimo_id();
+                $vacinasCriadas++;
+            }
         }
         $vacinaId = $cacheVacina[$chaveV];
-        if ($vacinaId === null) { $rejeita($linha, 'VACINA_DESCONHECIDA'); continue; }
 
         // ---- Campanha histórica por (cliente, vacina, ano) ----
         // Resolvida/criada FORA da transação da linha (autocommit): assim persiste
@@ -202,8 +210,111 @@ function importar_vacinados_historico(int $tenantId, array $linhas, array $ator)
         'duplicados'         => $duplicados,
         'rejeitados'         => $rejeitados,
         'campanhas_criadas'  => $campanhasCriadas,
+        'vacinas_criadas'    => $vacinasCriadas,
         'erros'              => $erros,
     ];
+}
+
+// ============================================================================
+// Orquestração: inline p/ lotes pequenos, fila (worker) p/ lotes grandes.
+// ============================================================================
+
+/** Conta linhas de dados no CSV (desconta cabeçalho, se houver). */
+function historico_import_contar(string $csv): int
+{
+    $linhas = preg_split('/\r\n|\r|\n/', trim($csv));
+    $n = count(array_filter($linhas, fn($l) => trim($l) !== ''));
+    $temCab = $n > 0 && (stripos($linhas[0], 'vacina') !== false || stripos($linhas[0], 'aplicado_em') !== false);
+    return $temCab ? max(0, $n - 1) : $n;
+}
+
+/** Salva o CSV bruto em storage/uploads e devolve o nome do arquivo. */
+function historico_import_salvar_arquivo(string $csv): string
+{
+    $dir = BASE_PATH . '/storage/uploads';
+    if (!is_dir($dir)) { @mkdir($dir, 0775, true); }
+    $nome = 'hist_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.csv';
+    file_put_contents($dir . '/' . $nome, $csv);
+    return $nome;
+}
+
+/**
+ * Inicia uma importação de histórico. Pequena (<= limite): processa inline e
+ * devolve ['status'=>'concluida', ...totais, 'importacao_id'=>?]. Grande: salva
+ * o arquivo, enfileira ('pendente') e devolve ['status'=>'pendente','importacao_id'=>].
+ */
+function historico_import_iniciar(int $tenantId, string $csv, array $ator): array
+{
+    $qtd = historico_import_contar($csv);
+    if ($qtd <= HIST_IMPORT_LIMITE_SINCRONO) {
+        $linhas = parsear_csv_vacinados_historico($csv);
+        $res = importar_vacinados_historico($tenantId, $linhas, $ator);
+        $res['status'] = 'concluida';
+        $res['importacao_id'] = null;
+        return $res;
+    }
+
+    $arquivo = historico_import_salvar_arquivo($csv);
+    db_executar(
+        "INSERT INTO importacao_historico (tenant_id, arquivo, total_linhas, status, criado_por, criado_em)
+         VALUES (:t, :arq, :tl, 'pendente', :cp, NOW())",
+        [':t' => $tenantId, ':arq' => $arquivo, ':tl' => $qtd, ':cp' => (int) ($ator['id'] ?? 0)]
+    );
+    return ['status' => 'pendente', 'importacao_id' => (int) db_ultimo_id()];
+}
+
+/** Processa UMA importação de histórico pendente (worker). Idempotente por status. */
+function historico_import_processar(int $jobId): void
+{
+    $job = db_primeiro("SELECT * FROM importacao_historico WHERE id = :id LIMIT 1", [':id' => $jobId]);
+    if ($job === null || $job['status'] !== 'pendente') {
+        return;
+    }
+    db_executar("UPDATE importacao_historico SET status = 'processando', iniciado_em = NOW() WHERE id = :id", [':id' => $jobId]);
+
+    $caminho = BASE_PATH . '/storage/uploads/' . $job['arquivo'];
+    $csv = is_file($caminho) ? file_get_contents($caminho) : '';
+    if ($csv === '') {
+        db_executar("UPDATE importacao_historico SET status='falha', mensagem_erro='arquivo não encontrado', finalizado_em=NOW() WHERE id=:id", [':id' => $jobId]);
+        return;
+    }
+
+    $tenantId = (int) $job['tenant_id'];
+    $ator = ['tipo' => 'usuario', 'id' => $job['criado_por'] ? (int) $job['criado_por'] : null];
+    $lista = parsear_csv_vacinados_historico($csv);
+
+    $tot = ['recebidos' => 0, 'aplicacoes_criadas' => 0, 'duplicados' => 0, 'rejeitados' => 0, 'campanhas_criadas' => 0, 'vacinas_criadas' => 0];
+    $erros = [];
+    foreach (array_chunk($lista, HIST_IMPORT_CHUNK, true) as $chunk) {
+        $offset = (int) array_key_first($chunk);
+        try {
+            $r = importar_vacinados_historico($tenantId, array_values($chunk), $ator, $offset);
+        } catch (Throwable $e) {
+            db_executar("UPDATE importacao_historico SET status='falha', mensagem_erro=:m, finalizado_em=NOW() WHERE id=:id",
+                [':m' => substr($e->getMessage(), 0, 250), ':id' => $jobId]);
+            return;
+        }
+        foreach ($tot as $k => $_) { $tot[$k] += $r[$k]; }
+        foreach ($r['erros'] as $er) { if (count($erros) < 200) { $erros[] = $er; } }
+        db_executar("UPDATE importacao_historico SET total_processados = :p WHERE id = :id",
+            [':p' => $tot['recebidos'], ':id' => $jobId]);
+    }
+
+    db_executar(
+        "UPDATE importacao_historico
+            SET status='concluida', total_aplicacoes=:ap, total_duplicados=:du, total_rejeitados=:re,
+                total_campanhas=:ca, total_vacinas=:va, total_processados=:pr, erros_amostra=:er, finalizado_em=NOW()
+          WHERE id=:id",
+        [':ap' => $tot['aplicacoes_criadas'], ':du' => $tot['duplicados'], ':re' => $tot['rejeitados'],
+         ':ca' => $tot['campanhas_criadas'], ':va' => $tot['vacinas_criadas'], ':pr' => $tot['recebidos'],
+         ':er' => $erros ? json_encode($erros, JSON_UNESCAPED_UNICODE) : null, ':id' => $jobId]
+    );
+
+    registrar_auditoria('vacinados.importados_historico', [
+        'tenant_id' => $tenantId, 'ator_tipo' => 'usuario', 'ator_id' => $ator['id'],
+        'origem' => 'admin', 'entidade_tipo' => 'importacao_historico', 'entidade_id' => $jobId,
+        'metadata' => $tot,
+    ]);
 }
 
 /**

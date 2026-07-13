@@ -68,6 +68,7 @@ return [
 
     // --- Migração: importar vacinados de anos anteriores (RN-027, interno-only) ---
     'POST /api/v1/interno/clientes/{id}/vacinados-historico/importar' => ['arquivo' => 'interno/vacinados_historico.php', 'funcao' => 'rota_importar_vacinados_historico'],
+    'GET  /api/v1/interno/importacoes-historico/{id}' => ['arquivo' => 'interno/vacinados_historico.php', 'funcao' => 'rota_status_importacao_historico'],
 
     // --- Catálogo de vacinas ---
     'GET  /api/v1/interno/vacinas' => ['arquivo' => 'interno/campanhas.php', 'funcao' => 'rota_listar_vacinas'],

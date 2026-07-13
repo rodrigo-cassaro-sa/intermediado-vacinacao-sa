@@ -350,7 +350,12 @@
       <label>Colar CSV — <span class="muted">cpf,nome,data_nascimento,vacina,dose,lote,aplicado_em,codigo_lotacao,cidade,uf,identificador</span></label>
       <textarea id="vhCsv" rows="5" style="width:100%;padding:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;color:var(--txt)"
         placeholder="52998224725,Maria Silva,1990-05-10,Gripe,1,LOTE-2023-A,2023-04-15,LOT-01,São Paulo,SP&#10;,John Doe,1988-02-10,Gripe,1,,2022,LOT-02,Campinas,SP,PASS-XYZ"></textarea>
-      <div style="margin-top:12px"><button onclick="importarVacinadosHistorico()">Importar histórico</button></div>
+      <p class="muted">Lotes acima de 2.000 linhas são processados em segundo plano (worker); acompanhe pelo status.</p>
+      <div style="margin-top:12px" class="row">
+        <button onclick="importarVacinadosHistorico()">Importar histórico</button>
+        <button class="sec" onclick="statusVacinadosHistorico()">Ver status do lote</button>
+        <input id="vhJob" placeholder="id do lote" style="max-width:120px" />
+      </div>
       <p id="vhInfo" class="muted"></p>
       <table id="tblVh"></table>
     </div>
@@ -939,6 +944,15 @@ async function verResumoCliente() {
       `<tr><td>${c.ano||''}</td><td>${c.nome}</td><td>${c.modalidade}</td><td>${c.periodo_inicio}→${c.periodo_fim}</td><td>${c.elegiveis}</td><td>${c.aplicados}</td><td>${c.cobertura_percentual}%</td></tr>`).join('');
 }
 
+function resumoHistorico(r) {
+  return `Recebidos ${r.recebidos ?? r.total_processados ?? 0} · aplicações ${r.aplicacoes_criadas} · ` +
+    `duplicados ${r.duplicados} · rejeitados ${r.rejeitados} · campanhas ${r.campanhas_criadas} · vacinas criadas ${r.vacinas_criadas}`;
+}
+function tabelaErrosHistorico(erros) {
+  document.getElementById('tblVh').innerHTML = (erros && erros.length)
+    ? '<tr><th>Linha</th><th>Erro</th></tr>' + erros.map(e => `<tr><td>${e.linha}</td><td>${e.code}</td></tr>`).join('')
+    : '';
+}
 async function importarVacinadosHistorico() {
   const id = document.getElementById('vhCliente').value;
   if (!id) return log('Selecione o cliente (liste os clientes na seção 2).');
@@ -950,12 +964,29 @@ async function importarVacinadosHistorico() {
     return;
   }
   const r = d.data;
+  if (r.status === 'pendente') {
+    document.getElementById('vhJob').value = r.importacao_id;
+    document.getElementById('vhInfo').textContent =
+      `Lote #${r.importacao_id} enfileirado — processando em segundo plano. Clique em “Ver status do lote”.`;
+    document.getElementById('tblVh').innerHTML = '';
+    return;
+  }
+  document.getElementById('vhInfo').textContent = 'Concluído (imediato). ' + resumoHistorico(r);
+  tabelaErrosHistorico(r.erros);
+}
+async function statusVacinadosHistorico() {
+  const job = document.getElementById('vhJob').value.trim();
+  if (!job) return log('Informe o id do lote (aparece após enfileirar).');
+  const d = await api(`/interno/importacoes-historico/${job}`);
+  if (!d.success) {
+    document.getElementById('vhInfo').textContent = 'Erro: ' + (d.errors && d.errors[0] ? d.errors[0].message : d.message);
+    return;
+  }
+  const r = d.data;
   document.getElementById('vhInfo').textContent =
-    `Recebidos ${r.recebidos} · aplicações criadas ${r.aplicacoes_criadas} · duplicados ${r.duplicados} · ` +
-    `rejeitados ${r.rejeitados} · campanhas históricas criadas ${r.campanhas_criadas}`;
-  document.getElementById('tblVh').innerHTML = (r.erros && r.erros.length)
-    ? '<tr><th>Linha</th><th>Erro</th></tr>' + r.erros.map(e => `<tr><td>${e.linha}</td><td>${e.code}</td></tr>`).join('')
-    : '';
+    `Lote #${r.importacao_id} [${r.status}] — processados ${r.total_processados}/${r.total_linhas}. ` +
+    (r.status === 'concluida' ? resumoHistorico(r) : (r.mensagem_erro || ''));
+  tabelaErrosHistorico(r.erros);
 }
 
 async function definirPrecoCliente() {
