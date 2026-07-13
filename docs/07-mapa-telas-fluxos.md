@@ -168,9 +168,9 @@ Uso recorrente:
 
 | Código | Tela | Nível mínimo | Função |
 |---|---|---|---|
-| PT-001 | Login / cadastro | — | autenticação do gestor |
-| PT-002 | Consentimento LGPD | qualquer | aceite de termos (bloqueia até aceitar) |
-| PT-003 | Onboarding + assistente 1º uso | qualquer | guia inicial |
+| PT-001 | Login / cadastro | — | autenticação do gestor · **D1 ✅** (`public/portal/`) |
+| PT-002 | Consentimento LGPD | qualquer | aceite de termos (bloqueia até aceitar) · **D1 ✅** (usuario.consentimento_em/versao_termo) |
+| PT-003 | Onboarding + assistente 1º uso | qualquer | guia inicial (3 passos) · **D1 ✅** (usuario.onboarding_em) |
 | PT-010 | Dashboard da(s) campanha(s) | local+ | cobertura, pendentes, aplicados; visão por escopo |
 | PT-020 | Elegíveis — importar/sincronizar | negocio/local | upload CSV, sync (add/remove), relatório de erros |
 | PT-021 | Elegíveis — lista/edição | negocio/local | ver/corrigir/remover (respeitando escopo) |

@@ -16,6 +16,11 @@ return [
     'POST /api/v1/interno/auth/logout' => ['arquivo' => 'interno/auth.php', 'funcao' => 'rota_logout'],
     'GET  /api/v1/interno/auth/eu'     => ['arquivo' => 'interno/auth.php', 'funcao' => 'rota_eu'],
 
+    // --- Portal D1: jornada (estado, consentimento, onboarding) ---
+    'GET  /api/v1/interno/portal/estado'        => ['arquivo' => 'interno/portal.php', 'funcao' => 'rota_portal_estado'],
+    'POST /api/v1/interno/consentimento'        => ['arquivo' => 'interno/portal.php', 'funcao' => 'rota_consentir'],
+    'POST /api/v1/interno/onboarding/concluir'  => ['arquivo' => 'interno/portal.php', 'funcao' => 'rota_onboarding_concluir'],
+
     // --- Portal D0: acesso (grupos, unidades, usuários, atribuições) ---
     'GET  /api/v1/interno/acesso/eu'                => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_acesso_eu'],
     'POST /api/v1/interno/grupos'                   => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_criar_grupo'],
