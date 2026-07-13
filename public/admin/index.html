@@ -3,44 +3,44 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Console de Testes — Imunização</title>
+  <title>S&amp;A Imunizações — Console interno</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+  <link rel="stylesheet" href="/assets/marca.css" />
   <style>
-    :root {
-      --bg: #0f172a; --card: #1e293b; --line: #334155; --txt: #e2e8f0;
-      --muted: #94a3b8; --pri: #2563eb; --ok: #16a34a; --err: #dc2626; --warn:#d97706;
-    }
     * { box-sizing: border-box; }
     body { margin: 0; font-family: system-ui, Segoe UI, Roboto, sans-serif;
       background: var(--bg); color: var(--txt); font-size: 14px; }
     header { display:flex; align-items:center; justify-content:space-between;
-      padding: 14px 20px; background: #0b1220; border-bottom: 1px solid var(--line); }
-    header h1 { font-size: 16px; margin: 0; }
+      padding: 12px 20px; background: var(--card); border-bottom: 1px solid var(--line); box-shadow:var(--sombra); }
     .wrap { max-width: 1100px; margin: 0 auto; padding: 20px; display: grid;
       grid-template-columns: 1fr 1fr; gap: 16px; }
-    .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px;
-      padding: 16px; }
-    .card h2 { font-size: 14px; margin: 0 0 12px; color: var(--muted);
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--raio);
+      padding: 16px; box-shadow:var(--sombra); }
+    .card h2 { font-size: 13px; margin: 0 0 12px; color: var(--pri);
       text-transform: uppercase; letter-spacing: .04em; }
     .full { grid-column: 1 / -1; }
     label { display:block; font-size: 12px; color: var(--muted); margin: 8px 0 4px; }
-    input, select, button { font: inherit; }
-    input, select { width: 100%; padding: 8px 10px; background: #0b1220;
+    input, select, button, textarea { font: inherit; }
+    input, select, textarea { width: 100%; padding: 8px 10px; background: var(--surface-2);
       border: 1px solid var(--line); border-radius: 6px; color: var(--txt); }
+    input:focus, select:focus, textarea:focus { outline:none; border-color:var(--pri); box-shadow:0 0 0 3px rgba(22,102,196,.15); }
     button { cursor: pointer; padding: 8px 14px; border: 0; border-radius: 6px;
       background: var(--pri); color: #fff; font-weight: 600; }
-    button.sec { background: #334155; }
+    button:hover { background: var(--pri2); }
+    button.sec { background: var(--surface-2); color: var(--txt); border:1px solid var(--line); }
+    button.sec:hover { background:#e7eef7; }
     button:disabled { opacity: .5; cursor: not-allowed; }
     .row { display:flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
     .row > div { flex: 1; min-width: 120px; }
     .pill { display:inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; }
-    .pill.ok { background: rgba(22,163,74,.2); color: #4ade80; }
-    .pill.err { background: rgba(220,38,38,.2); color: #f87171; }
-    .pill.off { background: #334155; color: var(--muted); }
+    .pill.ok { background: rgba(20,160,90,.14); color: var(--ok); }
+    .pill.err { background: rgba(198,57,74,.14); color: var(--err); }
+    .pill.off { background: var(--surface-2); color: var(--muted); border:1px solid var(--line); }
     table { width:100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
     th, td { text-align:left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
     th { color: var(--muted); font-weight: 600; }
-    pre { background:#0b1220; border:1px solid var(--line); border-radius:8px;
-      padding: 12px; overflow:auto; max-height: 320px; font-size: 12px; margin:0; }
+    pre { background:var(--surface-2); border:1px solid var(--line); border-radius:8px;
+      padding: 12px; overflow:auto; max-height: 320px; font-size: 12px; margin:0; color:var(--txt); }
     .muted { color: var(--muted); }
     .vacinas { display:flex; flex-direction:column; gap:4px; max-height:120px; overflow:auto;
       border:1px solid var(--line); border-radius:6px; padding:8px; }
@@ -51,7 +51,10 @@
 </head>
 <body>
   <header>
-    <h1>🩹 Console de Testes — Imunização (homologação)</h1>
+    <div class="marca">
+      <div class="logo"><svg width="22" height="22" viewBox="0 0 32 32"><path d="M13.5 7h5v6.5H25v5h-6.5V25h-5v-6.5H7v-5h6.5z" fill="#fff"/></svg></div>
+      <div><div class="nome">S&amp;A <b>Imunizações</b></div><div class="tag">Console interno · homologação</div></div>
+    </div>
     <div>
       <span class="muted">Banco:</span> <span id="healthPill" class="pill off">?</span>
       <button class="sec" onclick="checarHealth()">Health</button>
@@ -131,7 +134,7 @@
         </div>
       </div>
       <label>Cole os elegíveis — <span class="muted">cpf,nome,data_nascimento,tipo_vinculo,cpf_titular,codigo_lotacao,codigo_rh,identificador</span> (sem CPF? use identificador/voucher no último campo)</label>
-      <textarea id="elegCsv" rows="4" style="width:100%;padding:8px;background:#0b1220;border:1px solid var(--line);border-radius:6px;color:var(--txt)"
+      <textarea id="elegCsv" rows="4" style="width:100%;padding:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;color:var(--txt)"
         placeholder="52998224725,Maria Silva,1990-05-10,colaborador,,LOT-01,RH-1001,&#10;,John Doe,1988-02-10,terceiro,,LOT-01,RH-2002,VOUCHER-123"></textarea>
       <div style="margin-top:12px" class="row">
         <button onclick="importarElegiveis()">Importar (JSON)</button>
@@ -174,7 +177,7 @@
       <label>Token emitido (cole aqui para testar; só aparece uma vez)</label>
       <input id="credToken" placeholder="token..." />
       <label style="margin-top:8px">Elegíveis via API (cpf,nome,data_nascimento,tipo_vinculo,cpf_titular,codigo_lotacao,codigo_rh)</label>
-      <textarea id="ingCsv" rows="3" style="width:100%;padding:8px;background:#0b1220;border:1px solid var(--line);border-radius:6px;color:var(--txt)"
+      <textarea id="ingCsv" rows="3" style="width:100%;padding:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;color:var(--txt)"
         placeholder="52998224725,Ana Costa,1992-03-01,terceiro,,LOT-02,RH-2001"></textarea>
       <div style="margin-top:12px"><button onclick="testarIngestaoParceiro()">Testar ingestão via API (Bearer)</button></div>
     </div>
@@ -251,7 +254,7 @@
         <div><label>Clínica</label><select id="redeClinica"><option value="">— liste as clínicas —</option></select></div>
       </div>
       <label>Atribuir elegíveis à clínica (CPFs, um por linha)</label>
-      <textarea id="redeCpfs" rows="2" style="width:100%;padding:8px;background:#0b1220;border:1px solid var(--line);border-radius:6px;color:var(--txt)"
+      <textarea id="redeCpfs" rows="2" style="width:100%;padding:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;color:var(--txt)"
         placeholder="52998224725&#10;11144477735"></textarea>
       <div class="row" style="margin-top:8px">
         <button class="sec" onclick="atribuirClinica()">Atribuir CPFs à clínica</button>
@@ -282,7 +285,7 @@
       </div>
       <div style="margin-top:8px"><button onclick="registrarViaClinica()">Registrar via API clínica</button></div>
       <label style="margin-top:8px">Registro em LOTE (uma linha: <span class="muted">elegivel_id;vacina_id;dose;lote;data;prof_nome;prof_cpf;cidade;uf</span>)</label>
-      <textarea id="redeLote2" rows="3" style="width:100%;padding:8px;background:#0b1220;border:1px solid var(--line);border-radius:6px;color:var(--txt)"
+      <textarea id="redeLote2" rows="3" style="width:100%;padding:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;color:var(--txt)"
         placeholder="12;5;1;RED-2026-01;2026-07-16 09:00;Enf. A;11144477735;Campinas;SP&#10;13;5;1;RED-2026-01;2026-07-16 09:10;Enf. A;11144477735;Campinas;SP"></textarea>
       <div style="margin-top:8px"><button onclick="registrarLoteClinica()">Registrar em lote (API)</button></div>
     </div>
