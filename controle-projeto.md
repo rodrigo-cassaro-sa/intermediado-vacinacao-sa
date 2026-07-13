@@ -164,11 +164,11 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | INT-A3 | API externa formalizada (contrato v1) + carteira/consulta por token 'consulta' (commit 51656eb) — sem migration | usuário/deploy | alta | feito |
 | INT-B | Sync de turnover por diferença (RH) — CSV + API (commit 0d9d369) — migration 020 auto | usuário/deploy | média | feito |
 | INT-C | Token de app in company (PWA/app/terceiro) (commit 00a5bfc) — sem migration; PWA offline opcional fica p/ frente | usuário/deploy | média | feito |
-| PORTAL-D0 | Modelo de acesso: grupo_empresarial, unidade, usuario_atribuicao (níveis grupo/negocio/local + multi-atribuição, upper→lower) + resolução de permissão + gestão de usuários. Base de TUDO no portal (doc 04 §4.1) | especialista-seguranca/backend | alta | pendente |
+| PORTAL-D0 | Modelo de acesso: grupo_empresarial, unidade, usuario_atribuicao (níveis grupo/negocio/local + multi-atribuição, upper→lower) + resolução de permissão + gestão de usuários. Base de TUDO no portal (doc 04 §4.1) (commit e201ac4, mig 021) | especialista-seguranca/backend | alta | feito |
 | PORTAL-D1 | Shell + login + consentimento LGPD + onboarding/assistente (commit b0ff665, mig 023) — em public/portal | usuário/deploy | alta | feito |
 | PORTAL-D2a | Aplicar escopo hierárquico nas leituras/escritas (campanhas/clientes/elegíveis/tabela verdade/dashboard/export) + unidade por lotação (commit 7029e88, mig 022) — fecha isolamento | usuário/deploy | alta | feito |
 | PORTAL-D2b | Fluxos do portal: dashboard, elegíveis (importar/sincronizar/listar/remover + relatório de erros), vacinados (tabela verdade/extrair), usuários (listar/criar no escopo) (commit f2b48fe) | usuário/deploy | alta | feito |
-| PORTAL-D3 | Painel avançado: doc de API, gerar tokens (self-service escopado), registrar webhooks, guia Power BI/automação | backend/frontend | média | pendente |
+| PORTAL-D3 | Painel avançado: doc de API, gerar tokens (self-service escopado), registrar webhooks, guia Power BI/automação — aba Integrações no portal; credenciais.php/webhooks.php reforçados p/ escopo (usuario_pode_cliente/titular gerido), portal não emite rede_credenciada | backend/frontend | média | feito |
 | V2 | Autoadesão B2C (consentimento) + venda de voucher (pagamento) | — | baixa | pendente |
 | V2 | Autoadesão B2C (consentimento) + venda de voucher (pagamento) | — | baixa | pendente |
 | Banco: migrations até 017 | — | — | — | 017 = paciente voucher |
@@ -213,7 +213,7 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | API externa sem contrato publicado/versão (funções 3/5/8) | integração | média | RESOLVIDO: contrato v1 (doc 09 §3.9) + token consulta (commit 51656eb) | mitigado |
 | Portal antes da fundação de integração = retrabalho | produto/risco | alta | RESOLVIDO: Fase A/B/C prontas | mitigado |
 | Portal exige hierarquia/escopos (grupo/negocio/local) + multi-atribuição inexistente no modelo | segurança/produto | alta | RESOLVIDO: D0 (modelo, commit e201ac4) + D2a (escopo aplicado nas queries, commit 7029e88) | mitigado |
-| Self-service de tokens/webhooks pelo cliente (hoje só interno) | segurança | média | PENDENTE: expor emissão escopada ao próprio tenant no portal (D3) | aberto |
+| Self-service de tokens/webhooks pelo cliente (hoje só interno) | segurança | média | RESOLVIDO: D3 expõe emissão/gestão escopada ao próprio tenant (credenciais.php/webhooks.php validam usuario_pode_cliente; portal bloqueia rede_credenciada) | mitigado |
 | Paginação por OFFSET lenta em milhões | performance | média | RESOLVIDO: keyset/cursor em elegíveis e tabela verdade (commit 8976e5d) | mitigado |
 | API externa (rede) com escopo mal definido | integração/segurança | alta | Credencial por parceiro, escopo por campanha (RN-009) | aberto |
 | Registro de aplicação sem rastreabilidade (lote/dose) | banco/negócio | alta | RN-004 e RN-010 (imutabilidade + retificação auditada) | aberto |

@@ -123,6 +123,12 @@ Ordem recomendada (o portal vai *surfacar* estes controles, então precisam exis
 
 ## Fase D — Portal (cliente + gestor de campanha)
 - Construir **sobre** a fundação A/B/C: gestão de campanhas, importação, tabela verdade, faturamento, **painel de integrações/webhooks**, relatórios.
+- **D3 ✅ IMPLEMENTADO:** aba *Integrações (avançado)* no portal (`public/portal/`, nível negocio+):
+  self-service de **tokens** (`consulta`/`ingestao_b2b`/`app_in_company` — nunca `rede_credenciada`),
+  **webhooks** (criar/listar/testar/desativar/ver entregas), documentação da API e guia do Power BI.
+  Backend reforçado para escopo do portal: `credenciais.php` e `webhooks.php` deixam de exigir perfil
+  interno e passam a validar `usuario_pode_cliente(..., true)` / titular ∈ clientes geridos — cada gestor
+  só vê e opera tokens/webhooks dos **seus** clientes (isolamento financeiro/LGPD, RN-012).
 
 ## Fase E — V2 (depois do portal)
 - **Autoadesão B2C (9):** portal do paciente + consentimento LGPD + verificação de identidade.

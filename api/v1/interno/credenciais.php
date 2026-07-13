@@ -14,19 +14,25 @@ const CREDENCIAL_TIPOS = ['ingestao_b2b', 'rede_credenciada', 'consulta', 'app_i
 function rota_emitir_credencial(array $params): void
 {
     $usuario = exigir_login();
-    exigir_perfil($usuario, ['super_admin', 'operador_interno']);
     exigir_csrf();
+    $ehInterno = usuario_eh_interno($usuario);
 
     $dados = corpo_json();
     $erros = exigir_campos($dados, ['tipo']);
     if (isset($dados['tipo']) && !in_array($dados['tipo'], CREDENCIAL_TIPOS, true)) {
-        $erros[] = ['field' => 'tipo', 'code' => 'TIPO_INVALIDO', 'message' => 'Use ingestao_b2b, rede_credenciada ou consulta.'];
+        $erros[] = ['field' => 'tipo', 'code' => 'TIPO_INVALIDO', 'message' => 'Use ingestao_b2b, app_in_company, consulta ou rede_credenciada.'];
     }
     if ($erros) {
         erro_validacao($erros);
     }
 
     $tipo = $dados['tipo'];
+    // Portal (não interno) não emite token de rede credenciada (relação interna com clínica).
+    if (!$ehInterno && $tipo === 'rede_credenciada') {
+        responder_erro('Tipo não permitido no portal.', 403, [
+            ['field' => 'tipo', 'code' => 'TIPO_NAO_PERMITIDO', 'message' => 'Token de rede credenciada é emitido pela gestão interna.'],
+        ]);
+    }
     $tenantId = null;
     $escopoCampanha = null;
 
@@ -43,6 +49,9 @@ function rota_emitir_credencial(array $params): void
             responder_erro('Cliente inexistente ou inativo.', 422, [
                 ['field' => 'cliente_b2b_id', 'code' => 'CLIENTE_NAO_ENCONTRADO', 'message' => 'Cliente inválido.'],
             ]);
+        }
+        if (!$ehInterno && !usuario_pode_cliente($usuario, (int) $cliente['id'], true)) {
+            responder_erro('Cliente fora do seu escopo.', 403, [['field' => 'cliente_b2b_id', 'code' => 'FORA_DO_ESCOPO', 'message' => 'Acesso negado.']]);
         }
         $titularTipo = 'cliente_b2b';
         $titularId   = (int) $cliente['id'];
@@ -63,6 +72,9 @@ function rota_emitir_credencial(array $params): void
         }
         $escopoCampanha = (int) $campanha['id'];
         $tenantId = (int) $campanha['tenant_id'];
+        if (!$ehInterno && !usuario_pode_cliente($usuario, $tenantId, true)) {
+            responder_erro('Campanha fora do seu escopo.', 403, [['field' => 'campanha_id', 'code' => 'FORA_DO_ESCOPO', 'message' => 'Acesso negado.']]);
+        }
 
         if (in_array($tipo, ['ingestao_b2b', 'app_in_company'], true)) {
             // Titular é o cliente B2B dono da campanha (app in company: PWA/app/terceiro).
@@ -114,17 +126,23 @@ function rota_emitir_credencial(array $params): void
     ], 'Credencial emitida.', 201);
 }
 
-/** GET /api/v1/interno/credenciais — lista credenciais (sem o token). */
+/** GET /api/v1/interno/credenciais — lista credenciais (sem o token), no escopo do usuário. */
 function rota_listar_credenciais(array $params): void
 {
     $usuario = exigir_login();
-    exigir_perfil($usuario, ['super_admin', 'operador_interno']);
-
-    $itens = db_todos(
-        "SELECT id, tipo, titular_tipo, titular_id, escopo_campanha_id, ativo, criado_em, revogado_em
-           FROM credencial_api
-          ORDER BY id DESC"
-    );
+    $base = "SELECT id, tipo, titular_tipo, titular_id, escopo_campanha_id, ativo, criado_em, revogado_em FROM credencial_api";
+    if (usuario_eh_interno($usuario)) {
+        $itens = db_todos("$base ORDER BY id DESC");
+    } else {
+        $managed = clientes_geridos_pelo_usuario($usuario);
+        if (!$managed) {
+            responder_sucesso(['itens' => []], 'OK.');
+        }
+        $ph = []; $bind = [];
+        foreach ($managed as $i => $c) { $ph[] = ":c_$i"; $bind[":c_$i"] = (int) $c; }
+        // Portal vê credenciais cujo titular é um cliente que ele gere.
+        $itens = db_todos("$base WHERE titular_tipo = 'cliente_b2b' AND titular_id IN (" . implode(',', $ph) . ") ORDER BY id DESC", $bind);
+    }
     responder_sucesso(['itens' => $itens], 'OK.');
 }
 
@@ -132,15 +150,19 @@ function rota_listar_credenciais(array $params): void
 function rota_revogar_credencial(array $params): void
 {
     $usuario = exigir_login();
-    exigir_perfil($usuario, ['super_admin', 'operador_interno']);
     exigir_csrf();
 
     $id = (int) ($params['id'] ?? 0);
-    $cred = db_primeiro("SELECT id FROM credencial_api WHERE id = :id LIMIT 1", [':id' => $id]);
+    $cred = db_primeiro("SELECT id, titular_tipo, titular_id FROM credencial_api WHERE id = :id LIMIT 1", [':id' => $id]);
     if ($cred === null) {
         responder_erro('Credencial inexistente.', 404, [
             ['field' => null, 'code' => 'CREDENCIAL_NAO_ENCONTRADA', 'message' => 'Não encontrada.'],
         ]);
+    }
+    if (!usuario_eh_interno($usuario)) {
+        if ($cred['titular_tipo'] !== 'cliente_b2b' || !usuario_pode_cliente($usuario, (int) $cred['titular_id'], true)) {
+            responder_erro('Sem acesso a esta credencial.', 403, [['field' => null, 'code' => 'FORA_DO_ESCOPO', 'message' => 'Acesso negado.']]);
+        }
     }
 
     db_executar("UPDATE credencial_api SET ativo = 0, revogado_em = NOW() WHERE id = :id", [':id' => $id]);

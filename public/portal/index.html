@@ -100,6 +100,7 @@
           <button class="sec navb" data-v="eleg" onclick="showView('eleg')">Elegíveis</button>
           <button class="sec navb" data-v="vac" onclick="showView('vac')">Vacinados</button>
           <button class="sec navb hide" id="navUsr" data-v="usr" onclick="showView('usr')">Usuários</button>
+          <button class="sec navb hide" id="navInt" data-v="int" onclick="showView('int')">Integrações</button>
         </div>
         <div class="row">
           <label style="margin:0">Campanha</label>
@@ -162,6 +163,61 @@
       </div>
       <table id="tblUsr"></table>
     </div>
+
+    <!-- VIEW INTEGRAÇÕES (avançado) -->
+    <div id="vInt" class="card hide">
+      <h2>Integrações (avançado)</h2>
+      <p class="pill">Painel técnico: gere tokens de API, registre webhooks e conecte o Power BI.
+        Tudo no escopo dos seus clientes. Selecione a <b>campanha</b> acima antes de gerar tokens/webhooks.</p>
+
+      <h2 style="margin-top:20px">1 · Tokens de API</h2>
+      <p>O token aparece <b>uma única vez</b>. Guarde-o com segurança (ex.: cofre de segredos).</p>
+      <div class="row">
+        <select id="tkTipo">
+          <option value="consulta">consulta — leitura (carteira/tabela verdade) · Power BI</option>
+          <option value="ingestao_b2b">ingestao_b2b — enviar elegíveis por API</option>
+          <option value="app_in_company">app_in_company — app/PWA/terceiro (registrar aplicação)</option>
+        </select>
+        <button onclick="gerarToken()">Gerar token</button>
+        <button class="sec" onclick="listarTokens()">Listar</button>
+      </div>
+      <p class="pill" id="tkMsg"></p>
+      <div id="tkBox" class="hide" style="margin-top:8px;padding:10px;background:#0b1526;border:1px solid var(--warn);border-radius:8px">
+        <div class="pill">Token (copie agora — não será exibido de novo):</div>
+        <code id="tkVal" style="word-break:break-all;color:var(--ok)"></code>
+      </div>
+      <table id="tblTk"></table>
+
+      <h2 style="margin-top:24px">2 · Webhooks</h2>
+      <p>Receba notificações de eventos (ex.: aplicação registrada). Cada entrega leva o header
+        <code>X-Assinatura</code> = HMAC-SHA256 do corpo, usando o segredo mostrado na criação.</p>
+      <div class="row">
+        <select id="whEvento" style="max-width:280px"></select>
+        <input id="whUrl" placeholder="https://seu-sistema/webhook" style="max-width:320px" />
+        <button onclick="criarWebhook()">Registrar</button>
+        <button class="sec" onclick="listarWebhooks()">Listar</button>
+      </div>
+      <p class="pill" id="whMsg"></p>
+      <table id="tblWh"></table>
+      <table id="tblWhEnt"></table>
+
+      <h2 style="margin-top:24px">3 · Documentação da API</h2>
+      <p>Base: <code id="apiBase"></code> · Autenticação: header <code>Authorization: Bearer &lt;token&gt;</code>.</p>
+      <table>
+        <tr><th>Método/Rota</th><th>Uso</th><th>Token</th></tr>
+        <tr><td><code>GET /parceiro/carteira?cpf=...</code></td><td>Consultar carteira/histórico de um CPF</td><td>consulta</td></tr>
+        <tr><td><code>GET /parceiro/campanhas/{id}/tabela-verdade</code></td><td>Elegível × aplicado × pendente (analítico)</td><td>consulta</td></tr>
+        <tr><td><code>POST /parceiro/campanhas/{id}/elegiveis</code></td><td>Enviar/atualizar elegíveis (lote)</td><td>ingestao_b2b</td></tr>
+        <tr><td><code>POST /parceiro/aplicacoes</code></td><td>Registrar aplicação (in company/app)</td><td>app_in_company</td></tr>
+      </table>
+      <p class="pill">Paginação por keyset (<code>?apos=&lt;cursor&gt;</code>), idempotência via header <code>Idempotency-Key</code>.
+        Contrato completo: doc 11.</p>
+
+      <h2 style="margin-top:24px">4 · Conectar o Power BI</h2>
+      <p>1) Gere um token do tipo <b>consulta</b> (acima). &nbsp; 2) No Power BI: <b>Obter dados → Web → Avançado</b>. &nbsp;
+        3) URL: <code id="pbiUrl"></code> &nbsp; 4) Cabeçalho HTTP: <code>Authorization</code> = <code>Bearer SEU_TOKEN</code>. &nbsp;
+        5) Atualize periodicamente (agendamento do Power BI). Para grandes volumes, pagine com <code>?apos=</code>.</p>
+    </div>
   </div>
 </div>
 
@@ -200,6 +256,9 @@ async function rotearJornada(){
   if(!ESTADO.onboarding_concluido){ OB=0; renderOb(); tela('scOnb'); return; }
   tela('scDash');
   document.getElementById('navUsr').classList.toggle('hide', !podeGerirUsuarios());
+  document.getElementById('navInt').classList.toggle('hide', !podeGerirUsuarios());
+  document.getElementById('apiBase').textContent = location.origin + '/api/v1';
+  document.getElementById('pbiUrl').textContent = location.origin + '/api/v1/parceiro/campanhas/{id}/tabela-verdade';
   await listar();
   showView('dash');
 }
@@ -215,27 +274,30 @@ function renderOb(){
 function obPrev(){ if(OB>0){OB--;renderOb();} }
 async function obNext(){ if(OB<2){OB++;renderOb();return;} const d=await api('/interno/onboarding/concluir','POST',{}); if(d.success) rotearJornada(); }
 
-let VIEW='dash', ULTIMA_IMP=null;
+let VIEW='dash', ULTIMA_IMP=null, CAMPANHAS=[];
 function podeGerirUsuarios(){ return ESTADO && (ESTADO.interno || (ESTADO.atribuicoes||[]).some(a=>['gestao_interna','grupo','negocio'].includes(a.nivel))); }
 function campId(){ return document.getElementById('campSel').value; }
 
 function showView(v){
   VIEW=v;
-  ['dash','eleg','vac','usr'].forEach(x=>document.getElementById('v'+x[0].toUpperCase()+x.slice(1)).classList.toggle('hide',x!==v));
+  ['dash','eleg','vac','usr','int'].forEach(x=>document.getElementById('v'+x[0].toUpperCase()+x.slice(1)).classList.toggle('hide',x!==v));
   document.querySelectorAll('.navb').forEach(b=>b.style.background = b.dataset.v===v ? 'var(--pri)' : '');
   if(v==='dash') carregarDash();
   if(v==='eleg') listarEleg();
   if(v==='vac') verVerdade();
   if(v==='usr') listarUsuarios();
+  if(v==='int'){ listarTokens(); listarWebhooks(); }
 }
 function onCampanha(){ showView(VIEW); }
 
 async function listar(){
   const d=await api('/interno/campanhas');
   if(!d.success)return;
+  CAMPANHAS=d.data.itens||[];
   document.getElementById('campSel').innerHTML='<option value="">— selecione —</option>'+
-    (d.data.itens||[]).map(c=>`<option value="${c.id}">${c.nome} — ${c.cliente} (${c.status})</option>`).join('');
+    CAMPANHAS.map(c=>`<option value="${c.id}">${c.nome} — ${c.cliente} (${c.status})</option>`).join('');
 }
+function campSelecionada(){ const id=campId(); return CAMPANHAS.find(c=>String(c.id)===String(id))||null; }
 
 async function carregarDash(){
   const id=campId(); if(!id){document.getElementById('tiles').innerHTML='';document.getElementById('dashMsg').textContent='Selecione uma campanha.';return;}
@@ -321,6 +383,69 @@ async function criarUsuario(){
   const d=await api('/interno/usuarios','POST',body);
   document.getElementById('tblUsr').insertAdjacentHTML('beforebegin','');
   if(!d.success)alert('Erro: '+(d.errors&&d.errors[0]?d.errors[0].message:d.message)); else listarUsuarios();
+}
+
+// ---- Integrações (D3) ----
+async function gerarToken(){
+  const tipo=document.getElementById('tkTipo').value;
+  const camp=campSelecionada();
+  if(!camp)return alert('Selecione uma campanha acima.');
+  const body={tipo};
+  if(tipo==='consulta') body.cliente_b2b_id=camp.cliente_b2b_id; else body.campanha_id=camp.id;
+  document.getElementById('tkMsg').textContent='...';
+  const d=await api('/interno/credenciais','POST',body);
+  if(!d.success){document.getElementById('tkMsg').textContent='Erro: '+(d.errors&&d.errors[0]?d.errors[0].message:d.message);return;}
+  document.getElementById('tkMsg').textContent=`Token #${d.data.credencial_id} (${d.data.tipo}) emitido.`;
+  document.getElementById('tkBox').classList.remove('hide');
+  document.getElementById('tkVal').textContent=d.data.token;
+  listarTokens();
+}
+async function listarTokens(){
+  const d=await api('/interno/credenciais'); if(!d.success)return;
+  document.getElementById('tblTk').innerHTML='<tr><th>ID</th><th>Tipo</th><th>Campanha</th><th>Status</th><th></th></tr>'+
+    (d.data.itens||[]).map(c=>`<tr><td>${c.id}</td><td>${c.tipo}</td><td>${c.escopo_campanha_id||'—'}</td><td>${Number(c.ativo)?'ativo':'revogado'}</td>`+
+      `<td>${Number(c.ativo)?`<button class="ghost" onclick="revogarToken(${c.id})">revogar</button>`:''}</td></tr>`).join('');
+}
+async function revogarToken(id){
+  if(!confirm('Revogar este token? Integrações que o usam vão parar de funcionar.'))return;
+  const d=await api(`/interno/credenciais/${id}/revogar`,'POST',{});
+  if(!d.success)alert('Erro: '+(d.errors&&d.errors[0]?d.errors[0].message:d.message)); listarTokens();
+}
+async function criarWebhook(){
+  const camp=campSelecionada();
+  if(!camp)return alert('Selecione uma campanha acima (define o cliente do webhook).');
+  const evento=document.getElementById('whEvento').value, url=document.getElementById('whUrl').value.trim();
+  if(!url)return alert('Informe a URL de destino.');
+  const d=await api('/interno/webhooks','POST',{evento,url,tenant_id:camp.cliente_b2b_id});
+  if(!d.success){document.getElementById('whMsg').textContent='Erro: '+(d.errors&&d.errors[0]?d.errors[0].message:d.message);return;}
+  document.getElementById('whMsg').innerHTML=`Webhook #${d.data.webhook_id} criado. <b>Segredo (guarde agora):</b> <code style="color:var(--ok)">${d.data.segredo}</code>`;
+  listarWebhooks();
+}
+async function listarWebhooks(){
+  const d=await api('/interno/webhooks'); if(!d.success)return;
+  const evs=d.data.eventos_disponiveis||[];
+  const sel=document.getElementById('whEvento');
+  if(sel.options.length!==evs.length) sel.innerHTML=evs.map(e=>`<option value="${e}">${e}</option>`).join('');
+  document.getElementById('tblWh').innerHTML='<tr><th>ID</th><th>Evento</th><th>URL</th><th>Status</th><th></th></tr>'+
+    (d.data.itens||[]).map(w=>`<tr><td>${w.id}</td><td>${w.evento}</td><td style="max-width:280px;word-break:break-all">${w.url}</td><td>${Number(w.ativo)?'ativo':'inativo'}</td>`+
+      `<td class="row"><button class="ghost" onclick="testarWebhook(${w.id})">testar</button>`+
+      `<button class="ghost" onclick="entregasWebhook(${w.id})">entregas</button>`+
+      `${Number(w.ativo)?`<button class="ghost" onclick="desativarWebhook(${w.id})">desativar</button>`:''}</td></tr>`).join('');
+}
+async function testarWebhook(id){
+  const d=await api(`/interno/webhooks/${id}/testar`,'POST',{});
+  document.getElementById('whMsg').textContent=d.success?`Teste enfileirado (entrega #${d.data.entrega_id}).`:'Erro: '+(d.errors&&d.errors[0]?d.errors[0].message:d.message);
+  entregasWebhook(id);
+}
+async function desativarWebhook(id){
+  if(!confirm('Desativar este webhook?'))return;
+  const d=await api(`/interno/webhooks/${id}/desativar`,'POST',{}); if(d.success)listarWebhooks();
+}
+async function entregasWebhook(id){
+  const d=await api(`/interno/webhooks/${id}/entregas`); if(!d.success)return;
+  document.getElementById('tblWhEnt').innerHTML='<tr><th colspan="5">Entregas do webhook #'+id+'</th></tr>'+
+    '<tr><th>ID</th><th>Evento</th><th>Status</th><th>HTTP</th><th>Quando</th></tr>'+
+    (d.data.itens||[]).map(e=>`<tr><td>${e.id}</td><td>${e.evento}</td><td>${e.status}</td><td>${e.ultimo_status_code||'—'}</td><td>${(e.entregue_em||e.criado_em||'').substring(0,19).replace('T',' ')}</td></tr>`).join('');
 }
 
 async function sair(){ await api('/interno/auth/logout','POST'); CSRF=null; tela('scLogin'); }
