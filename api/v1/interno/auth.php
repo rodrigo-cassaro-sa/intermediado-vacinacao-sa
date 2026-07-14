@@ -85,5 +85,11 @@ function rota_logout(array $params): void
 function rota_eu(array $params): void
 {
     $usuario = exigir_login();
-    responder_sucesso(['usuario' => $usuario], 'OK.');
+    // Devolve também o token CSRF da sessão para páginas que abriram com sessão
+    // já ativa (sem passar pelo login) poderem fazer mutações. Same-origin: um
+    // site externo não consegue ler esta resposta.
+    responder_sucesso([
+        'usuario'    => $usuario,
+        'csrf_token' => $_SESSION['csrf_token'] ?? null,
+    ], 'OK.');
 }

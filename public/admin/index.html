@@ -131,6 +131,25 @@
     .login input:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
     .login .msg { font-size: 12px; color: var(--err); min-height: 16px; margin-top: 8px; }
 
+    /* ---- Modal (nova campanha) ---------------------------------------- */
+    .modal { position: fixed; inset: 0; background: rgba(18,35,59,.45); display: grid; place-items: center; z-index: 60; padding: 16px; }
+    .modal .box { background: var(--card); border-radius: var(--raio); box-shadow: var(--sombra); width: 520px; max-width: 100%; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+    .modal .mhead { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px; border-bottom: 1px solid var(--line); }
+    .modal .mhead h2 { margin: 0; font-size: 18px; }
+    .modal .x { background: none; border: 0; cursor: pointer; color: var(--muted); display: grid; place-items: center; padding: 4px; border-radius: 6px; }
+    .modal .x:hover { background: var(--surface-2); color: var(--txt); }
+    .modal .mbody { padding: 4px 20px 18px; overflow-y: auto; }
+    .modal label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+    .modal input, .modal select { width: 100%; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; color: var(--txt); font: inherit; }
+    .modal input:focus, .modal select:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
+    .modal .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modal .vacs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; max-height: 130px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: var(--surface-2); }
+    .modal .vacs label { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--txt); font-size: 13px; }
+    .modal .vacs input { width: auto; }
+    .modal .msg { font-size: 12px; min-height: 16px; margin-top: 10px; }
+    .modal .msg.err { color: var(--err); } .modal .msg.ok { color: var(--acc2); font-weight: 600; }
+    .modal .mfoot { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--line); }
+
     /* ---- Responsive ---------------------------------------------------- */
     @media (max-width: 1024px) { .metrics { grid-template-columns: repeat(2, 1fr); } .lower { grid-template-columns: 1fr; } }
     @media (max-width: 720px) {
@@ -155,6 +174,49 @@
       <input id="senha" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')entrar()" />
       <div class="msg" id="loginMsg"></div>
       <button class="btn primary" style="width:100%;justify-content:center;margin-top:12px" onclick="entrar()">Entrar</button>
+    </div>
+  </div>
+
+  <!-- Modal: nova campanha -->
+  <div class="modal hide" id="modalNova">
+    <div class="box">
+      <div class="mhead">
+        <h2>Nova campanha</h2>
+        <button class="x" onclick="fecharNova()"><span class="material-symbols-outlined">close</span></button>
+      </div>
+      <div class="mbody">
+        <label>Cliente</label>
+        <select id="fCliente"></select>
+        <label>Nome da campanha</label>
+        <input id="fNome" placeholder="Ex.: Gripe (Influenza) 2026" />
+        <div class="grid2">
+          <div>
+            <label>Modalidade</label>
+            <select id="fModalidade">
+              <option value="rede_credenciada">Rede credenciada</option>
+              <option value="in_company">In company</option>
+            </select>
+          </div>
+          <div>
+            <label>Status inicial</label>
+            <select id="fStatus">
+              <option value="rascunho">Rascunho</option>
+              <option value="ativa">Ativa</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid2">
+          <div><label>Início</label><input type="date" id="fInicio" /></div>
+          <div><label>Fim</label><input type="date" id="fFim" /></div>
+        </div>
+        <label>Vacinas (opcional)</label>
+        <div class="vacs" id="fVacinas"></div>
+        <div class="msg" id="novaMsg"></div>
+      </div>
+      <div class="mfoot">
+        <button class="btn sec" onclick="fecharNova()">Cancelar</button>
+        <button class="btn primary" onclick="salvarNova()">Criar campanha</button>
+      </div>
     </div>
   </div>
 
@@ -194,6 +256,7 @@
           <select class="sel" id="campSel" onchange="carregar()" title="Filtrar por campanha">
             <option value="">Todas as campanhas</option>
           </select>
+          <button class="btn primary hide" id="btnNova" onclick="abrirNova()"><span class="material-symbols-outlined">add</span> Nova Campanha</button>
           <button class="btn sec" onclick="carregar()"><span class="material-symbols-outlined">refresh</span> Atualizar</button>
           <button class="btn sec" onclick="sair()"><span class="material-symbols-outlined">logout</span> Sair</button>
         </div>
@@ -312,7 +375,67 @@
     render(d.data);
     if (!CAMP_CARREGADAS) await carregarCampanhas();
     const eu = await api('/interno/auth/eu');
-    if (eu.success) document.getElementById('quem').textContent = eu.data.usuario.nome || '—';
+    if (eu.success) {
+      document.getElementById('quem').textContent = eu.data.usuario.nome || '—';
+      // Recupera o CSRF quando a sessão já estava ativa (abriu sem passar pelo login).
+      if (!CSRF && eu.data.csrf_token) CSRF = eu.data.csrf_token;
+      // "Nova Campanha" só para perfis internos (o backend também exige).
+      const interno = ['super_admin', 'operador_interno'].includes(eu.data.usuario.perfil);
+      document.getElementById('btnNova').classList.toggle('hide', !interno);
+    }
+  }
+
+  // ---- Modal: nova campanha -------------------------------------------------
+  async function abrirNova() {
+    const msg = document.getElementById('novaMsg');
+    msg.className = 'msg'; msg.textContent = '';
+    const [cli, vac] = await Promise.all([api('/interno/clientes'), api('/interno/vacinas')]);
+    document.getElementById('fCliente').innerHTML = (cli.success && (cli.data.itens || []).length)
+      ? cli.data.itens.map(c => '<option value="' + c.id + '">' + c.razao_social + '</option>').join('')
+      : '<option value="">(nenhum cliente no seu escopo)</option>';
+    document.getElementById('fVacinas').innerHTML = (vac.success && (vac.data.itens || []).length)
+      ? vac.data.itens.map(v => '<label><input type="checkbox" value="' + v.id + '" data-doses="' + (v.doses_padrao || 1) + '"> ' + v.nome + '</label>').join('')
+      : '<span class="cli">Nenhuma vacina cadastrada.</span>';
+    document.getElementById('modalNova').classList.remove('hide');
+  }
+
+  function fecharNova() { document.getElementById('modalNova').classList.add('hide'); }
+
+  async function salvarNova() {
+    const msg = document.getElementById('novaMsg');
+    const vacinas = [...document.querySelectorAll('#fVacinas input:checked')]
+      .map(i => ({ vacina_id: Number(i.value), doses_previstas: Number(i.dataset.doses) || 1 }));
+    const body = {
+      cliente_b2b_id: Number(document.getElementById('fCliente').value || 0),
+      nome:           document.getElementById('fNome').value.trim(),
+      modalidade:     document.getElementById('fModalidade').value,
+      periodo_inicio: document.getElementById('fInicio').value,
+      periodo_fim:    document.getElementById('fFim').value,
+      status:         document.getElementById('fStatus').value,
+      vacinas,
+    };
+    if (!body.cliente_b2b_id || !body.nome || !body.periodo_inicio || !body.periodo_fim) {
+      msg.className = 'msg err'; msg.textContent = 'Preencha cliente, nome e o período (início e fim).'; return;
+    }
+    if (body.periodo_fim < body.periodo_inicio) {
+      msg.className = 'msg err'; msg.textContent = 'A data fim não pode ser anterior ao início.'; return;
+    }
+    msg.className = 'msg'; msg.textContent = 'Salvando...';
+    const d = await api('/interno/campanhas', 'POST', body);
+    if (!d.success) {
+      msg.className = 'msg err';
+      msg.textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Não foi possível criar a campanha.'));
+      return;
+    }
+    msg.className = 'msg ok'; msg.textContent = 'Campanha criada com sucesso!';
+    setTimeout(async () => {
+      fecharNova();
+      document.getElementById('fNome').value = '';
+      document.querySelectorAll('#fVacinas input:checked').forEach(i => i.checked = false);
+      await carregarCampanhas(); // repopula o dropdown já com a nova campanha
+      document.getElementById('campSel').value = String(d.data.campanha_id || '');
+      await carregar();          // abre a dashboard filtrada na campanha criada
+    }, 700);
   }
 
   function render(x) {
