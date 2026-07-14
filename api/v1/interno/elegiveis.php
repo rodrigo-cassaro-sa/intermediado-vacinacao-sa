@@ -222,12 +222,35 @@ function rota_listar_elegiveis(array $params): void
         $where .= ' AND e.id < :apos';   // ordem por id DESC
         $bind[':apos'] = $apos;
     }
+    // Filtros opcionais (compõem com o keyset): tipo de vínculo, status e busca.
+    if (!empty($_GET['tipo'])) {
+        $where .= ' AND e.tipo_vinculo = :tipo';
+        $bind[':tipo'] = (string) $_GET['tipo'];
+    }
+    if (!empty($_GET['status'])) {
+        $where .= ' AND e.status = :st';
+        $bind[':st'] = (string) $_GET['status'];
+    }
+    if (isset($_GET['q']) && trim((string) $_GET['q']) !== '') {
+        $q = trim((string) $_GET['q']);
+        $partes = ['COALESCE(e.nome, p.nome) LIKE :q', 'e.codigo_rh LIKE :q'];
+        $bind[':q'] = '%' . $q . '%';
+        $qd = so_digitos($q);
+        if ($qd !== '') {              // só filtra por CPF quando a busca tem dígitos
+            $partes[] = 'p.cpf LIKE :qd';
+            $bind[':qd'] = '%' . $qd . '%';
+        }
+        $where .= ' AND (' . implode(' OR ', $partes) . ')';
+    }
 
     $itens = db_todos(
-        "SELECT e.id, p.cpf, COALESCE(e.nome, p.nome) AS nome, e.origem, e.tipo_vinculo, e.status, e.motivo_situacao, cc.nome AS clinica, e.criado_em
+        "SELECT e.id, p.cpf, COALESCE(e.nome, p.nome) AS nome, e.origem, e.tipo_vinculo, e.cpf_titular,
+                e.codigo_lotacao, e.codigo_rh, COALESCE(e.data_nascimento, p.data_nascimento) AS data_nascimento,
+                u.nome AS unidade, e.status, e.motivo_situacao, cc.nome AS clinica, e.criado_em
            FROM elegivel e
            JOIN paciente p ON p.id = e.paciente_id
       LEFT JOIN clinica_credenciada cc ON cc.id = e.clinica_id
+      LEFT JOIN unidade u ON u.id = e.unidade_id
           WHERE $where
           ORDER BY e.id DESC
           LIMIT $porPagina",
@@ -235,6 +258,9 @@ function rota_listar_elegiveis(array $params): void
     );
     foreach ($itens as &$it) {
         $it['cpf'] = mascarar_cpf($it['cpf']);
+        if (!empty($it['cpf_titular'])) {
+            $it['cpf_titular'] = mascarar_cpf($it['cpf_titular']);
+        }
     }
     unset($it);
 

@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pacientes Elegíveis — S&amp;A Imunizações</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+  <link rel="stylesheet" href="/assets/marca.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Inter', system-ui, Segoe UI, Roboto, sans-serif; background: var(--bg); color: var(--txt); font-size: 14px; display: flex; height: 100vh; overflow: hidden; }
+    .material-symbols-outlined { font-family: 'Material Symbols Outlined'; font-size: 22px; line-height: 1; }
+    .hide { display: none !important; }
+
+    .side { width: 256px; flex: 0 0 256px; background: var(--card); border-right: 1px solid var(--line); box-shadow: var(--sombra); display: flex; flex-direction: column; padding: 16px 0; }
+    .side .brand { padding: 6px 20px 20px; display: flex; flex-direction: column; gap: 8px; }
+    .side .brand .logo { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, var(--acc) 0%, var(--pri) 100%); display: grid; place-items: center; box-shadow: 0 4px 12px rgba(22,102,196,.28); }
+    .side .brand .nome { font-size: 20px; font-weight: 800; letter-spacing: -.01em; color: var(--pri); line-height: 1.15; }
+    .side .brand .tag { font-size: 12px; color: var(--muted); }
+    .side nav { flex: 1; padding: 0 12px; display: flex; flex-direction: column; gap: 4px; }
+    .side .foot { padding: 12px 12px 0; margin-top: auto; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
+    .navlink { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; color: var(--muted); text-decoration: none; font-weight: 500; background: none; border: 0; font: inherit; cursor: pointer; text-align: left; width: 100%; transition: background .15s, color .15s; }
+    .navlink:hover { background: var(--surface-2); color: var(--txt); }
+    .navlink.active { background: var(--surface-2); color: var(--pri); font-weight: 600; }
+    .navlink .material-symbols-outlined { font-variation-settings: 'FILL' 0; }
+    .navlink.active .material-symbols-outlined { font-variation-settings: 'FILL' 1; }
+
+    .main { flex: 1; overflow-y: auto; }
+    .content { max-width: 1440px; margin: 0 auto; padding: 24px 32px; display: flex; flex-direction: column; gap: 20px; }
+    .pagehead { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+    .pagehead h1 { font-size: 32px; font-weight: 700; letter-spacing: -.02em; margin: 0; }
+    .pagehead p { margin: 6px 0 0; color: var(--muted); }
+    .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .who { color: var(--muted); font-size: 13px; margin-right: 4px; } .who b { color: var(--txt); }
+    .sel { padding: 9px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--txt); font: inherit; font-weight: 500; cursor: pointer; max-width: 320px; }
+    .sel:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
+    .btn { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; padding: 10px 16px; border-radius: 8px; font: inherit; font-weight: 600; border: 0; }
+    .btn .material-symbols-outlined { font-size: 18px; }
+    .btn.primary { background: var(--pri); color: #fff; box-shadow: 0 2px 6px rgba(22,102,196,.25); }
+    .btn.primary:hover { background: var(--pri2); }
+    .btn.sec { background: var(--card); color: var(--txt); border: 1px solid var(--line); }
+    .btn.sec:hover { background: var(--surface-2); }
+
+    /* Bento header: resumo + fila */
+    .bento { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--sombra); padding: 18px 20px; }
+    .card .top { display: flex; justify-content: space-between; align-items: start; gap: 8px; }
+    .card .cod { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; color: var(--pri); }
+    .infogrid { margin-top: 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .infogrid .k { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+    .infogrid .v { font-weight: 600; margin-top: 2px; }
+    .fila .lbl { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+    .fila .big { font-size: 40px; font-weight: 700; letter-spacing: -.02em; margin: 6px 0 2px; }
+    .fila .sub { font-size: 12px; color: var(--muted); }
+    .ico { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: rgba(22,102,196,.12); color: var(--pri); }
+
+    .chip { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 99px; white-space: nowrap; }
+    .chip.ok { background: rgba(20,160,90,.14); color: var(--acc2); }
+    .chip.plan { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+    .chip.done { background: rgba(18,35,59,.08); color: var(--muted); }
+
+    .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--sombra); overflow: hidden; }
+    .panel .phead { padding: 12px 20px; border-bottom: 1px solid var(--line); background: var(--surface-2); display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; }
+    .panel .phead h3 { margin: 0; font-size: 14px; font-weight: 600; }
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .filters .box { position: relative; }
+    .filters .box .material-symbols-outlined { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--outline, #707880); font-size: 18px; }
+    .filters input, .filters select { padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--txt); font: inherit; }
+    .filters .box input { padding-left: 32px; width: 220px; }
+    .filters input:focus, .filters select:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
+
+    table { width: 100%; border-collapse: collapse; white-space: nowrap; }
+    thead th { text-align: left; padding: 10px 16px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: var(--surface-2); border-bottom: 1px solid var(--line); }
+    tbody td { padding: 10px 16px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+    tbody tr:hover { background: var(--surface-2); }
+    td .nm { font-weight: 600; }
+    td .sub { font-size: 12px; color: var(--muted); }
+    .tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px; }
+    .tag.colab { background: rgba(22,102,196,.14); color: var(--pri); }
+    .tag.dep { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+    .tag.terc { background: rgba(39,93,131,.14); color: var(--tertiary, #275d83); }
+    .st { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 99px; }
+    .st.pendente { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+    .st.aplicado { background: rgba(20,160,90,.14); color: var(--acc2); }
+    .st.recusado, .st.inelegivel { background: rgba(198,57,74,.12); color: var(--err); }
+    .st.ausente, .st.expirado, .st.removido { background: rgba(199,122,10,.14); color: var(--warn, #c77a0a); }
+    .iconbtn { background: none; border: 0; cursor: pointer; color: var(--pri); padding: 6px; border-radius: 6px; }
+    .iconbtn:hover { background: var(--surface-2); }
+    .empty { padding: 28px 20px; text-align: center; color: var(--muted); }
+    .pfoot { padding: 12px 20px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+    .pfoot .cnt { font-size: 12px; color: var(--muted); }
+
+    /* Drawer detalhes */
+    .drawer { position: fixed; inset: 0; z-index: 60; }
+    .drawer .backdrop { position: absolute; inset: 0; background: rgba(18,35,59,.45); }
+    .drawer .box { position: absolute; right: 0; top: 0; bottom: 0; width: 100%; max-width: 440px; background: var(--card); box-shadow: var(--sombra); display: flex; flex-direction: column; animation: slideIn .25s ease-out; }
+    @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    .drawer .dhead { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+    .drawer .dhead h3 { margin: 0; font-size: 18px; }
+    .drawer .x { background: none; border: 0; cursor: pointer; color: var(--muted); padding: 4px; border-radius: 6px; }
+    .drawer .dbody { padding: 16px 20px; overflow-y: auto; flex: 1; }
+    .drawer .kv { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+    .drawer .kv .k { color: var(--muted); font-size: 13px; }
+    .drawer .kv .v { font-weight: 600; text-align: right; }
+    .drawer label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 4px; }
+    .drawer select, .drawer input { width: 100%; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; color: var(--txt); font: inherit; }
+    .drawer .msg { font-size: 12px; min-height: 16px; margin-top: 10px; }
+    .drawer .msg.err { color: var(--err); } .drawer .msg.ok { color: var(--acc2); font-weight: 600; }
+    .drawer .dfoot { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--line); background: var(--surface-2); }
+
+    .login { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; z-index: 70; }
+    .login .lbox { background: var(--card); border: 1px solid var(--line); border-radius: var(--raio); box-shadow: var(--sombra); padding: 28px; width: 340px; }
+    .login .lbox .marca { margin-bottom: 18px; }
+    .login label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+    .login input { width: 100%; padding: 11px 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; color: var(--txt); font: inherit; }
+    .login input:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
+    .login .msg { font-size: 12px; color: var(--err); min-height: 16px; margin-top: 8px; }
+
+    @media (max-width: 900px) { .bento { grid-template-columns: 1fr; } }
+    @media (max-width: 720px) { .side { display: none; } .content { padding: 20px 16px; } .pagehead h1 { font-size: 24px; } }
+  </style>
+</head>
+<body>
+  <!-- Login gate -->
+  <div class="login" id="login">
+    <div class="lbox">
+      <div class="marca">
+        <div class="logo"><svg width="22" height="22" viewBox="0 0 32 32"><path d="M13.5 7h5v6.5H25v5h-6.5V25h-5v-6.5H7v-5h6.5z" fill="#fff"/></svg></div>
+        <div><div class="nome">S&amp;A <b>Imunizações</b></div><div class="tag">Console interno</div></div>
+      </div>
+      <label>E-mail</label>
+      <input id="email" autocomplete="username" />
+      <label>Senha</label>
+      <input id="senha" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')entrar()" />
+      <div class="msg" id="loginMsg"></div>
+      <button class="btn primary" style="width:100%;justify-content:center;margin-top:12px" onclick="entrar()">Entrar</button>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="side">
+    <div class="brand">
+      <div class="logo"><svg width="24" height="24" viewBox="0 0 32 32"><path d="M13.5 7h5v6.5H25v5h-6.5V25h-5v-6.5H7v-5h6.5z" fill="#fff"/></svg></div>
+      <div><div class="nome">Gestão de Vacinas</div><div class="tag">Administrador Central</div></div>
+    </div>
+    <nav>
+      <a class="navlink" href="/admin/"><span class="material-symbols-outlined">dashboard</span> Dashboard</a>
+      <a class="navlink" href="/admin/campanhas.html"><span class="material-symbols-outlined">campaign</span> Campanhas</a>
+      <a class="navlink" href="/admin/vacinas.html"><span class="material-symbols-outlined">vaccines</span> Vacinas</a>
+      <button class="navlink active"><span class="material-symbols-outlined">group</span> Pacientes</button>
+      <a class="navlink" href="/portal/"><span class="material-symbols-outlined">history</span> Auditoria</a>
+    </nav>
+    <div class="foot">
+      <a class="navlink" href="/admin/console.html"><span class="material-symbols-outlined">terminal</span> Console interno</a>
+      <a class="navlink" href="/portal/"><span class="material-symbols-outlined">settings</span> Portal do cliente</a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="content">
+      <div class="pagehead">
+        <div>
+          <h1>Pacientes Elegíveis</h1>
+          <p>Lista de elegibilidade da campanha selecionada.</p>
+        </div>
+        <div class="actions">
+          <span class="who">Olá, <b id="quem">—</b></span>
+          <select class="sel" id="campSel" onchange="trocarCampanha()"><option value="">— selecione a campanha —</option></select>
+          <button class="btn sec" onclick="sair()"><span class="material-symbols-outlined">logout</span> Sair</button>
+        </div>
+      </div>
+
+      <!-- Resumo da campanha + fila -->
+      <div class="bento">
+        <div class="card">
+          <div class="top">
+            <div><span class="cod" id="cCodigo">—</span><div class="sub" id="cRotulo" style="font-size:12px;color:var(--muted)"></div></div>
+            <span class="chip plan" id="cStatus">—</span>
+          </div>
+          <div class="infogrid">
+            <div><div class="k">Cliente</div><div class="v" id="cCliente">—</div></div>
+            <div><div class="k">Modalidade</div><div class="v" id="cModalidade">—</div></div>
+          </div>
+        </div>
+        <div class="card fila">
+          <div class="top"><span class="lbl">Fila (pendentes)</span><span class="ico material-symbols-outlined">group</span></div>
+          <div class="big" id="cFila">—</div>
+          <div class="sub" id="cResumo">—</div>
+        </div>
+      </div>
+
+      <!-- Tabela -->
+      <div class="panel">
+        <div class="phead">
+          <h3>Lista de Elegibilidade</h3>
+          <div class="filters">
+            <div class="box"><span class="material-symbols-outlined">search</span>
+              <input id="busca" placeholder="Nome, CPF ou RH..." onkeydown="if(event.key==='Enter')recarregar()" />
+            </div>
+            <select id="fTipo" onchange="recarregar()">
+              <option value="">Todos os tipos</option>
+              <option value="colaborador">Colaborador</option>
+              <option value="dependente">Dependente</option>
+              <option value="terceiro">Terceiro</option>
+            </select>
+            <select id="fStatus" onchange="recarregar()">
+              <option value="">Todos os status</option>
+              <option value="pendente">Pendente</option>
+              <option value="aplicado">Aplicado</option>
+              <option value="recusado">Recusado</option>
+              <option value="ausente">Ausente</option>
+              <option value="inelegivel">Inelegível</option>
+              <option value="expirado">Expirado</option>
+              <option value="removido">Removido</option>
+            </select>
+            <button class="btn sec" onclick="exportar()" title="Exportar CSV"><span class="material-symbols-outlined">download</span></button>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr><th>Paciente / CPF</th><th>Tipo / Titular</th><th>Lotação / C. Custo</th><th>Nascimento / RH</th><th>Modalidade / Validade</th><th style="text-align:right">Ações</th></tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+          <div class="empty hide" id="vazio">Nenhum elegível encontrado.</div>
+        </div>
+        <div class="pfoot">
+          <span class="cnt" id="contagem">—</span>
+          <button class="btn sec hide" id="btnMais" onclick="carregarMais()">Carregar mais</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drawer detalhes -->
+  <div class="drawer hide" id="drawer">
+    <div class="backdrop" onclick="fecharDrawer()"></div>
+    <div class="box">
+      <div class="dhead"><h3 id="dNome">Detalhes</h3><button class="x" onclick="fecharDrawer()"><span class="material-symbols-outlined">close</span></button></div>
+      <div class="dbody" id="dBody"></div>
+      <div class="dfoot">
+        <button class="btn sec" onclick="fecharDrawer()">Fechar</button>
+        <button class="btn primary" onclick="salvarSituacao()">Aplicar situação</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // ---------------------------------------------------------------------------
+  // Pacientes elegíveis — lista da campanha (sessão + CSRF, keyset paginado).
+  // ---------------------------------------------------------------------------
+  let CSRF = null, CAMPANHAS = [], ITENS = [], CURSOR = null, CARREGADOS = 0, TOTAL = 0, EDIT_ID = null;
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  async function api(path, metodo = 'GET', corpo = null) {
+    const opts = { method: metodo, headers: {}, credentials: 'same-origin' };
+    if (corpo) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(corpo); }
+    if (metodo !== 'GET' && CSRF) opts.headers['X-CSRF-Token'] = CSRF;
+    const r = await fetch('/api/v1' + path, opts);
+    let d; try { d = await r.json(); } catch (e) { d = { success: false }; }
+    return { http: r.status, ...d };
+  }
+
+  const MOD = { in_company: 'In company', rede_credenciada: 'Rede credenciada', historico: 'Histórico' };
+  const TIPO = { colaborador: ['Colaborador', 'colab'], dependente: ['Dependente', 'dep'], terceiro: ['Terceiro', 'terc'] };
+  const CHIP = { ativa: ['Ativa', 'ok'], rascunho: ['Rascunho', 'plan'], encerrada: ['Encerrada', 'done'] };
+  const fmt = n => (n ?? 0).toLocaleString('pt-BR');
+  const ddmm = s => s ? s.substring(8, 10) + '/' + s.substring(5, 7) + '/' + s.substring(0, 4) : '—';
+  function idade(s) { if (!s) return ''; const n = new Date(), b = new Date(s); let a = n.getFullYear() - b.getFullYear(); const m = n.getMonth() - b.getMonth(); if (m < 0 || (m === 0 && n.getDate() < b.getDate())) a--; return isNaN(a) ? '' : ' (' + a + 'a)'; }
+  const campSelObj = () => CAMPANHAS.find(c => String(c.id) === document.getElementById('campSel').value) || null;
+
+  async function entrar() {
+    document.getElementById('loginMsg').textContent = '...';
+    const d = await api('/interno/auth/login', 'POST', { email: document.getElementById('email').value, senha: document.getElementById('senha').value });
+    if (!d.success) { document.getElementById('loginMsg').textContent = 'E-mail ou senha inválidos.'; return; }
+    CSRF = d.data.csrf_token;
+    document.getElementById('loginMsg').textContent = ''; document.getElementById('senha').value = '';
+    await iniciar();
+  }
+  async function sair() { await api('/interno/auth/logout', 'POST', {}); CSRF = null; document.getElementById('login').classList.remove('hide'); }
+
+  async function iniciar() {
+    const d = await api('/interno/campanhas?por_pagina=100');
+    if (d.http === 401) { document.getElementById('login').classList.remove('hide'); return; }
+    document.getElementById('login').classList.add('hide');
+    if (!d.success) return;
+    CAMPANHAS = d.data.itens || [];
+    document.getElementById('campSel').innerHTML = '<option value="">— selecione a campanha —</option>'
+      + CAMPANHAS.map(c => '<option value="' + c.id + '">' + (c.codigo || c.nome || ('#' + c.id)) + ' — ' + (c.cliente || '') + '</option>').join('');
+    const eu = await api('/interno/auth/eu');
+    if (eu.success) { document.getElementById('quem').textContent = eu.data.usuario.nome || '—'; if (!CSRF && eu.data.csrf_token) CSRF = eu.data.csrf_token; }
+    // Seleciona a primeira campanha automaticamente.
+    if (CAMPANHAS.length) { document.getElementById('campSel').value = String(CAMPANHAS[0].id); trocarCampanha(); }
+  }
+
+  function trocarCampanha() {
+    const c = campSelObj();
+    document.getElementById('cCodigo').textContent = c ? (c.codigo || c.nome || ('#' + c.id)) : '—';
+    document.getElementById('cRotulo').textContent = c && c.codigo && c.nome ? c.nome : '';
+    document.getElementById('cCliente').textContent = c ? (c.cliente || '—') : '—';
+    document.getElementById('cModalidade').textContent = c ? (MOD[c.modalidade] || c.modalidade) : '—';
+    const [rot, cls] = c ? (CHIP[c.status] || [c.status, 'plan']) : ['—', 'plan'];
+    const st = document.getElementById('cStatus'); st.textContent = rot; st.className = 'chip ' + cls;
+    recarregar();
+  }
+
+  function recarregar() { CURSOR = null; CARREGADOS = 0; ITENS = []; document.getElementById('tbody').innerHTML = ''; carregarElegiveis(); }
+
+  async function carregarElegiveis() {
+    const c = campSelObj();
+    if (!c) { document.getElementById('vazio').classList.remove('hide'); document.getElementById('contagem').textContent = 'Selecione uma campanha.'; return; }
+    const p = new URLSearchParams({ por_pagina: '25' });
+    const q = document.getElementById('busca').value.trim(); if (q) p.set('q', q);
+    const t = document.getElementById('fTipo').value; if (t) p.set('tipo', t);
+    const s = document.getElementById('fStatus').value; if (s) p.set('status', s);
+    if (CURSOR) p.set('apos', CURSOR);
+    const d = await api('/interno/campanhas/' + c.id + '/elegiveis?' + p.toString());
+    if (d.http === 401) { document.getElementById('login').classList.remove('hide'); return; }
+    if (!d.success) return;
+
+    const r = d.data.resumo || {};
+    document.getElementById('cFila').textContent = fmt(r.pendente || 0);
+    TOTAL = (d.meta && d.meta.total) || 0;
+    document.getElementById('cResumo').textContent = 'Aplicados ' + fmt(r.aplicado || 0) + ' · Total ' + fmt(TOTAL);
+
+    const itens = d.data.itens || [];
+    ITENS = ITENS.concat(itens);
+    CARREGADOS += itens.length;
+    const html = itens.map(e => linha(e)).join('');
+    document.getElementById('tbody').insertAdjacentHTML('beforeend', html);
+    document.getElementById('vazio').classList.toggle('hide', CARREGADOS > 0);
+    document.getElementById('contagem').textContent = CARREGADOS + ' de ' + fmt(TOTAL) + ' elegível(is)';
+    CURSOR = (d.meta && d.meta.proximo_cursor) || null;
+    document.getElementById('btnMais').classList.toggle('hide', !CURSOR);
+  }
+  function carregarMais() { carregarElegiveis(); }
+
+  function linha(e) {
+    const c = campSelObj();
+    const [trot, tcls] = TIPO[e.tipo_vinculo] || [e.tipo_vinculo || '—', 'dep'];
+    const titular = e.cpf_titular ? esc(e.cpf_titular) : 'N/A';
+    const lot = esc(e.unidade || e.codigo_lotacao || '—');
+    const cc = e.codigo_lotacao ? ('Cód: ' + esc(e.codigo_lotacao)) : '';
+    const nasc = e.data_nascimento ? (ddmm(e.data_nascimento) + idade(e.data_nascimento)) : '—';
+    const rh = e.codigo_rh ? ('RH: ' + esc(e.codigo_rh)) : '';
+    const modal = c ? (MOD[c.modalidade] || c.modalidade) : '—';
+    const val = c && c.periodo_fim ? ddmm(c.periodo_fim) : '';
+    return '<tr>'
+      + '<td><div class="nm">' + esc(e.nome || '—') + '</div><div class="sub">' + esc(e.cpf || '') + '</div></td>'
+      + '<td><span class="tag ' + tcls + '">' + esc(trot) + '</span><div class="sub">Titular: ' + titular + '</div></td>'
+      + '<td><div>' + lot + '</div><div class="sub">' + cc + '</div></td>'
+      + '<td><div>' + nasc + '</div><div class="sub">' + rh + '</div></td>'
+      + '<td><div>' + esc(modal) + '</div><div class="sub">' + val + '</div></td>'
+      + '<td style="text-align:right"><span class="st ' + esc(e.status) + '">' + esc(e.status) + '</span> '
+      + '<button class="iconbtn" title="Detalhes" onclick="verDetalhe(' + e.id + ')"><span class="material-symbols-outlined" style="font-size:20px">visibility</span></button></td>'
+      + '</tr>';
+  }
+
+  function verDetalhe(id) {
+    const e = ITENS.find(x => x.id === id); if (!e) return;
+    EDIT_ID = e.id;
+    document.getElementById('dNome').textContent = e.nome || 'Detalhes';
+    const kv = (k, v) => '<div class="kv"><span class="k">' + k + '</span><span class="v">' + esc(v || '—') + '</span></div>';
+    document.getElementById('dBody').innerHTML =
+        kv('CPF', e.cpf)
+      + kv('Tipo de vínculo', e.tipo_vinculo)
+      + kv('CPF do titular', e.cpf_titular)
+      + kv('Lotação (unidade)', e.unidade)
+      + kv('Código de lotação', e.codigo_lotacao)
+      + kv('Código RH', e.codigo_rh)
+      + kv('Nascimento', e.data_nascimento ? (ddmm(e.data_nascimento) + idade(e.data_nascimento)) : '')
+      + kv('Situação atual', e.status)
+      + kv('Motivo', e.motivo_situacao)
+      + kv('Clínica', e.clinica)
+      + '<label>Alterar situação</label>'
+      + '<select id="dStatus"><option value="">— manter —</option><option value="pendente">Pendente</option><option value="recusado">Recusado</option><option value="ausente">Ausente</option><option value="inelegivel">Inelegível</option></select>'
+      + '<label>Motivo (opcional)</label><input id="dMotivo" placeholder="Ex.: recusou no local" />'
+      + '<div class="msg" id="dMsg"></div>';
+    document.getElementById('drawer').classList.remove('hide');
+  }
+  function fecharDrawer() { document.getElementById('drawer').classList.add('hide'); }
+
+  async function salvarSituacao() {
+    const st = document.getElementById('dStatus').value;
+    const msg = document.getElementById('dMsg');
+    if (!st) { msg.className = 'msg err'; msg.textContent = 'Escolha uma situação (ou feche).'; return; }
+    msg.className = 'msg'; msg.textContent = 'Salvando...';
+    const d = await api('/interno/elegiveis/' + EDIT_ID + '/situacao', 'POST', { status: st, motivo: document.getElementById('dMotivo').value.trim() });
+    if (!d.success) { msg.className = 'msg err'; msg.textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Erro.')); return; }
+    msg.className = 'msg ok'; msg.textContent = 'Situação atualizada!';
+    setTimeout(() => { fecharDrawer(); recarregar(); }, 600);
+  }
+
+  function exportar() { const c = campSelObj(); if (!c) return; window.open('/api/v1/interno/campanhas/' + c.id + '/exportar', '_blank'); }
+
+  iniciar();
+  </script>
+</body>
+</html>
