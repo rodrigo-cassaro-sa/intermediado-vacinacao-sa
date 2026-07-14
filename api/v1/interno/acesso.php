@@ -29,11 +29,42 @@ function rota_criar_grupo(array $params): void
     exigir_csrf();
     $dados = corpo_json();
     $erros = exigir_campos($dados, ['nome']);
+    $sigla = null;
+    if (isset($dados['sigla']) && trim((string) $dados['sigla']) !== '') {
+        $sigla = normalizar_sigla($dados['sigla']);
+        if ($sigla === null) $erros[] = ['field' => 'sigla', 'code' => 'SIGLA_INVALIDA', 'message' => 'Use 3 caracteres (A-Z, 0-9).'];
+    }
     if ($erros) erro_validacao($erros);
-    db_executar("INSERT INTO grupo_empresarial (nome) VALUES (:n)", [':n' => trim($dados['nome'])]);
+    if ($sigla !== null && db_primeiro("SELECT id FROM grupo_empresarial WHERE sigla = :s LIMIT 1", [':s' => $sigla]) !== null) {
+        responder_erro('Sigla já usada por outro grupo.', 409, [['field' => 'sigla', 'code' => 'SIGLA_DUPLICADA', 'message' => 'Escolha uma sigla única.']]);
+    }
+    db_executar("INSERT INTO grupo_empresarial (nome, sigla) VALUES (:n, :s)", [':n' => trim($dados['nome']), ':s' => $sigla]);
     $id = (int) db_ultimo_id();
     registrar_auditoria('grupo.criado', ['ator_tipo' => 'usuario', 'ator_id' => (int) $usuario['id'], 'origem' => 'admin', 'entidade_tipo' => 'grupo_empresarial', 'entidade_id' => $id]);
     responder_sucesso(['grupo_empresarial_id' => $id], 'Grupo criado.', 201);
+}
+
+/** POST /api/v1/interno/grupos/{id}/sigla — define/atualiza a sigla do grupo. */
+function rota_definir_sigla_grupo(array $params): void
+{
+    $usuario = exigir_login();
+    if (!usuario_eh_interno($usuario)) {
+        responder_erro('Sem permissão.', 403, [['field' => null, 'code' => 'SEM_PERMISSAO', 'message' => 'Apenas gestão interna.']]);
+    }
+    exigir_csrf();
+    $id = (int) ($params['id'] ?? 0);
+    $sigla = normalizar_sigla(corpo_json()['sigla'] ?? '');
+    if ($sigla === null) {
+        responder_erro('Sigla inválida.', 422, [['field' => 'sigla', 'code' => 'SIGLA_INVALIDA', 'message' => 'Use 3 caracteres (A-Z, 0-9).']]);
+    }
+    if (db_primeiro("SELECT id FROM grupo_empresarial WHERE id = :id AND excluido_em IS NULL LIMIT 1", [':id' => $id]) === null) {
+        responder_erro('Grupo não encontrado.', 404, [['field' => null, 'code' => 'GRUPO_NAO_ENCONTRADO', 'message' => 'Grupo inexistente.']]);
+    }
+    if (db_primeiro("SELECT id FROM grupo_empresarial WHERE sigla = :s AND id <> :id LIMIT 1", [':s' => $sigla, ':id' => $id]) !== null) {
+        responder_erro('Sigla já usada por outro grupo.', 409, [['field' => 'sigla', 'code' => 'SIGLA_DUPLICADA', 'message' => 'Escolha uma sigla única.']]);
+    }
+    db_executar("UPDATE grupo_empresarial SET sigla = :s WHERE id = :id", [':s' => $sigla, ':id' => $id]);
+    responder_sucesso(['grupo_empresarial_id' => $id, 'sigla' => $sigla], 'Sigla atualizada.');
 }
 
 /** GET /api/v1/interno/grupos */
@@ -43,7 +74,7 @@ function rota_listar_grupos(array $params): void
     if (!usuario_eh_interno($usuario)) {
         responder_erro('Sem permissão.', 403, [['field' => null, 'code' => 'SEM_PERMISSAO', 'message' => 'Apenas gestão interna.']]);
     }
-    responder_sucesso(['itens' => db_todos("SELECT id, nome, status, criado_em FROM grupo_empresarial WHERE excluido_em IS NULL ORDER BY nome")], 'OK.');
+    responder_sucesso(['itens' => db_todos("SELECT id, nome, sigla, status, criado_em FROM grupo_empresarial WHERE excluido_em IS NULL ORDER BY nome")], 'OK.');
 }
 
 /** POST /api/v1/interno/clientes/{id}/grupo  {grupo_empresarial_id} — vincula cliente a grupo. */

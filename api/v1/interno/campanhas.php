@@ -9,7 +9,11 @@ const CAMPANHA_MODALIDADES = ['rede_credenciada', 'in_company'];
 const CAMPANHA_STATUS      = ['rascunho', 'ativa', 'encerrada'];
 const PERFIS_INTERNOS      = ['super_admin', 'operador_interno'];
 
-/** POST /api/v1/interno/campanhas — cria campanha (opcionalmente com vacinas). */
+/**
+ * POST /api/v1/interno/campanhas — cria campanha com CÓDIGO automático (migration 026).
+ * Regra: exatamente 1 vacina por campanha; o código é gerado no formato
+ * VAC.TEMP.MOD.GRP.CLI.SEQ. O campo nome é opcional (rótulo humano).
+ */
 function rota_criar_campanha(array $params): void
 {
     $usuario = exigir_login();
@@ -17,16 +21,23 @@ function rota_criar_campanha(array $params): void
     exigir_csrf();
 
     $dados = corpo_json();
-    $erros = exigir_campos($dados, ['cliente_b2b_id', 'nome', 'modalidade', 'periodo_inicio', 'periodo_fim']);
+    $erros = exigir_campos($dados, ['cliente_b2b_id', 'modalidade', 'periodo_inicio', 'periodo_fim', 'temporada']);
     $erros = array_merge($erros, validar_dados_campanha($dados));
+    if (!isset($dados['temporada']) || !is_numeric($dados['temporada'])
+        || (int) $dados['temporada'] < 2000 || (int) $dados['temporada'] > 2100) {
+        $erros[] = ['field' => 'temporada', 'code' => 'TEMPORADA_INVALIDA', 'message' => 'Informe um ano entre 2000 e 2100.'];
+    }
     if ($erros) {
         erro_validacao($erros);
     }
 
+    $clienteId = (int) $dados['cliente_b2b_id'];
+    $temporada = (int) $dados['temporada'];
+
     // Cliente (tenant) precisa existir e estar ativo.
     $cliente = db_primeiro(
         "SELECT id FROM cliente_b2b WHERE id = :id AND excluido_em IS NULL AND status = 'ativo' LIMIT 1",
-        [':id' => (int) $dados['cliente_b2b_id']]
+        [':id' => $clienteId]
     );
     if ($cliente === null) {
         responder_erro('Cliente B2B inexistente ou inativo.', 422, [
@@ -34,50 +45,110 @@ function rota_criar_campanha(array $params): void
         ]);
     }
 
+    // Exatamente 1 vacina (aceita vacina_id direto ou uma lista de tamanho 1).
     $vacinas = normalizar_vacinas($dados['vacinas'] ?? []);
+    if (!$vacinas && !empty($dados['vacina_id']) && is_numeric($dados['vacina_id'])) {
+        $vacinas = [['vacina_id' => (int) $dados['vacina_id'], 'doses_previstas' => 1]];
+    }
+    if (count($vacinas) !== 1) {
+        responder_erro('Informe exatamente uma vacina.', 422, [
+            ['field' => 'vacina_id', 'code' => 'VACINA_UNICA', 'message' => 'A campanha deve ter exatamente uma vacina.'],
+        ]);
+    }
+    $vacinaId = $vacinas[0]['vacina_id'];
 
-    try {
-        pdo()->beginTransaction();
+    // Monta o prefixo do código (valida presença das siglas — 422 se faltar).
+    $prefixo = prefixo_codigo_campanha($clienteId, $vacinaId, $dados['modalidade'], $temporada);
+    $nome = isset($dados['nome']) && trim((string) $dados['nome']) !== '' ? trim($dados['nome']) : null;
 
-        db_executar(
-            "INSERT INTO campanha (tenant_id, nome, modalidade, periodo_inicio, periodo_fim, status, criado_por)
-             VALUES (:tenant_id, :nome, :modalidade, :inicio, :fim, :status, :criado_por)",
-            [
-                ':tenant_id'  => (int) $dados['cliente_b2b_id'],
-                ':nome'       => trim($dados['nome']),
-                ':modalidade' => $dados['modalidade'],
-                ':inicio'     => $dados['periodo_inicio'],
-                ':fim'        => $dados['periodo_fim'],
-                ':status'     => $dados['status'] ?? 'rascunho',
-                ':criado_por' => (int) $usuario['id'],
-            ]
-        );
-        $campanhaId = (int) db_ultimo_id();
-
-        gravar_vacinas_campanha($campanhaId, (int) $dados['cliente_b2b_id'], $vacinas);
-
-        pdo()->commit();
-    } catch (Throwable $e) {
-        if (pdo()->inTransaction()) {
-            pdo()->rollBack();
+    // Grava com retry: o índice único uq_campanha_codigo protege contra corrida.
+    $campanhaId = 0;
+    $codigo = '';
+    for ($tentativa = 0; $tentativa < 5; $tentativa++) {
+        $seq = proxima_seq_codigo($prefixo);
+        $codigo = $prefixo . '.' . $seq;
+        try {
+            pdo()->beginTransaction();
+            db_executar(
+                "INSERT INTO campanha (tenant_id, nome, codigo, temporada, seq, modalidade, periodo_inicio, periodo_fim, status, criado_por)
+                 VALUES (:tenant_id, :nome, :codigo, :temporada, :seq, :modalidade, :inicio, :fim, :status, :criado_por)",
+                [
+                    ':tenant_id'  => $clienteId,
+                    ':nome'       => $nome,
+                    ':codigo'     => $codigo,
+                    ':temporada'  => $temporada,
+                    ':seq'        => $seq,
+                    ':modalidade' => $dados['modalidade'],
+                    ':inicio'     => $dados['periodo_inicio'],
+                    ':fim'        => $dados['periodo_fim'],
+                    ':status'     => $dados['status'] ?? 'rascunho',
+                    ':criado_por' => (int) $usuario['id'],
+                ]
+            );
+            $campanhaId = (int) db_ultimo_id();
+            gravar_vacinas_campanha($campanhaId, $clienteId, $vacinas);
+            pdo()->commit();
+            break;
+        } catch (PDOException $e) {
+            if (pdo()->inTransaction()) {
+                pdo()->rollBack();
+            }
+            // 1062 = entrada duplicada (código colidiu numa corrida) => tenta o próximo SEQ.
+            if ((int) ($e->errorInfo[1] ?? 0) === 1062 && $tentativa < 4) {
+                continue;
+            }
+            throw $e;
         }
-        throw $e;
     }
 
     registrar_auditoria('campanha.criada', [
-        'tenant_id'     => (int) $dados['cliente_b2b_id'],
+        'tenant_id'     => $clienteId,
         'ator_tipo'     => 'usuario',
         'ator_id'       => (int) $usuario['id'],
         'origem'        => 'admin',
         'entidade_tipo' => 'campanha',
         'entidade_id'   => $campanhaId,
+        'metadata'      => ['codigo' => $codigo],
     ]);
 
     responder_sucesso(
-        ['campanha_id' => $campanhaId, 'vacinas_vinculadas' => count($vacinas)],
+        ['campanha_id' => $campanhaId, 'codigo' => $codigo, 'temporada' => $temporada],
         'Campanha criada.',
         201
     );
+}
+
+/** POST /api/v1/interno/vacinas/{id}/sigla — define/atualiza a sigla da vacina. */
+function rota_definir_sigla_vacina(array $params): void
+{
+    $usuario = exigir_login();
+    exigir_perfil($usuario, PERFIS_INTERNOS);
+    exigir_csrf();
+
+    $id = (int) ($params['id'] ?? 0);
+    $dados = corpo_json();
+    $sigla = normalizar_sigla($dados['sigla'] ?? '');
+    if ($sigla === null) {
+        responder_erro('Sigla inválida.', 422, [
+            ['field' => 'sigla', 'code' => 'SIGLA_INVALIDA', 'message' => 'Use 3 caracteres (A-Z, 0-9).'],
+        ]);
+    }
+
+    $vac = db_primeiro("SELECT id FROM vacina WHERE id = :id LIMIT 1", [':id' => $id]);
+    if ($vac === null) {
+        responder_erro('Vacina não encontrada.', 404, [
+            ['field' => null, 'code' => 'VACINA_NAO_ENCONTRADA', 'message' => 'Vacina inexistente.'],
+        ]);
+    }
+    $dup = db_primeiro("SELECT id FROM vacina WHERE sigla = :s AND id <> :id LIMIT 1", [':s' => $sigla, ':id' => $id]);
+    if ($dup !== null) {
+        responder_erro('Sigla já usada por outra vacina.', 409, [
+            ['field' => 'sigla', 'code' => 'SIGLA_DUPLICADA', 'message' => 'Escolha uma sigla única.'],
+        ]);
+    }
+
+    db_executar("UPDATE vacina SET sigla = :s WHERE id = :id", [':s' => $sigla, ':id' => $id]);
+    responder_sucesso(['vacina_id' => $id, 'sigla' => $sigla], 'Sigla atualizada.');
 }
 
 /** GET /api/v1/interno/campanhas — lista campanhas do escopo. */
@@ -109,7 +180,7 @@ function rota_listar_campanhas(array $params): void
 
     $itens = db_todos(
         "SELECT c.id, c.tenant_id AS cliente_b2b_id, cb.razao_social AS cliente,
-                c.nome, c.modalidade, c.periodo_inicio, c.periodo_fim, c.status, c.criado_em
+                c.codigo, c.temporada, c.nome, c.modalidade, c.periodo_inicio, c.periodo_fim, c.status, c.criado_em
            FROM campanha c
            JOIN cliente_b2b cb ON cb.id = c.tenant_id
           WHERE $where
@@ -143,6 +214,8 @@ function rota_obter_campanha(array $params): void
         'campanha' => [
             'id'             => (int) $campanha['id'],
             'cliente_b2b_id' => (int) $campanha['tenant_id'],
+            'codigo'         => $campanha['codigo'] ?? null,
+            'temporada'      => isset($campanha['temporada']) ? (int) $campanha['temporada'] : null,
             'nome'           => $campanha['nome'],
             'modalidade'     => $campanha['modalidade'],
             'periodo_inicio' => $campanha['periodo_inicio'],
@@ -320,7 +393,7 @@ function rota_listar_vacinas(array $params): void
 {
     exigir_login();
     $itens = db_todos(
-        "SELECT id, nome, fabricante, doses_padrao
+        "SELECT id, nome, sigla, fabricante, doses_padrao
            FROM vacina WHERE status = 'ativa' ORDER BY nome"
     );
     responder_sucesso(['itens' => $itens], 'OK.');

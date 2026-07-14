@@ -28,6 +28,7 @@ return [
     'GET  /api/v1/interno/acesso/eu'                => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_acesso_eu'],
     'POST /api/v1/interno/grupos'                   => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_criar_grupo'],
     'GET  /api/v1/interno/grupos'                   => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_listar_grupos'],
+    'POST /api/v1/interno/grupos/{id}/sigla'        => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_definir_sigla_grupo'],
     'POST /api/v1/interno/clientes/{id}/grupo'      => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_vincular_cliente_grupo'],
     'POST /api/v1/interno/clientes/{id}/unidades'   => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_criar_unidade'],
     'GET  /api/v1/interno/clientes/{id}/unidades'   => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_listar_unidades'],
@@ -39,6 +40,7 @@ return [
     // --- Clientes B2B (tenants) ---
     'POST /api/v1/interno/clientes' => ['arquivo' => 'interno/clientes.php', 'funcao' => 'rota_criar_cliente'],
     'GET  /api/v1/interno/clientes' => ['arquivo' => 'interno/clientes.php', 'funcao' => 'rota_listar_clientes'],
+    'POST /api/v1/interno/clientes/{id}/sigla' => ['arquivo' => 'interno/clientes.php', 'funcao' => 'rota_definir_sigla_cliente'],
 
     // --- Clínicas da rede credenciada + atribuição (RN-012) ---
     'POST /api/v1/interno/clinicas' => ['arquivo' => 'interno/clinicas.php', 'funcao' => 'rota_criar_clinica'],
@@ -75,6 +77,7 @@ return [
 
     // --- Catálogo de vacinas ---
     'GET  /api/v1/interno/vacinas' => ['arquivo' => 'interno/campanhas.php', 'funcao' => 'rota_listar_vacinas'],
+    'POST /api/v1/interno/vacinas/{id}/sigla' => ['arquivo' => 'interno/campanhas.php', 'funcao' => 'rota_definir_sigla_vacina'],
 
     // --- Campanhas (RN-001) ---
     'POST /api/v1/interno/campanhas'                => ['arquivo' => 'interno/campanhas.php', 'funcao' => 'rota_criar_campanha'],

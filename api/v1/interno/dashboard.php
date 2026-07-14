@@ -98,7 +98,7 @@ function rota_dashboard_visao_geral(array $params): void
 
     // --- 3) Lista de campanhas (a selecionada, ou as ativas/planejadas) -----
     if ($modoUnico) {
-        $sqlCamp = "SELECT c.id, c.nome, c.status, c.periodo_inicio, c.periodo_fim, cb.razao_social AS cliente,
+        $sqlCamp = "SELECT c.id, c.codigo, c.temporada, c.nome, c.status, c.periodo_inicio, c.periodo_fim, cb.razao_social AS cliente,
                            (SELECT COUNT(*) FROM elegivel e WHERE e.campanha_id = c.id) AS elegiveis,
                            (SELECT COUNT(*) FROM elegivel e WHERE e.campanha_id = c.id AND e.status = 'aplicado') AS aplicados
                       FROM campanha c
@@ -106,7 +106,7 @@ function rota_dashboard_visao_geral(array $params): void
                      WHERE c.id = :camp";
         $bindCamp = [':camp' => $campanhaId];
     } else {
-        $sqlCamp = "SELECT c.id, c.nome, c.status, c.periodo_inicio, c.periodo_fim, cb.razao_social AS cliente,
+        $sqlCamp = "SELECT c.id, c.codigo, c.temporada, c.nome, c.status, c.periodo_inicio, c.periodo_fim, cb.razao_social AS cliente,
                            (SELECT COUNT(*) FROM elegivel e WHERE e.campanha_id = c.id) AS elegiveis,
                            (SELECT COUNT(*) FROM elegivel e WHERE e.campanha_id = c.id AND e.status = 'aplicado') AS aplicados
                       FROM campanha c

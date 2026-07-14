@@ -148,6 +148,13 @@
     .modal .vacs input { width: auto; }
     .modal .msg { font-size: 12px; min-height: 16px; margin-top: 10px; }
     .modal .msg.err { color: var(--err); } .modal .msg.ok { color: var(--acc2); font-weight: 600; }
+    .modal .cli { font-size: 11px; color: var(--muted); }
+    .modal .siglawarn { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--warn, #c77a0a); background: #fff7ec; border: 1px solid var(--warn, #c77a0a); border-radius: 8px; padding: 8px 10px; margin-top: 8px; }
+    .modal .siglawarn .sinp { width: 72px; text-transform: uppercase; padding: 6px 8px; }
+    .modal .mini { padding: 6px 10px; border-radius: 6px; border: 0; background: var(--pri); color: #fff; font: inherit; font-weight: 600; font-size: 12px; cursor: pointer; }
+    .modal .mini:hover { background: var(--pri2); }
+    .modal .preview { margin-top: 14px; padding: 12px; background: var(--surface-2); border: 1px dashed var(--line); border-radius: 8px; font-size: 14px; }
+    .modal .preview b { color: var(--pri); font-weight: 700; letter-spacing: .02em; }
     .modal .mfoot { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--line); }
 
     /* ---- Responsive ---------------------------------------------------- */
@@ -186,22 +193,21 @@
       </div>
       <div class="mbody">
         <label>Cliente</label>
-        <select id="fCliente"></select>
-        <label>Nome da campanha</label>
-        <input id="fNome" placeholder="Ex.: Gripe (Influenza) 2026" />
+        <select id="fCliente" onchange="onFormChange()"></select>
+        <div id="avisoCli" class="siglawarn hide">Cliente sem sigla — <input id="siglaCli" maxlength="3" placeholder="ABC" class="sinp" /> <button class="mini" onclick="salvarSiglaCliente()">definir</button></div>
+        <div id="avisoGrp" class="siglawarn hide">Grupo sem sigla — <input id="siglaGrp" maxlength="3" placeholder="ABC" class="sinp" /> <button class="mini" onclick="salvarSiglaGrupo()">definir</button></div>
+
+        <label>Vacina</label>
+        <select id="fVacina" onchange="onFormChange()"></select>
+        <div id="avisoVac" class="siglawarn hide">Vacina sem sigla — <input id="siglaVac" maxlength="3" placeholder="ABC" class="sinp" /> <button class="mini" onclick="salvarSiglaVacina()">definir</button></div>
+
         <div class="grid2">
+          <div><label>Temporada (ano)</label><input type="number" id="fTemporada" min="2000" max="2100" oninput="onFormChange()" /></div>
           <div>
             <label>Modalidade</label>
-            <select id="fModalidade">
-              <option value="rede_credenciada">Rede credenciada</option>
-              <option value="in_company">In company</option>
-            </select>
-          </div>
-          <div>
-            <label>Status inicial</label>
-            <select id="fStatus">
-              <option value="rascunho">Rascunho</option>
-              <option value="ativa">Ativa</option>
+            <select id="fModalidade" onchange="onFormChange()">
+              <option value="in_company">In company (IC)</option>
+              <option value="rede_credenciada">Rede credenciada (RC)</option>
             </select>
           </div>
         </div>
@@ -209,8 +215,18 @@
           <div><label>Início</label><input type="date" id="fInicio" /></div>
           <div><label>Fim</label><input type="date" id="fFim" /></div>
         </div>
-        <label>Vacinas (opcional)</label>
-        <div class="vacs" id="fVacinas"></div>
+        <div class="grid2">
+          <div>
+            <label>Status inicial</label>
+            <select id="fStatus">
+              <option value="rascunho">Rascunho</option>
+              <option value="ativa">Ativa</option>
+            </select>
+          </div>
+          <div><label>Rótulo (opcional)</label><input id="fNome" placeholder="nome amigável" /></div>
+        </div>
+
+        <div class="preview">Código gerado: <b id="codPreview">—</b> <span class="cli">(a sequência é definida ao salvar)</span></div>
         <div class="msg" id="novaMsg"></div>
       </div>
       <div class="mfoot">
@@ -354,7 +370,7 @@
     const sel = document.getElementById('campSel');
     const atual = sel.value;
     sel.innerHTML = '<option value="">Todas as campanhas</option>'
-      + (d.data.itens || []).map(c => '<option value="' + c.id + '">' + c.nome + ' — ' + (c.cliente || '') + ' (' + c.status + ')</option>').join('');
+      + (d.data.itens || []).map(c => '<option value="' + c.id + '">' + (c.codigo || c.nome || ('#' + c.id)) + ' — ' + (c.cliente || '') + ' (' + c.status + ')</option>').join('');
     sel.value = atual;
     CAMP_CARREGADAS = true;
   }
@@ -385,37 +401,81 @@
     }
   }
 
-  // ---- Modal: nova campanha -------------------------------------------------
+  // ---- Modal: nova campanha (código automático) -----------------------------
+  let CLIENTES = [], VACINAS = [];
+  const clienteSel = () => CLIENTES.find(c => String(c.id) === document.getElementById('fCliente').value) || null;
+  const vacinaSel  = () => VACINAS.find(v => String(v.id) === document.getElementById('fVacina').value) || null;
+
   async function abrirNova() {
-    const msg = document.getElementById('novaMsg');
-    msg.className = 'msg'; msg.textContent = '';
+    const msg = document.getElementById('novaMsg'); msg.className = 'msg'; msg.textContent = '';
     const [cli, vac] = await Promise.all([api('/interno/clientes'), api('/interno/vacinas')]);
-    document.getElementById('fCliente').innerHTML = (cli.success && (cli.data.itens || []).length)
-      ? cli.data.itens.map(c => '<option value="' + c.id + '">' + c.razao_social + '</option>').join('')
+    CLIENTES = (cli.success && cli.data.itens) ? cli.data.itens : [];
+    VACINAS  = (vac.success && vac.data.itens) ? vac.data.itens : [];
+    document.getElementById('fCliente').innerHTML = CLIENTES.length
+      ? CLIENTES.map(c => '<option value="' + c.id + '">' + c.razao_social + (c.sigla ? ' [' + c.sigla + ']' : '') + '</option>').join('')
       : '<option value="">(nenhum cliente no seu escopo)</option>';
-    document.getElementById('fVacinas').innerHTML = (vac.success && (vac.data.itens || []).length)
-      ? vac.data.itens.map(v => '<label><input type="checkbox" value="' + v.id + '" data-doses="' + (v.doses_padrao || 1) + '"> ' + v.nome + '</label>').join('')
-      : '<span class="cli">Nenhuma vacina cadastrada.</span>';
+    document.getElementById('fVacina').innerHTML = VACINAS.length
+      ? VACINAS.map(v => '<option value="' + v.id + '">' + v.nome + (v.sigla ? ' [' + v.sigla + ']' : '') + '</option>').join('')
+      : '<option value="">(nenhuma vacina)</option>';
+    if (!document.getElementById('fTemporada').value) document.getElementById('fTemporada').value = new Date().getFullYear();
+    onFormChange();
     document.getElementById('modalNova').classList.remove('hide');
   }
 
   function fecharNova() { document.getElementById('modalNova').classList.add('hide'); }
 
+  // Atualiza o preview do código e mostra avisos de sigla faltante.
+  function onFormChange() {
+    const c = clienteSel(), v = vacinaSel();
+    const temp = document.getElementById('fTemporada').value || '????';
+    const mod = document.getElementById('fModalidade').value === 'in_company' ? 'IC' : 'RC';
+    const vSig = v && v.sigla ? v.sigla : '???';
+    const cSig = c && c.sigla ? c.sigla : '???';
+    const gSig = c ? (c.grupo_sigla || c.sigla || '???') : '???';
+    document.getElementById('codPreview').textContent = vSig + '.' + temp + '.' + mod + '.' + gSig + '.' + cSig + '.?';
+    document.getElementById('avisoCli').classList.toggle('hide', !(c && !c.sigla));
+    document.getElementById('avisoVac').classList.toggle('hide', !(v && !v.sigla));
+    document.getElementById('avisoGrp').classList.toggle('hide', !(c && c.grupo_empresarial_id && !c.grupo_sigla));
+  }
+
+  function siglaErro(d) {
+    const msg = document.getElementById('novaMsg'); msg.className = 'msg err';
+    msg.textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Não foi possível salvar a sigla.'));
+  }
+  async function salvarSiglaCliente() {
+    const c = clienteSel(); if (!c) return;
+    const d = await api('/interno/clientes/' + c.id + '/sigla', 'POST', { sigla: document.getElementById('siglaCli').value });
+    if (!d.success) return siglaErro(d);
+    c.sigla = d.data.sigla; document.getElementById('novaMsg').textContent = ''; onFormChange();
+  }
+  async function salvarSiglaVacina() {
+    const v = vacinaSel(); if (!v) return;
+    const d = await api('/interno/vacinas/' + v.id + '/sigla', 'POST', { sigla: document.getElementById('siglaVac').value });
+    if (!d.success) return siglaErro(d);
+    v.sigla = d.data.sigla; document.getElementById('novaMsg').textContent = ''; onFormChange();
+  }
+  async function salvarSiglaGrupo() {
+    const c = clienteSel(); if (!c || !c.grupo_empresarial_id) return;
+    const d = await api('/interno/grupos/' + c.grupo_empresarial_id + '/sigla', 'POST', { sigla: document.getElementById('siglaGrp').value });
+    if (!d.success) return siglaErro(d);
+    c.grupo_sigla = d.data.sigla; document.getElementById('novaMsg').textContent = ''; onFormChange();
+  }
+
   async function salvarNova() {
     const msg = document.getElementById('novaMsg');
-    const vacinas = [...document.querySelectorAll('#fVacinas input:checked')]
-      .map(i => ({ vacina_id: Number(i.value), doses_previstas: Number(i.dataset.doses) || 1 }));
+    const c = clienteSel(), v = vacinaSel();
     const body = {
-      cliente_b2b_id: Number(document.getElementById('fCliente').value || 0),
-      nome:           document.getElementById('fNome').value.trim(),
+      cliente_b2b_id: c ? Number(c.id) : 0,
+      vacina_id:      v ? Number(v.id) : 0,
+      temporada:      Number(document.getElementById('fTemporada').value || 0),
       modalidade:     document.getElementById('fModalidade').value,
       periodo_inicio: document.getElementById('fInicio').value,
       periodo_fim:    document.getElementById('fFim').value,
       status:         document.getElementById('fStatus').value,
-      vacinas,
+      nome:           document.getElementById('fNome').value.trim(),
     };
-    if (!body.cliente_b2b_id || !body.nome || !body.periodo_inicio || !body.periodo_fim) {
-      msg.className = 'msg err'; msg.textContent = 'Preencha cliente, nome e o período (início e fim).'; return;
+    if (!body.cliente_b2b_id || !body.vacina_id || !body.temporada || !body.periodo_inicio || !body.periodo_fim) {
+      msg.className = 'msg err'; msg.textContent = 'Preencha cliente, vacina, temporada e o período (início e fim).'; return;
     }
     if (body.periodo_fim < body.periodo_inicio) {
       msg.className = 'msg err'; msg.textContent = 'A data fim não pode ser anterior ao início.'; return;
@@ -427,15 +487,14 @@
       msg.textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Não foi possível criar a campanha.'));
       return;
     }
-    msg.className = 'msg ok'; msg.textContent = 'Campanha criada com sucesso!';
+    msg.className = 'msg ok'; msg.textContent = 'Campanha criada: ' + d.data.codigo;
     setTimeout(async () => {
       fecharNova();
       document.getElementById('fNome').value = '';
-      document.querySelectorAll('#fVacinas input:checked').forEach(i => i.checked = false);
       await carregarCampanhas(); // repopula o dropdown já com a nova campanha
       document.getElementById('campSel').value = String(d.data.campanha_id || '');
       await carregar();          // abre a dashboard filtrada na campanha criada
-    }, 700);
+    }, 900);
   }
 
   function render(x) {
@@ -475,7 +534,7 @@
       const [rot, cls] = CHIP[c.situacao] || ['—', 'plan'];
       const fim = c.situacao === 'planejada' ? ('Início: ' + ddmm(c.periodo_inicio)) : ('Fim: ' + ddmm(c.periodo_fim));
       return '<div class="camp">'
-        + '<div class="top"><div><div class="nm">' + c.nome + '</div><div class="cli">' + (c.cliente || '') + '</div></div>'
+        + '<div class="top"><div><div class="nm">' + (c.codigo || c.nome || ('#' + c.id)) + '</div><div class="cli">' + (c.cliente || '') + '</div></div>'
         + '<span class="chip ' + cls + '">' + rot + '</span></div>'
         + '<div class="cbar"><span class="' + cls + '" style="width:' + Math.max(2, c.cobertura) + '%"></span></div>'
         + '<div class="meta"><span>' + pct(c.cobertura) + '% de cobertura</span><span>' + fim + '</span></div>'
