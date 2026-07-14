@@ -53,9 +53,11 @@
     .pagehead { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
     .pagehead h1 { font-size: 32px; font-weight: 700; letter-spacing: -.02em; margin: 0; color: var(--txt); }
     .pagehead p { margin: 6px 0 0; color: var(--muted); }
-    .actions { display: flex; gap: 8px; align-items: center; }
+    .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .who { color: var(--muted); font-size: 13px; margin-right: 4px; }
     .who b { color: var(--txt); }
+    .sel { padding: 9px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--txt); font: inherit; font-weight: 500; cursor: pointer; max-width: 280px; }
+    .sel:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
     .btn {
       display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
       padding: 10px 16px; border-radius: 8px; font: inherit; font-weight: 600; border: 0;
@@ -189,6 +191,9 @@
         </div>
         <div class="actions">
           <span class="who">Olá, <b id="quem">—</b></span>
+          <select class="sel" id="campSel" onchange="carregar()" title="Filtrar por campanha">
+            <option value="">Todas as campanhas</option>
+          </select>
           <button class="btn sec" onclick="carregar()"><span class="material-symbols-outlined">refresh</span> Atualizar</button>
           <button class="btn sec" onclick="sair()"><span class="material-symbols-outlined">logout</span> Sair</button>
         </div>
@@ -243,6 +248,7 @@
   // Mesma origem: cookie de sessão automático; CSRF só nas mutações (logout).
   // ---------------------------------------------------------------------------
   let CSRF = null;
+  let CAMP_CARREGADAS = false;
 
   async function api(path, metodo = 'GET', corpo = null) {
     const opts = { method: metodo, headers: {}, credentials: 'same-origin' };
@@ -274,11 +280,25 @@
   async function sair() {
     await api('/interno/auth/logout', 'POST', {});
     CSRF = null;
+    CAMP_CARREGADAS = false;
     document.getElementById('login').classList.remove('hide');
   }
 
+  // Popula o dropdown com as campanhas do escopo (uma vez por sessão).
+  async function carregarCampanhas() {
+    const d = await api('/interno/campanhas?por_pagina=100');
+    if (!d.success) return;
+    const sel = document.getElementById('campSel');
+    const atual = sel.value;
+    sel.innerHTML = '<option value="">Todas as campanhas</option>'
+      + (d.data.itens || []).map(c => '<option value="' + c.id + '">' + c.nome + ' — ' + (c.cliente || '') + ' (' + c.status + ')</option>').join('');
+    sel.value = atual;
+    CAMP_CARREGADAS = true;
+  }
+
   async function carregar() {
-    const d = await api('/interno/dashboard');
+    const cid = document.getElementById('campSel').value;
+    const d = await api('/interno/dashboard' + (cid ? ('?campanha_id=' + cid) : ''));
     if (d.http === 401) { document.getElementById('login').classList.remove('hide'); return; }
     document.getElementById('login').classList.add('hide');
     if (d.http === 403) {
@@ -286,7 +306,11 @@
       return;
     }
     if (!d.success) return;
+    document.getElementById('subtitulo').textContent = cid
+      ? 'Métricas da campanha selecionada.'
+      : 'Métricas consolidadas das campanhas ativas do seu escopo.';
     render(d.data);
+    if (!CAMP_CARREGADAS) await carregarCampanhas();
     const eu = await api('/interno/auth/eu');
     if (eu.success) document.getElementById('quem').textContent = eu.data.usuario.nome || '—';
   }
@@ -322,7 +346,7 @@
     }).join('') || '<div class="empty">Sem vacinações no período.</div>';
 
     // Campanhas.
-    const CHIP = { em_andamento: ['Em andamento', 'ok'], atrasada: ['Atrasada', 'late'], planejada: ['Planejada', 'plan'] };
+    const CHIP = { em_andamento: ['Em andamento', 'ok'], atrasada: ['Atrasada', 'late'], planejada: ['Planejada', 'plan'], encerrada: ['Encerrada', 'plan'] };
     const camps = x.campanhas || [];
     document.getElementById('camps').innerHTML = camps.length ? camps.map(c => {
       const [rot, cls] = CHIP[c.situacao] || ['—', 'plan'];

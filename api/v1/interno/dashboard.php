@@ -29,16 +29,30 @@ function rota_dashboard_visao_geral(array $params): void
         $tFiltro = ' AND c.tenant_id IN (' . implode(',', $ph) . ')';
     }
 
-    // --- 1) Métricas: elegíveis das campanhas ATIVAS no escopo --------------
+    // --- Filtro opcional por campanha ---------------------------------------
+    // Sem ?campanha_id => agrega TODAS as campanhas ativas do escopo.
+    // Com ?campanha_id => valida o acesso e restringe tudo àquela campanha.
+    $campanhaId = null;
+    if (isset($_GET['campanha_id']) && is_numeric($_GET['campanha_id'])) {
+        $campanhaId = (int) $_GET['campanha_id'];
+        exigir_campanha_do_usuario($usuario, $campanhaId); // 403/404 se fora do escopo
+    }
+    $modoUnico = $campanhaId !== null;
+
+    // --- 1) Métricas: elegíveis (da campanha, ou de todas as ATIVAS) --------
     $porStatus = ['pendente' => 0, 'aplicado' => 0, 'recusado' => 0, 'inelegivel' => 0, 'ausente' => 0, 'expirado' => 0, 'removido' => 0];
-    foreach (db_todos(
-        "SELECT e.status, COUNT(*) AS c
-           FROM elegivel e
-           JOIN campanha c ON c.id = e.campanha_id
-          WHERE c.status = 'ativa' AND c.excluido_em IS NULL$tFiltro
-          GROUP BY e.status",
-        $tBind
-    ) as $r) {
+    if ($modoUnico) {
+        $sqlMetrica = "SELECT e.status, COUNT(*) AS c FROM elegivel e WHERE e.campanha_id = :camp GROUP BY e.status";
+        $bindMetrica = [':camp' => $campanhaId];
+    } else {
+        $sqlMetrica = "SELECT e.status, COUNT(*) AS c
+                         FROM elegivel e
+                         JOIN campanha c ON c.id = e.campanha_id
+                        WHERE c.status = 'ativa' AND c.excluido_em IS NULL$tFiltro
+                        GROUP BY e.status";
+        $bindMetrica = $tBind;
+    }
+    foreach (db_todos($sqlMetrica, $bindMetrica) as $r) {
         $porStatus[$r['status']] = (int) $r['c'];
     }
     $totalElegiveis = array_sum($porStatus);
@@ -55,14 +69,21 @@ function rota_dashboard_visao_geral(array $params): void
         $meses[$ym] = ['ym' => $ym, 'mes' => $rotulos[(int) date('n', $ts)], 'aplicacoes' => 0];
     }
     $inicioSerie = array_key_first($meses) . '-01';
-    foreach (db_todos(
-        "SELECT DATE_FORMAT(a.aplicado_em, '%Y-%m') AS ym, COUNT(*) AS c
-           FROM aplicacao a
-           JOIN campanha c ON c.id = a.campanha_id
-          WHERE a.status = 'confirmada' AND a.aplicado_em >= :ini$tFiltro
-          GROUP BY ym",
-        array_merge([':ini' => $inicioSerie], $tBind)
-    ) as $r) {
+    if ($modoUnico) {
+        $sqlEvo = "SELECT DATE_FORMAT(a.aplicado_em, '%Y-%m') AS ym, COUNT(*) AS c
+                     FROM aplicacao a
+                    WHERE a.status = 'confirmada' AND a.aplicado_em >= :ini AND a.campanha_id = :camp
+                    GROUP BY ym";
+        $bindEvo = [':ini' => $inicioSerie, ':camp' => $campanhaId];
+    } else {
+        $sqlEvo = "SELECT DATE_FORMAT(a.aplicado_em, '%Y-%m') AS ym, COUNT(*) AS c
+                     FROM aplicacao a
+                     JOIN campanha c ON c.id = a.campanha_id
+                    WHERE a.status = 'confirmada' AND a.aplicado_em >= :ini$tFiltro
+                    GROUP BY ym";
+        $bindEvo = array_merge([':ini' => $inicioSerie], $tBind);
+    }
+    foreach (db_todos($sqlEvo, $bindEvo) as $r) {
         if (isset($meses[$r['ym']])) {
             $meses[$r['ym']]['aplicacoes'] = (int) $r['c'];
         }
@@ -75,18 +96,27 @@ function rota_dashboard_visao_geral(array $params): void
     $mesAnterior  = $n >= 2 ? $evolucao[$n - 2]['aplicacoes'] : 0;
     $deltaPct     = $mesAnterior > 0 ? round(($mesAtual - $mesAnterior) * 100 / $mesAnterior, 1) : null;
 
-    // --- 3) Campanhas ativas/planejadas no escopo ---------------------------
-    $campanhas = db_todos(
-        "SELECT c.id, c.nome, c.status, c.periodo_inicio, c.periodo_fim, cb.razao_social AS cliente,
-                (SELECT COUNT(*) FROM elegivel e WHERE e.campanha_id = c.id) AS elegiveis,
-                (SELECT COUNT(*) FROM elegivel e WHERE e.campanha_id = c.id AND e.status = 'aplicado') AS aplicados
-           FROM campanha c
-           JOIN cliente_b2b cb ON cb.id = c.tenant_id
-          WHERE c.excluido_em IS NULL AND c.status IN ('ativa', 'rascunho')$tFiltro
-          ORDER BY FIELD(c.status, 'ativa', 'rascunho'), c.periodo_fim ASC
-          LIMIT 8",
-        $tBind
-    );
+    // --- 3) Lista de campanhas (a selecionada, ou as ativas/planejadas) -----
+    if ($modoUnico) {
+        $sqlCamp = "SELECT c.id, c.nome, c.status, c.periodo_inicio, c.periodo_fim, cb.razao_social AS cliente,
+                           (SELECT COUNT(*) FROM elegivel e WHERE e.campanha_id = c.id) AS elegiveis,
+                           (SELECT COUNT(*) FROM elegivel e WHERE e.campanha_id = c.id AND e.status = 'aplicado') AS aplicados
+                      FROM campanha c
+                      JOIN cliente_b2b cb ON cb.id = c.tenant_id
+                     WHERE c.id = :camp";
+        $bindCamp = [':camp' => $campanhaId];
+    } else {
+        $sqlCamp = "SELECT c.id, c.nome, c.status, c.periodo_inicio, c.periodo_fim, cb.razao_social AS cliente,
+                           (SELECT COUNT(*) FROM elegivel e WHERE e.campanha_id = c.id) AS elegiveis,
+                           (SELECT COUNT(*) FROM elegivel e WHERE e.campanha_id = c.id AND e.status = 'aplicado') AS aplicados
+                      FROM campanha c
+                      JOIN cliente_b2b cb ON cb.id = c.tenant_id
+                     WHERE c.excluido_em IS NULL AND c.status IN ('ativa', 'rascunho')$tFiltro
+                     ORDER BY FIELD(c.status, 'ativa', 'rascunho'), c.periodo_fim ASC
+                     LIMIT 8";
+        $bindCamp = $tBind;
+    }
+    $campanhas = db_todos($sqlCamp, $bindCamp);
     $hoje = date('Y-m-d');
     $ativas = 0;
     foreach ($campanhas as &$c) {
@@ -96,6 +126,8 @@ function rota_dashboard_visao_geral(array $params): void
         $c['cobertura'] = $eleg > 0 ? round($c['aplicados'] * 100 / $eleg, 1) : 0;
         if ($c['status'] === 'rascunho') {
             $c['situacao'] = 'planejada';
+        } elseif ($c['status'] === 'encerrada') {
+            $c['situacao'] = 'encerrada';
         } elseif ($c['periodo_fim'] < $hoje) {
             $c['situacao'] = 'atrasada';
             $ativas++;
@@ -107,6 +139,7 @@ function rota_dashboard_visao_geral(array $params): void
     unset($c);
 
     responder_sucesso([
+        'campanha_id'            => $campanhaId,
         'total_elegiveis'        => $totalElegiveis,
         'total_vacinados'        => $vacinados,
         'pendentes'              => $pendentes,
