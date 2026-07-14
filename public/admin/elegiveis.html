@@ -105,8 +105,17 @@
     .drawer .kv .k { color: var(--muted); font-size: 13px; }
     .drawer .kv .v { font-weight: 600; text-align: right; }
     .drawer label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 4px; }
-    .drawer select, .drawer input { width: 100%; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; color: var(--txt); font: inherit; }
+    .drawer select, .drawer input, .drawer textarea { width: 100%; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; color: var(--txt); font: inherit; }
+    .drawer select:focus, .drawer input:focus, .drawer textarea:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
+    .drawer .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .drawer .hint { font-size: 12px; color: var(--muted); background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 4px 0; }
+    .drawer .chk { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+    .drawer .chk input { width: auto; }
+    .tabs { display: flex; gap: 4px; margin-bottom: 12px; background: var(--surface-2); padding: 4px; border-radius: 8px; }
+    .tabs button { flex: 1; padding: 8px; border: 0; background: none; border-radius: 6px; font: inherit; font-weight: 600; color: var(--muted); cursor: pointer; }
+    .tabs button.on { background: var(--card); color: var(--pri); box-shadow: var(--sombra); }
     .drawer .msg { font-size: 12px; min-height: 16px; margin-top: 10px; }
+    .drawer .msg a { color: var(--pri); font-weight: 600; }
     .drawer .msg.err { color: var(--err); } .drawer .msg.ok { color: var(--acc2); font-weight: 600; }
     .drawer .dfoot { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--line); background: var(--surface-2); }
 
@@ -169,6 +178,8 @@
         <div class="actions">
           <span class="who">Olá, <b id="quem">—</b></span>
           <select class="sel" id="campSel" onchange="trocarCampanha()"><option value="">— selecione a campanha —</option></select>
+          <button class="btn primary" onclick="abrirAdd('form')"><span class="material-symbols-outlined">person_add</span> Adicionar</button>
+          <button class="btn sec" onclick="abrirAdd('csv')"><span class="material-symbols-outlined">upload_file</span> Importar CSV</button>
           <button class="btn sec" onclick="sair()"><span class="material-symbols-outlined">logout</span> Sair</button>
         </div>
       </div>
@@ -245,6 +256,62 @@
       <div class="dfoot">
         <button class="btn sec" onclick="fecharDrawer()">Fechar</button>
         <button class="btn primary" onclick="salvarSituacao()">Aplicar situação</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drawer adicionar / importar -->
+  <div class="drawer hide" id="drawerAdd">
+    <div class="backdrop" onclick="fecharAdd()"></div>
+    <div class="box">
+      <div class="dhead"><h3>Adicionar elegíveis</h3><button class="x" onclick="fecharAdd()"><span class="material-symbols-outlined">close</span></button></div>
+      <div class="dbody">
+        <div class="tabs">
+          <button id="tabForm" class="on" onclick="setAba('form')">Um a um</button>
+          <button id="tabCsv" onclick="setAba('csv')">Importar CSV</button>
+        </div>
+
+        <!-- Aba formulário -->
+        <div id="abaForm">
+          <div class="g2">
+            <div><label>CPF</label><input id="aCpf" placeholder="000.000.000-00" /></div>
+            <div><label>Nascimento</label><input id="aNasc" type="date" /></div>
+          </div>
+          <label>Nome *</label>
+          <input id="aNome" placeholder="Nome completo" />
+          <div class="g2">
+            <div><label>Tipo de vínculo</label>
+              <select id="aTipo">
+                <option value="colaborador">Colaborador</option>
+                <option value="dependente">Dependente</option>
+                <option value="terceiro">Terceiro</option>
+              </select>
+            </div>
+            <div><label>CPF do titular</label><input id="aTitular" placeholder="se dependente" /></div>
+          </div>
+          <div class="g2">
+            <div><label>Código de lotação</label><input id="aLotacao" placeholder="ex.: LOT-01" /></div>
+            <div><label>Código RH</label><input id="aRh" placeholder="ex.: 998877" /></div>
+          </div>
+          <label>Identificador / voucher (se sem CPF)</label>
+          <input id="aIdent" placeholder="opcional" />
+        </div>
+
+        <!-- Aba CSV -->
+        <div id="abaCsv" class="hide">
+          <div class="hint">Uma linha por pessoa, nesta ordem:<br><b>cpf,nome,data_nascimento,tipo_vinculo,cpf_titular,codigo_lotacao,codigo_rh,identificador</b><br>Ex.: <code>52998224725,Maria Silva,1990-05-10,colaborador,,LOT-01,RH-1001,</code></div>
+          <label>Colar linhas (CSV)</label>
+          <textarea id="csvTexto" rows="6" placeholder="52998224725,Maria Silva,1990-05-10,colaborador,,LOT-01,RH-1001,"></textarea>
+          <label>…ou enviar um arquivo (.csv)</label>
+          <input type="file" id="csvArquivo" accept=".csv,.txt" />
+          <label class="chk"><input type="checkbox" id="csvSync" /> Sincronizar (remove quem não está na lista)</label>
+        </div>
+
+        <div class="msg" id="addMsg"></div>
+      </div>
+      <div class="dfoot">
+        <button class="btn sec" onclick="fecharAdd()">Cancelar</button>
+        <button class="btn primary" onclick="salvarAdd()">Enviar</button>
       </div>
     </div>
   </div>
@@ -396,6 +463,90 @@
   }
 
   function exportar() { const c = campSelObj(); if (!c) return; window.open('/api/v1/interno/campanhas/' + c.id + '/exportar', '_blank'); }
+
+  // ---- Adicionar / importar elegíveis --------------------------------------
+  let ABA_ADD = 'form', ULTIMA_IMP = null;
+
+  function abrirAdd(aba) {
+    if (!campSelObj()) { alert('Selecione uma campanha primeiro.'); return; }
+    const msg = document.getElementById('addMsg'); msg.className = 'msg'; msg.textContent = '';
+    setAba(aba || 'form');
+    document.getElementById('drawerAdd').classList.remove('hide');
+  }
+  function fecharAdd() { document.getElementById('drawerAdd').classList.add('hide'); }
+  function setAba(aba) {
+    ABA_ADD = aba;
+    document.getElementById('abaForm').classList.toggle('hide', aba !== 'form');
+    document.getElementById('abaCsv').classList.toggle('hide', aba !== 'csv');
+    document.getElementById('tabForm').classList.toggle('on', aba === 'form');
+    document.getElementById('tabCsv').classList.toggle('on', aba === 'csv');
+  }
+
+  // Uma linha -> objeto elegível (mesmo formato do portal).
+  function parseElegiveis(t) {
+    const limpa = s => (s || '').trim().replace(/^"(.*)"$/, '$1').trim();
+    return t.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
+      const p = l.split(/[;,]/).map(limpa);
+      return { cpf: p[0] || '', nome: p[1] || '', data_nascimento: p[2] || null, tipo_vinculo: p[3] || null, cpf_titular: p[4] || null, codigo_lotacao: p[5] || null, codigo_rh: p[6] || null, identificador: p[7] || null };
+    });
+  }
+
+  function baixarErros() { if (ULTIMA_IMP) window.open('/api/v1/interno/importacoes/' + ULTIMA_IMP + '/erros/exportar', '_blank'); return false; }
+
+  function msgImport(d) {
+    const msg = document.getElementById('addMsg');
+    if (!d.success) { msg.className = 'msg err'; msg.textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Falha na importação.')); return false; }
+    ULTIMA_IMP = d.data.importacao_id;
+    const t = d.data.totais;
+    const rej = t ? (t.rejeitados || 0) : 0;
+    const link = ' <a href="#" onclick="return baixarErros()">Baixar relatório de erros</a>';
+    msg.className = 'msg ' + (rej > 0 ? 'err' : 'ok');
+    msg.innerHTML = (t
+      ? 'Importação #' + d.data.importacao_id + ' — válidos: ' + (t.validos || 0) + ', rejeitados: ' + rej + (t.removidos !== undefined ? ', removidos: ' + t.removidos : '') + '.'
+      : 'Importação #' + d.data.importacao_id + ' recebida — processando em segundo plano.') + link;
+    recarregar();
+    return true;
+  }
+
+  async function salvarAdd() {
+    const c = campSelObj(); if (!c) return;
+    const msg = document.getElementById('addMsg'); msg.className = 'msg'; msg.textContent = 'Enviando...';
+
+    if (ABA_ADD === 'form') {
+      const nome = document.getElementById('aNome').value.trim();
+      const cpf = document.getElementById('aCpf').value.trim();
+      const ident = document.getElementById('aIdent').value.trim();
+      if (!nome) { msg.className = 'msg err'; msg.textContent = 'Informe o nome.'; return; }
+      if (!cpf && !ident) { msg.className = 'msg err'; msg.textContent = 'Informe o CPF ou um identificador/voucher.'; return; }
+      const obj = {
+        cpf, nome,
+        data_nascimento: document.getElementById('aNasc').value || null,
+        tipo_vinculo: document.getElementById('aTipo').value || null,
+        cpf_titular: document.getElementById('aTitular').value.trim() || null,
+        codigo_lotacao: document.getElementById('aLotacao').value.trim() || null,
+        codigo_rh: document.getElementById('aRh').value.trim() || null,
+        identificador: ident || null,
+      };
+      const d = await api('/interno/campanhas/' + c.id + '/elegiveis/importar', 'POST', { elegiveis: [obj] });
+      if (msgImport(d)) ['aCpf', 'aNome', 'aNasc', 'aTitular', 'aLotacao', 'aRh', 'aIdent'].forEach(i => document.getElementById(i).value = '');
+      return;
+    }
+
+    // Aba CSV: arquivo (multipart) tem prioridade; senão, texto colado (JSON).
+    const sync = document.getElementById('csvSync').checked;
+    const rota = sync ? 'sincronizar' : 'importar';
+    const file = document.getElementById('csvArquivo').files[0];
+    if (file) {
+      const fd = new FormData(); fd.append('arquivo', file);
+      const r = await fetch('/api/v1/interno/campanhas/' + c.id + '/elegiveis/' + rota, { method: 'POST', headers: CSRF ? { 'X-CSRF-Token': CSRF } : {}, credentials: 'same-origin', body: fd });
+      let d; try { d = await r.json(); } catch (e) { d = { success: false }; }
+      msgImport(d);
+      return;
+    }
+    const elegiveis = parseElegiveis(document.getElementById('csvTexto').value);
+    if (!elegiveis.length) { msg.className = 'msg err'; msg.textContent = 'Cole ao menos uma linha ou escolha um arquivo.'; return; }
+    msgImport(await api('/interno/campanhas/' + c.id + '/elegiveis/' + rota, 'POST', { elegiveis }));
+  }
 
   iniciar();
   </script>
