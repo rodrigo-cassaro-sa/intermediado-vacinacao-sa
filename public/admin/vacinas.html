@@ -46,12 +46,15 @@
     .panel .phead { padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--surface-2); display: flex; justify-content: space-between; align-items: center; }
     .panel .phead h3 { margin: 0; font-size: 14px; font-weight: 600; }
     .panel .phead .upd { font-size: 12px; color: var(--muted); }
-    .search { padding: 16px 20px; }
+    .search { padding: 16px 20px; display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
+    .search .field { display: flex; flex-direction: column; }
     .search label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
-    .search .box { position: relative; max-width: 380px; }
+    .search .box { position: relative; width: 340px; max-width: 100%; }
     .search .box .material-symbols-outlined { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--outline, #707880); font-size: 18px; }
-    .search input { width: 100%; padding: 10px 12px 10px 34px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--txt); font: inherit; }
-    .search input:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
+    .search input, .search select { padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--txt); font: inherit; }
+    .search .box input { width: 100%; padding-left: 34px; }
+    .search select { min-width: 160px; cursor: pointer; }
+    .search input:focus, .search select:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
 
     table { width: 100%; border-collapse: collapse; }
     thead th { text-align: left; padding: 12px 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: var(--surface-2); border-bottom: 1px solid var(--line); }
@@ -152,9 +155,19 @@
 
       <div class="panel">
         <div class="search">
-          <label>Buscar por nome, fabricante ou sigla</label>
-          <div class="box"><span class="material-symbols-outlined">search</span>
-            <input id="busca" placeholder="Ex.: Influenza, Pfizer, IF3..." oninput="renderTabela()" />
+          <div class="field">
+            <label>Buscar por nome, fabricante ou sigla</label>
+            <div class="box"><span class="material-symbols-outlined">search</span>
+              <input id="busca" placeholder="Ex.: Influenza, Pfizer, IF3..." oninput="renderTabela()" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <select id="fFiltroStatus" onchange="renderTabela()">
+              <option value="todas">Todas</option>
+              <option value="ativa">Somente ativas</option>
+              <option value="inativa">Somente inativas (desativadas)</option>
+            </select>
           </div>
         </div>
       </div>
@@ -254,10 +267,14 @@
 
   function renderTabela() {
     const q = (document.getElementById('busca').value || '').trim().toLowerCase();
-    const lista = VACINAS.filter(v => !q
-      || (v.nome || '').toLowerCase().includes(q)
-      || (v.fabricante || '').toLowerCase().includes(q)
-      || (v.sigla || '').toLowerCase().includes(q));
+    const st = document.getElementById('fFiltroStatus').value;
+    const lista = VACINAS.filter(v => {
+      if (st !== 'todas' && (v.status || 'ativa') !== st) return false;
+      return !q
+        || (v.nome || '').toLowerCase().includes(q)
+        || (v.fabricante || '').toLowerCase().includes(q)
+        || (v.sigla || '').toLowerCase().includes(q);
+    });
     document.getElementById('contagem').textContent = lista.length + ' de ' + VACINAS.length + ' vacina(s)';
     document.getElementById('vazio').classList.toggle('hide', lista.length > 0);
     document.getElementById('tbody').innerHTML = lista.map(v => {
