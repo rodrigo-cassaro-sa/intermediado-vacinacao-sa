@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestão de Vacinas — S&amp;A Imunizações</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+  <link rel="stylesheet" href="/assets/marca.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Inter', system-ui, Segoe UI, Roboto, sans-serif; background: var(--bg); color: var(--txt); font-size: 14px; display: flex; height: 100vh; overflow: hidden; }
+    .material-symbols-outlined { font-family: 'Material Symbols Outlined'; font-size: 22px; line-height: 1; }
+    .hide { display: none !important; }
+
+    /* Sidebar (igual à dashboard) */
+    .side { width: 256px; flex: 0 0 256px; background: var(--card); border-right: 1px solid var(--line); box-shadow: var(--sombra); display: flex; flex-direction: column; padding: 16px 0; }
+    .side .brand { padding: 6px 20px 20px; display: flex; flex-direction: column; gap: 8px; }
+    .side .brand .logo { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, var(--acc) 0%, var(--pri) 100%); display: grid; place-items: center; box-shadow: 0 4px 12px rgba(22,102,196,.28); }
+    .side .brand .nome { font-size: 20px; font-weight: 800; letter-spacing: -.01em; color: var(--pri); line-height: 1.15; }
+    .side .brand .tag { font-size: 12px; color: var(--muted); }
+    .side nav { flex: 1; padding: 0 12px; display: flex; flex-direction: column; gap: 4px; }
+    .side .foot { padding: 12px 12px 0; margin-top: auto; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
+    .navlink { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; color: var(--muted); text-decoration: none; font-weight: 500; background: none; border: 0; font: inherit; cursor: pointer; text-align: left; width: 100%; transition: background .15s, color .15s; }
+    .navlink:hover { background: var(--surface-2); color: var(--txt); }
+    .navlink.active { background: var(--surface-2); color: var(--pri); font-weight: 600; }
+    .navlink .material-symbols-outlined { font-variation-settings: 'FILL' 0; }
+    .navlink.active .material-symbols-outlined { font-variation-settings: 'FILL' 1; }
+
+    .main { flex: 1; overflow-y: auto; }
+    .content { max-width: 1440px; margin: 0 auto; padding: 24px 32px; display: flex; flex-direction: column; gap: 24px; }
+    .pagehead { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+    .pagehead h1 { font-size: 32px; font-weight: 700; letter-spacing: -.02em; margin: 0; }
+    .pagehead p { margin: 6px 0 0; color: var(--muted); }
+    .actions { display: flex; gap: 8px; align-items: center; }
+    .who { color: var(--muted); font-size: 13px; margin-right: 4px; } .who b { color: var(--txt); }
+    .btn { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; padding: 10px 16px; border-radius: 8px; font: inherit; font-weight: 600; border: 0; }
+    .btn .material-symbols-outlined { font-size: 18px; }
+    .btn.primary { background: var(--pri); color: #fff; box-shadow: 0 2px 6px rgba(22,102,196,.25); }
+    .btn.primary:hover { background: var(--pri2); }
+    .btn.sec { background: var(--card); color: var(--txt); border: 1px solid var(--line); }
+    .btn.sec:hover { background: var(--surface-2); }
+
+    .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--sombra); overflow: hidden; }
+    .panel .phead { padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--surface-2); display: flex; justify-content: space-between; align-items: center; }
+    .panel .phead h3 { margin: 0; font-size: 14px; font-weight: 600; }
+    .panel .phead .upd { font-size: 12px; color: var(--muted); }
+    .search { padding: 16px 20px; }
+    .search label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+    .search .box { position: relative; max-width: 380px; }
+    .search .box .material-symbols-outlined { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--outline, #707880); font-size: 18px; }
+    .search input { width: 100%; padding: 10px 12px 10px 34px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--txt); font: inherit; }
+    .search input:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
+
+    table { width: 100%; border-collapse: collapse; }
+    thead th { text-align: left; padding: 12px 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: var(--surface-2); border-bottom: 1px solid var(--line); }
+    tbody td { padding: 14px 20px; border-bottom: 1px solid var(--line); }
+    tbody tr:hover { background: var(--surface-2); }
+    td .nm { font-weight: 600; }
+    .sig { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; color: var(--pri); letter-spacing: .04em; }
+    .chip { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 99px; }
+    .chip.on { background: rgba(20,160,90,.14); color: var(--acc2); }
+    .chip.off { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+    .iconbtn { background: none; border: 0; cursor: pointer; color: var(--pri); padding: 6px; border-radius: 6px; }
+    .iconbtn:hover { background: var(--surface-2); }
+    .empty { padding: 28px 20px; text-align: center; color: var(--muted); }
+
+    /* Drawer (slide-in à direita) */
+    .drawer { position: fixed; inset: 0; z-index: 60; }
+    .drawer .backdrop { position: absolute; inset: 0; background: rgba(18,35,59,.45); }
+    .drawer .box { position: absolute; right: 0; top: 0; bottom: 0; width: 100%; max-width: 460px; background: var(--card); box-shadow: var(--sombra); display: flex; flex-direction: column; animation: slideIn .25s ease-out; }
+    @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    .drawer .dhead { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+    .drawer .dhead h3 { margin: 0; font-size: 18px; }
+    .drawer .x { background: none; border: 0; cursor: pointer; color: var(--muted); padding: 4px; border-radius: 6px; }
+    .drawer .x:hover { background: var(--card); color: var(--txt); }
+    .drawer .dbody { padding: 16px 20px; overflow-y: auto; flex: 1; }
+    .drawer label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+    .drawer input, .drawer select { width: 100%; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; color: var(--txt); font: inherit; }
+    .drawer input:focus, .drawer select:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
+    .drawer .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .drawer .hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .drawer .msg { font-size: 12px; min-height: 16px; margin-top: 10px; }
+    .drawer .msg.err { color: var(--err); } .drawer .msg.ok { color: var(--acc2); font-weight: 600; }
+    .drawer .dfoot { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--line); background: var(--surface-2); }
+    #sigla { text-transform: uppercase; }
+
+    /* Login */
+    .login { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; z-index: 70; }
+    .login .lbox { background: var(--card); border: 1px solid var(--line); border-radius: var(--raio); box-shadow: var(--sombra); padding: 28px; width: 340px; }
+    .login .lbox .marca { margin-bottom: 18px; }
+    .login label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+    .login input { width: 100%; padding: 11px 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; color: var(--txt); font: inherit; }
+    .login input:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
+    .login .msg { font-size: 12px; color: var(--err); min-height: 16px; margin-top: 8px; }
+
+    @media (max-width: 720px) { .side { display: none; } .content { padding: 20px 16px; } .pagehead h1 { font-size: 24px; } }
+  </style>
+</head>
+<body>
+  <!-- Login gate -->
+  <div class="login" id="login">
+    <div class="lbox">
+      <div class="marca">
+        <div class="logo"><svg width="22" height="22" viewBox="0 0 32 32"><path d="M13.5 7h5v6.5H25v5h-6.5V25h-5v-6.5H7v-5h6.5z" fill="#fff"/></svg></div>
+        <div><div class="nome">S&amp;A <b>Imunizações</b></div><div class="tag">Console interno</div></div>
+      </div>
+      <label>E-mail</label>
+      <input id="email" autocomplete="username" />
+      <label>Senha</label>
+      <input id="senha" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')entrar()" />
+      <div class="msg" id="loginMsg"></div>
+      <button class="btn primary" style="width:100%;justify-content:center;margin-top:12px" onclick="entrar()">Entrar</button>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="side">
+    <div class="brand">
+      <div class="logo"><svg width="24" height="24" viewBox="0 0 32 32"><path d="M13.5 7h5v6.5H25v5h-6.5V25h-5v-6.5H7v-5h6.5z" fill="#fff"/></svg></div>
+      <div><div class="nome">Gestão de Vacinas</div><div class="tag">Administrador Central</div></div>
+    </div>
+    <nav>
+      <a class="navlink" href="/admin/"><span class="material-symbols-outlined">dashboard</span> Dashboard</a>
+      <button class="navlink active"><span class="material-symbols-outlined">vaccines</span> Vacinas</button>
+      <a class="navlink" href="/admin/console.html"><span class="material-symbols-outlined">group</span> Pacientes</a>
+      <a class="navlink" href="/admin/console.html"><span class="material-symbols-outlined">person</span> Usuários</a>
+      <a class="navlink" href="/portal/"><span class="material-symbols-outlined">history</span> Auditoria</a>
+    </nav>
+    <div class="foot">
+      <a class="navlink" href="/admin/console.html"><span class="material-symbols-outlined">terminal</span> Console interno</a>
+      <a class="navlink" href="/portal/"><span class="material-symbols-outlined">settings</span> Portal do cliente</a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="content">
+      <div class="pagehead">
+        <div>
+          <h1>Gestão de Vacinas</h1>
+          <p>Cadastre e gerencie os produtos (vacinas) do catálogo. A sigla alimenta o código das campanhas.</p>
+        </div>
+        <div class="actions">
+          <span class="who">Olá, <b id="quem">—</b></span>
+          <button class="btn sec" onclick="carregar()"><span class="material-symbols-outlined">refresh</span> Atualizar</button>
+          <button class="btn primary" onclick="abrirCadastro()"><span class="material-symbols-outlined">add</span> Cadastrar Nova Vacina</button>
+          <button class="btn sec" onclick="sair()"><span class="material-symbols-outlined">logout</span> Sair</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="search">
+          <label>Buscar por nome, fabricante ou sigla</label>
+          <div class="box"><span class="material-symbols-outlined">search</span>
+            <input id="busca" placeholder="Ex.: Influenza, Pfizer, IF3..." oninput="renderTabela()" />
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="phead"><h3>Catálogo de vacinas</h3><span class="upd" id="contagem">—</span></div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr><th>Nome da Vacina</th><th>Fabricante</th><th>Sigla</th><th>Nº Doses</th><th>Status</th><th style="text-align:right">Ações</th></tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+          <div class="empty hide" id="vazio">Nenhuma vacina encontrada.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drawer cadastro/edição -->
+  <div class="drawer hide" id="drawer">
+    <div class="backdrop" onclick="fecharDrawer()"></div>
+    <div class="box">
+      <div class="dhead">
+        <h3 id="drawerTitulo">Cadastrar Nova Vacina</h3>
+        <button class="x" onclick="fecharDrawer()"><span class="material-symbols-outlined">close</span></button>
+      </div>
+      <div class="dbody">
+        <label>Nome da Vacina *</label>
+        <input id="fNome" placeholder="Ex.: Influenza (Gripe)" />
+        <label>Fabricante</label>
+        <input id="fFabricante" placeholder="Ex.: Butantan" />
+        <div class="g2">
+          <div>
+            <label>Sigla (3 caracteres)</label>
+            <input id="sigla" maxlength="3" placeholder="IF3" />
+            <div class="hint">A–Z e 0–9. Entra no código da campanha.</div>
+          </div>
+          <div>
+            <label>Nº de doses do esquema</label>
+            <input id="fDoses" type="number" min="1" value="1" />
+          </div>
+        </div>
+        <label>Status</label>
+        <select id="fStatus">
+          <option value="ativa">Ativa</option>
+          <option value="inativa">Inativa</option>
+        </select>
+        <div class="msg" id="drawerMsg"></div>
+      </div>
+      <div class="dfoot">
+        <button class="btn sec" onclick="fecharDrawer()">Cancelar</button>
+        <button class="btn primary" onclick="salvar()">Salvar Cadastro</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // ---------------------------------------------------------------------------
+  // Gestão de vacinas — CRUD do catálogo, ligado ao backend (sessão + CSRF).
+  // ---------------------------------------------------------------------------
+  let CSRF = null, VACINAS = [], EDIT_ID = null;
+
+  async function api(path, metodo = 'GET', corpo = null) {
+    const opts = { method: metodo, headers: {}, credentials: 'same-origin' };
+    if (corpo) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(corpo); }
+    if (metodo !== 'GET' && CSRF) opts.headers['X-CSRF-Token'] = CSRF;
+    const r = await fetch('/api/v1' + path, opts);
+    let d; try { d = await r.json(); } catch (e) { d = { success: false }; }
+    return { http: r.status, ...d };
+  }
+
+  async function entrar() {
+    document.getElementById('loginMsg').textContent = '...';
+    const d = await api('/interno/auth/login', 'POST', { email: document.getElementById('email').value, senha: document.getElementById('senha').value });
+    if (!d.success) { document.getElementById('loginMsg').textContent = 'E-mail ou senha inválidos.'; return; }
+    CSRF = d.data.csrf_token;
+    document.getElementById('loginMsg').textContent = ''; document.getElementById('senha').value = '';
+    await carregar();
+  }
+
+  async function sair() { await api('/interno/auth/logout', 'POST', {}); CSRF = null; document.getElementById('login').classList.remove('hide'); }
+
+  async function carregar() {
+    const d = await api('/interno/vacinas?todas=1');
+    if (d.http === 401) { document.getElementById('login').classList.remove('hide'); return; }
+    document.getElementById('login').classList.add('hide');
+    if (!d.success) return;
+    VACINAS = d.data.itens || [];
+    renderTabela();
+    const eu = await api('/interno/auth/eu');
+    if (eu.success) {
+      document.getElementById('quem').textContent = eu.data.usuario.nome || '—';
+      if (!CSRF && eu.data.csrf_token) CSRF = eu.data.csrf_token;
+    }
+  }
+
+  function renderTabela() {
+    const q = (document.getElementById('busca').value || '').trim().toLowerCase();
+    const lista = VACINAS.filter(v => !q
+      || (v.nome || '').toLowerCase().includes(q)
+      || (v.fabricante || '').toLowerCase().includes(q)
+      || (v.sigla || '').toLowerCase().includes(q));
+    document.getElementById('contagem').textContent = lista.length + ' de ' + VACINAS.length + ' vacina(s)';
+    document.getElementById('vazio').classList.toggle('hide', lista.length > 0);
+    document.getElementById('tbody').innerHTML = lista.map(v => {
+      const chip = v.status === 'ativa' ? '<span class="chip on">Ativa</span>' : '<span class="chip off">Inativa</span>';
+      const sig = v.sigla ? '<span class="sig">' + v.sigla + '</span>' : '<span style="color:var(--muted)">—</span>';
+      return '<tr>'
+        + '<td><span class="nm">' + (v.nome || '') + '</span></td>'
+        + '<td>' + (v.fabricante || '—') + '</td>'
+        + '<td>' + sig + '</td>'
+        + '<td>' + (v.doses_padrao || 1) + '</td>'
+        + '<td>' + chip + '</td>'
+        + '<td style="text-align:right"><button class="iconbtn" title="Editar" onclick="abrirCadastro(' + v.id + ')"><span class="material-symbols-outlined" style="font-size:20px">edit</span></button></td>'
+        + '</tr>';
+    }).join('');
+  }
+
+  function abrirCadastro(id) {
+    EDIT_ID = id || null;
+    const v = id ? VACINAS.find(x => x.id === id) : null;
+    document.getElementById('drawerTitulo').textContent = v ? 'Editar Vacina' : 'Cadastrar Nova Vacina';
+    document.getElementById('fNome').value = v ? (v.nome || '') : '';
+    document.getElementById('fFabricante').value = v ? (v.fabricante || '') : '';
+    document.getElementById('sigla').value = v ? (v.sigla || '') : '';
+    document.getElementById('fDoses').value = v ? (v.doses_padrao || 1) : 1;
+    document.getElementById('fStatus').value = v ? (v.status || 'ativa') : 'ativa';
+    const msg = document.getElementById('drawerMsg'); msg.className = 'msg'; msg.textContent = '';
+    document.getElementById('drawer').classList.remove('hide');
+  }
+  function fecharDrawer() { document.getElementById('drawer').classList.add('hide'); }
+
+  async function salvar() {
+    const msg = document.getElementById('drawerMsg');
+    const body = {
+      nome:         document.getElementById('fNome').value.trim(),
+      fabricante:   document.getElementById('fFabricante').value.trim(),
+      sigla:        document.getElementById('sigla').value.trim(),
+      doses_padrao: Number(document.getElementById('fDoses').value || 1),
+      status:       document.getElementById('fStatus').value,
+    };
+    if (!body.nome) { msg.className = 'msg err'; msg.textContent = 'Informe o nome da vacina.'; return; }
+    msg.className = 'msg'; msg.textContent = 'Salvando...';
+    const d = EDIT_ID
+      ? await api('/interno/vacinas/' + EDIT_ID, 'PUT', body)
+      : await api('/interno/vacinas', 'POST', body);
+    if (!d.success) {
+      msg.className = 'msg err';
+      msg.textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Não foi possível salvar.'));
+      return;
+    }
+    msg.className = 'msg ok'; msg.textContent = EDIT_ID ? 'Vacina atualizada!' : 'Vacina cadastrada!';
+    setTimeout(async () => { fecharDrawer(); await carregar(); }, 600);
+  }
+
+  carregar();
+  </script>
+</body>
+</html>

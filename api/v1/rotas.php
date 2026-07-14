@@ -77,6 +77,8 @@ return [
 
     // --- Catálogo de vacinas ---
     'GET  /api/v1/interno/vacinas' => ['arquivo' => 'interno/campanhas.php', 'funcao' => 'rota_listar_vacinas'],
+    'POST /api/v1/interno/vacinas' => ['arquivo' => 'interno/campanhas.php', 'funcao' => 'rota_criar_vacina'],
+    'PUT  /api/v1/interno/vacinas/{id}' => ['arquivo' => 'interno/campanhas.php', 'funcao' => 'rota_editar_vacina'],
     'POST /api/v1/interno/vacinas/{id}/sigla' => ['arquivo' => 'interno/campanhas.php', 'funcao' => 'rota_definir_sigla_vacina'],
 
     // --- Campanhas (RN-001) ---

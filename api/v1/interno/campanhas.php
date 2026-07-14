@@ -392,11 +392,107 @@ function rota_definir_vacinas_campanha(array $params): void
 function rota_listar_vacinas(array $params): void
 {
     exigir_login();
+    // ?todas=1 => inclui inativas (tela de gestão); padrão só ativas (montar campanha).
+    $where = !empty($_GET['todas']) ? '1 = 1' : "status = 'ativa'";
     $itens = db_todos(
-        "SELECT id, nome, sigla, fabricante, doses_padrao
-           FROM vacina WHERE status = 'ativa' ORDER BY nome"
+        "SELECT id, nome, sigla, fabricante, doses_padrao, status
+           FROM vacina WHERE $where ORDER BY nome"
     );
     responder_sucesso(['itens' => $itens], 'OK.');
+}
+
+const VACINA_STATUS = ['ativa', 'inativa'];
+
+/** POST /api/v1/interno/vacinas — cadastra uma vacina (produto do catálogo). */
+function rota_criar_vacina(array $params): void
+{
+    $usuario = exigir_login();
+    exigir_perfil($usuario, PERFIS_INTERNOS);
+    exigir_csrf();
+
+    $dados = corpo_json();
+    $erros = exigir_campos($dados, ['nome']);
+
+    $sigla = null;
+    if (isset($dados['sigla']) && trim((string) $dados['sigla']) !== '') {
+        $sigla = normalizar_sigla($dados['sigla']);
+        if ($sigla === null) $erros[] = ['field' => 'sigla', 'code' => 'SIGLA_INVALIDA', 'message' => 'Use 3 caracteres (A-Z, 0-9).'];
+    }
+    $doses = isset($dados['doses_padrao']) && is_numeric($dados['doses_padrao']) ? max(1, (int) $dados['doses_padrao']) : 1;
+    $status = $dados['status'] ?? 'ativa';
+    if (!in_array($status, VACINA_STATUS, true)) $erros[] = ['field' => 'status', 'code' => 'STATUS_INVALIDO', 'message' => 'Use ativa ou inativa.'];
+    if ($erros) erro_validacao($erros);
+
+    if ($sigla !== null && db_primeiro("SELECT id FROM vacina WHERE sigla = :s LIMIT 1", [':s' => $sigla]) !== null) {
+        responder_erro('Sigla já usada por outra vacina.', 409, [['field' => 'sigla', 'code' => 'SIGLA_DUPLICADA', 'message' => 'Escolha uma sigla única.']]);
+    }
+
+    db_executar(
+        "INSERT INTO vacina (nome, sigla, fabricante, doses_padrao, status) VALUES (:nome, :sigla, :fab, :doses, :status)",
+        [
+            ':nome'   => trim($dados['nome']),
+            ':sigla'  => $sigla,
+            ':fab'    => isset($dados['fabricante']) && trim((string) $dados['fabricante']) !== '' ? trim($dados['fabricante']) : null,
+            ':doses'  => $doses,
+            ':status' => $status,
+        ]
+    );
+    $id = (int) db_ultimo_id();
+
+    registrar_auditoria('vacina.criada', [
+        'ator_tipo' => 'usuario', 'ator_id' => (int) $usuario['id'], 'origem' => 'admin',
+        'entidade_tipo' => 'vacina', 'entidade_id' => $id, 'metadata' => ['sigla' => $sigla],
+    ]);
+    responder_sucesso(['vacina_id' => $id], 'Vacina cadastrada.', 201);
+}
+
+/** PUT /api/v1/interno/vacinas/{id} — edita campos do catálogo da vacina. */
+function rota_editar_vacina(array $params): void
+{
+    $usuario = exigir_login();
+    exigir_perfil($usuario, PERFIS_INTERNOS);
+    exigir_csrf();
+
+    $id = (int) ($params['id'] ?? 0);
+    if (db_primeiro("SELECT id FROM vacina WHERE id = :id LIMIT 1", [':id' => $id]) === null) {
+        responder_erro('Vacina não encontrada.', 404, [['field' => null, 'code' => 'VACINA_NAO_ENCONTRADA', 'message' => 'Vacina inexistente.']]);
+    }
+
+    $dados = corpo_json();
+    $campos = [];
+    $bind = [':id' => $id];
+    $erros = [];
+
+    if (isset($dados['nome']) && trim($dados['nome']) !== '') { $campos[] = 'nome = :nome'; $bind[':nome'] = trim($dados['nome']); }
+    if (array_key_exists('fabricante', $dados)) {
+        $campos[] = 'fabricante = :fab';
+        $bind[':fab'] = trim((string) $dados['fabricante']) !== '' ? trim($dados['fabricante']) : null;
+    }
+    if (isset($dados['doses_padrao']) && is_numeric($dados['doses_padrao'])) { $campos[] = 'doses_padrao = :doses'; $bind[':doses'] = max(1, (int) $dados['doses_padrao']); }
+    if (isset($dados['status'])) {
+        if (!in_array($dados['status'], VACINA_STATUS, true)) $erros[] = ['field' => 'status', 'code' => 'STATUS_INVALIDO', 'message' => 'Use ativa ou inativa.'];
+        else { $campos[] = 'status = :status'; $bind[':status'] = $dados['status']; }
+    }
+    if (isset($dados['sigla'])) {
+        $sigla = trim((string) $dados['sigla']) === '' ? null : normalizar_sigla($dados['sigla']);
+        if ($dados['sigla'] !== '' && $sigla === null) {
+            $erros[] = ['field' => 'sigla', 'code' => 'SIGLA_INVALIDA', 'message' => 'Use 3 caracteres (A-Z, 0-9).'];
+        } elseif ($sigla !== null && db_primeiro("SELECT id FROM vacina WHERE sigla = :s AND id <> :id LIMIT 1", [':s' => $sigla, ':id' => $id]) !== null) {
+            $erros[] = ['field' => 'sigla', 'code' => 'SIGLA_DUPLICADA', 'message' => 'Sigla já usada por outra vacina.'];
+        } else { $campos[] = 'sigla = :sigla'; $bind[':sigla'] = $sigla; }
+    }
+
+    if ($erros) erro_validacao($erros);
+    if (!$campos) {
+        responder_erro('Nada para atualizar.', 400, [['field' => null, 'code' => 'SEM_ALTERACAO', 'message' => 'Informe ao menos um campo.']]);
+    }
+
+    db_executar('UPDATE vacina SET ' . implode(', ', $campos) . ' WHERE id = :id', $bind);
+    registrar_auditoria('vacina.editada', [
+        'ator_tipo' => 'usuario', 'ator_id' => (int) $usuario['id'], 'origem' => 'admin',
+        'entidade_tipo' => 'vacina', 'entidade_id' => $id, 'metadata' => ['campos' => array_keys($dados)],
+    ]);
+    responder_sucesso(['vacina_id' => $id], 'Vacina atualizada.');
 }
 
 // ------------------------------- Helpers -----------------------------------
