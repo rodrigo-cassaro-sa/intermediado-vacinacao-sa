@@ -3,1150 +3,341 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>S&amp;A Imunizações — Console interno</title>
+  <title>Dashboard — S&amp;A Imunizações</title>
   <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
   <link rel="stylesheet" href="/assets/marca.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
   <style>
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: system-ui, Segoe UI, Roboto, sans-serif;
-      background: var(--bg); color: var(--txt); font-size: 14px; }
-    header { display:flex; align-items:center; justify-content:space-between;
-      padding: 12px 20px; background: var(--card); border-bottom: 1px solid var(--line); box-shadow:var(--sombra); }
-    .wrap { max-width: 1100px; margin: 0 auto; padding: 20px; display: grid;
-      grid-template-columns: 1fr 1fr; gap: 16px; }
-    .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--raio);
-      padding: 16px; box-shadow:var(--sombra); }
-    .card h2 { font-size: 13px; margin: 0 0 12px; color: var(--pri);
-      text-transform: uppercase; letter-spacing: .04em; }
-    .full { grid-column: 1 / -1; }
-    label { display:block; font-size: 12px; color: var(--muted); margin: 8px 0 4px; }
-    input, select, button, textarea { font: inherit; }
-    input, select, textarea { width: 100%; padding: 8px 10px; background: var(--surface-2);
-      border: 1px solid var(--line); border-radius: 6px; color: var(--txt); }
-    input:focus, select:focus, textarea:focus { outline:none; border-color:var(--pri); box-shadow:0 0 0 3px rgba(22,102,196,.15); }
-    button { cursor: pointer; padding: 8px 14px; border: 0; border-radius: 6px;
-      background: var(--pri); color: #fff; font-weight: 600; }
-    button:hover { background: var(--pri2); }
-    button.sec { background: var(--surface-2); color: var(--txt); border:1px solid var(--line); }
-    button.sec:hover { background:#e7eef7; }
-    button:disabled { opacity: .5; cursor: not-allowed; }
-    .row { display:flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
-    .row > div { flex: 1; min-width: 120px; }
-    .pill { display:inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; }
-    .pill.ok { background: rgba(20,160,90,.14); color: var(--ok); }
-    .pill.err { background: rgba(198,57,74,.14); color: var(--err); }
-    .pill.off { background: var(--surface-2); color: var(--muted); border:1px solid var(--line); }
-    table { width:100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
-    th, td { text-align:left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
-    th { color: var(--muted); font-weight: 600; }
-    pre { background:var(--surface-2); border:1px solid var(--line); border-radius:8px;
-      padding: 12px; overflow:auto; max-height: 320px; font-size: 12px; margin:0; color:var(--txt); }
-    .muted { color: var(--muted); }
-    .vacinas { display:flex; flex-direction:column; gap:4px; max-height:120px; overflow:auto;
-      border:1px solid var(--line); border-radius:6px; padding:8px; }
-    .vacinas label { display:flex; align-items:center; gap:8px; margin:0; color:var(--txt); }
-    .vacinas input { width:auto; }
-    .hide { display:none; }
+    body {
+      margin: 0; font-family: 'Inter', system-ui, Segoe UI, Roboto, sans-serif;
+      background: var(--bg); color: var(--txt); font-size: 14px;
+      display: flex; height: 100vh; overflow: hidden;
+    }
+    .material-symbols-outlined { font-family: 'Material Symbols Outlined'; font-size: 22px; line-height: 1; }
+    .hide { display: none !important; }
+
+    /* ---- Sidebar ------------------------------------------------------- */
+    .side {
+      width: 256px; flex: 0 0 256px; background: var(--card);
+      border-right: 1px solid var(--line); box-shadow: var(--sombra);
+      display: flex; flex-direction: column; padding: 16px 0;
+    }
+    .side .brand { padding: 6px 20px 20px; display: flex; flex-direction: column; gap: 8px; }
+    .side .brand .logo {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--acc) 0%, var(--pri) 100%);
+      display: grid; place-items: center; box-shadow: 0 4px 12px rgba(22,102,196,.28);
+    }
+    .side .brand .nome { font-size: 20px; font-weight: 800; letter-spacing: -.01em; color: var(--pri); line-height: 1.15; }
+    .side .brand .tag { font-size: 12px; color: var(--muted); }
+
+    .side nav { flex: 1; padding: 0 12px; display: flex; flex-direction: column; gap: 4px; }
+    .side .foot { padding: 12px 12px 0; margin-top: auto; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
+    .navlink {
+      display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+      border-radius: 8px; color: var(--muted); text-decoration: none; font-weight: 500;
+      background: none; border: 0; font: inherit; cursor: pointer; text-align: left; width: 100%;
+      transition: background .15s, color .15s;
+    }
+    .navlink:hover { background: var(--surface-2); color: var(--txt); }
+    .navlink.active { background: var(--surface-2); color: var(--pri); font-weight: 600; }
+    .navlink .material-symbols-outlined { font-variation-settings: 'FILL' 0; }
+    .navlink.active .material-symbols-outlined { font-variation-settings: 'FILL' 1; }
+
+    /* ---- Main ---------------------------------------------------------- */
+    .main { flex: 1; overflow-y: auto; }
+    .content { max-width: 1440px; margin: 0 auto; padding: 24px 32px; display: flex; flex-direction: column; gap: 24px; }
+
+    .pagehead { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+    .pagehead h1 { font-size: 32px; font-weight: 700; letter-spacing: -.02em; margin: 0; color: var(--txt); }
+    .pagehead p { margin: 6px 0 0; color: var(--muted); }
+    .actions { display: flex; gap: 8px; align-items: center; }
+    .who { color: var(--muted); font-size: 13px; margin-right: 4px; }
+    .who b { color: var(--txt); }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+      padding: 10px 16px; border-radius: 8px; font: inherit; font-weight: 600; border: 0;
+    }
+    .btn .material-symbols-outlined { font-size: 18px; }
+    .btn.primary { background: var(--pri); color: #fff; box-shadow: 0 2px 6px rgba(22,102,196,.25); }
+    .btn.primary:hover { background: var(--pri2); }
+    .btn.sec { background: var(--card); color: var(--txt); border: 1px solid var(--line); }
+    .btn.sec:hover { background: var(--surface-2); }
+
+    /* ---- Metric cards -------------------------------------------------- */
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .metric {
+      background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+      padding: 20px; box-shadow: var(--sombra); display: flex; flex-direction: column; gap: 6px; min-height: 140px;
+    }
+    .metric .head { display: flex; justify-content: space-between; align-items: center; }
+    .metric .label { color: var(--muted); font-weight: 500; }
+    .metric .icon { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; }
+    .icon.blue  { background: rgba(22,102,196,.12); color: var(--pri); }
+    .icon.green { background: rgba(20,160,90,.14); color: var(--acc); }
+    .icon.teal  { background: rgba(15,127,156,.12); color: #0f7f9c; }
+    .icon.red   { background: rgba(198,57,74,.12); color: var(--err); }
+    .metric .big { font-size: 40px; font-weight: 700; letter-spacing: -.02em; margin: 4px 0; line-height: 1; }
+    .metric .delta { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; margin-top: auto; }
+    .metric .delta .material-symbols-outlined { font-size: 15px; }
+    .delta.up { color: var(--acc); } .delta.down { color: var(--err); }
+    .metric .delta small { color: var(--muted); font-weight: 500; }
+    .bar { width: 100%; height: 6px; border-radius: 99px; background: var(--surface-dim, #cbdbf5); overflow: hidden; margin-top: 4px; }
+    .bar > span { display: block; height: 100%; border-radius: 99px; background: var(--pri); transition: width .4s; }
+
+    /* ---- Lower grid: chart + campaigns --------------------------------- */
+    .lower { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
+    .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--sombra); display: flex; flex-direction: column; overflow: hidden; }
+    .panel .phead { padding: 16px 20px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+    .panel .phead h2 { margin: 0; font-size: 20px; font-weight: 600; }
+    .panel .phead.mini h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+    .panel .phead.mini { display: flex; justify-content: space-between; align-items: center; }
+
+    .chart { flex: 1; min-height: 300px; padding: 20px; display: flex; align-items: flex-end; gap: 12px; background: var(--surface-2); }
+    .chart .col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; height: 100%; justify-content: flex-end; }
+    .chart .col .fill { width: 100%; border-radius: 6px 6px 0 0; background: var(--pri); transition: height .4s, opacity .15s; min-height: 3px; }
+    .chart .col:hover .fill { opacity: .85; }
+    .chart .col .v { font-size: 12px; font-weight: 600; color: var(--txt); }
+    .chart .col .m { font-size: 12px; color: var(--muted); }
+
+    .camps { flex: 1; overflow-y: auto; min-height: 120px; }
+    .camp { padding: 14px 16px; border-bottom: 1px solid var(--line); }
+    .camp .top { display: flex; justify-content: space-between; align-items: start; gap: 8px; margin-bottom: 8px; }
+    .camp .nm { font-weight: 600; }
+    .camp .cli { font-size: 11px; color: var(--muted); }
+    .chip { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 99px; white-space: nowrap; }
+    .chip.ok   { background: rgba(20,160,90,.14); color: var(--acc2); }
+    .chip.late { background: rgba(198,57,74,.14); color: var(--err); }
+    .chip.plan { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+    .camp .meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 8px; }
+    .camp .cbar { width: 100%; height: 5px; border-radius: 99px; background: var(--surface-dim, #cbdbf5); overflow: hidden; }
+    .camp .cbar > span { display: block; height: 100%; border-radius: 99px; }
+    .cbar > span.ok { background: var(--acc); } .cbar > span.late { background: var(--err); } .cbar > span.plan { background: var(--outline, #707880); }
+    .empty { padding: 24px 16px; color: var(--muted); text-align: center; }
+    .panel .pfoot { padding: 12px; text-align: center; border-top: 1px solid var(--line); }
+    .panel .pfoot a { color: var(--pri); font-size: 12px; font-weight: 600; text-decoration: none; }
+    .panel .pfoot a:hover { text-decoration: underline; }
+
+    /* ---- Login overlay ------------------------------------------------- */
+    .login { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; z-index: 50; }
+    .login .box { background: var(--card); border: 1px solid var(--line); border-radius: var(--raio); box-shadow: var(--sombra); padding: 28px; width: 340px; }
+    .login .box .marca { margin-bottom: 18px; }
+    .login label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+    .login input { width: 100%; padding: 11px 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; color: var(--txt); font: inherit; }
+    .login input:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
+    .login .msg { font-size: 12px; color: var(--err); min-height: 16px; margin-top: 8px; }
+
+    /* ---- Responsive ---------------------------------------------------- */
+    @media (max-width: 1024px) { .metrics { grid-template-columns: repeat(2, 1fr); } .lower { grid-template-columns: 1fr; } }
+    @media (max-width: 720px) {
+      .side { display: none; }
+      .metrics { grid-template-columns: 1fr; }
+      .content { padding: 20px 16px; }
+      .pagehead h1 { font-size: 24px; }
+    }
   </style>
 </head>
 <body>
-  <header>
-    <div class="marca">
-      <div class="logo"><svg width="22" height="22" viewBox="0 0 32 32"><path d="M13.5 7h5v6.5H25v5h-6.5V25h-5v-6.5H7v-5h6.5z" fill="#fff"/></svg></div>
-      <div><div class="nome">S&amp;A <b>Imunizações</b></div><div class="tag">Console interno · homologação</div></div>
-    </div>
-    <div>
-      <span class="muted">Banco:</span> <span id="healthPill" class="pill off">?</span>
-      <button class="sec" onclick="checarHealth()">Health</button>
-    </div>
-  </header>
-
-  <div class="wrap">
-    <!-- LOGIN -->
-    <div class="card" id="cardLogin">
-      <h2>1. Login</h2>
-      <div id="logadoInfo" class="hide">
-        <p>Logado como <b id="usuarioNome"></b> (<span id="usuarioPerfil"></span>)</p>
-        <button class="sec" onclick="logout()">Sair</button>
+  <!-- Login gate -->
+  <div class="login" id="login">
+    <div class="box">
+      <div class="marca">
+        <div class="logo"><svg width="22" height="22" viewBox="0 0 32 32"><path d="M13.5 7h5v6.5H25v5h-6.5V25h-5v-6.5H7v-5h6.5z" fill="#fff"/></svg></div>
+        <div><div class="nome">S&amp;A <b>Imunizações</b></div><div class="tag">Console interno</div></div>
       </div>
-      <div id="loginForm">
-        <label>E-mail</label>
-        <input id="loginEmail" value="rodrigo@saimunizacoes.com.br" />
-        <label>Senha</label>
-        <input id="loginSenha" type="password" placeholder="sua senha" />
-        <div style="margin-top:12px"><button onclick="login()">Entrar</button></div>
-      </div>
-    </div>
-
-    <!-- CLIENTES -->
-    <div class="card">
-      <h2>2. Cliente B2B</h2>
-      <div class="row">
-        <div><label>Razão social</label><input id="cliRazao" value="Empresa Teste LTDA" /></div>
-        <div><label>CNPJ</label><input id="cliCnpj" value="11222333000181" /></div>
-      </div>
-      <div style="margin-top:12px" class="row">
-        <button onclick="criarCliente()">Criar cliente</button>
-        <button class="sec" onclick="listarClientes()">Listar</button>
-      </div>
-      <table id="tblClientes"></table>
-    </div>
-
-    <!-- CAMPANHAS -->
-    <div class="card full">
-      <h2>3. Campanha</h2>
-      <div class="row">
-        <div>
-          <label>Cliente B2B</label>
-          <select id="campCliente"><option value="">— carregue os clientes —</option></select>
-        </div>
-        <div>
-          <label>Modalidade</label>
-          <select id="campModalidade">
-            <option value="in_company">in_company</option>
-            <option value="rede_credenciada">rede_credenciada</option>
-          </select>
-        </div>
-        <div><label>Nome</label><input id="campNome" value="Gripe 2026" /></div>
-      </div>
-      <div class="row" style="margin-top:8px">
-        <div><label>Início</label><input id="campInicio" type="date" value="2026-07-10" /></div>
-        <div><label>Fim</label><input id="campFim" type="date" value="2026-08-10" /></div>
-        <div>
-          <label>Vacinas <button class="sec" style="padding:2px 8px" onclick="carregarVacinas()">↻</button></label>
-          <div class="vacinas" id="campVacinas"><span class="muted">clique em ↻</span></div>
-        </div>
-      </div>
-      <div style="margin-top:12px" class="row">
-        <button onclick="criarCampanha()">Criar campanha</button>
-        <button class="sec" onclick="listarCampanhas()">Listar campanhas</button>
-      </div>
-      <table id="tblCampanhas"></table>
-    </div>
-
-    <!-- ELEGÍVEIS -->
-    <div class="card full">
-      <h2>4. Elegíveis (importar / listar)</h2>
-      <div class="row">
-        <div>
-          <label>Campanha</label>
-          <select id="elegCampanha"><option value="">— liste as campanhas —</option></select>
-        </div>
-      </div>
-      <label>Cole os elegíveis — <span class="muted">cpf,nome,data_nascimento,tipo_vinculo,cpf_titular,codigo_lotacao,codigo_rh,identificador</span> (sem CPF? use identificador/voucher no último campo)</label>
-      <textarea id="elegCsv" rows="4" style="width:100%;padding:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;color:var(--txt)"
-        placeholder="52998224725,Maria Silva,1990-05-10,colaborador,,LOT-01,RH-1001,&#10;,John Doe,1988-02-10,terceiro,,LOT-01,RH-2002,VOUCHER-123"></textarea>
-      <div style="margin-top:12px" class="row">
-        <button onclick="importarElegiveis()">Importar (JSON)</button>
-        <button onclick="sincronizarElegiveis()">Sincronizar (remove ausentes)</button>
-        <button class="sec" onclick="listarElegiveis()">Listar elegíveis</button>
-        <button class="sec" onclick="statusImportacao()">Status da importação</button>
-        <button class="sec" onclick="baixarErrosImportacao()">Baixar relatório de erros</button>
-      </div>
-      <p id="impInfo" class="muted"></p>
-      <p id="elegResumo" class="muted"></p>
-      <table id="tblElegiveis"></table>
-      <div class="row" style="margin-top:10px">
-        <div style="flex:0;min-width:120px"><label>Elegível ID</label><input id="sitElegId" placeholder="id" /></div>
-        <div style="flex:0"><label>Situação</label>
-          <select id="sitStatus">
-            <option value="recusado">recusado</option>
-            <option value="ausente">ausente</option>
-            <option value="inelegivel">inelegivel</option>
-            <option value="pendente">pendente (volta)</option>
-          </select>
-        </div>
-        <div><label>Motivo (obrigatório se não for pendente)</label><input id="sitMotivo" placeholder="ex.: recusou no dia" /></div>
-        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="definirSituacao()">Marcar situação</button></div>
-      </div>
-    </div>
-
-    <!-- CREDENCIAL / PARCEIRO -->
-    <div class="card full">
-      <h2>5. Credencial de API + ingestão do parceiro</h2>
-      <div class="row">
-        <div>
-          <label>Campanha</label>
-          <select id="credCampanha"><option value="">— liste as campanhas —</option></select>
-        </div>
-        <div style="flex:0">
-          <label>&nbsp;</label>
-          <button onclick="emitirCredencial()">Emitir token (ingestao_b2b)</button>
-        </div>
-      </div>
-      <label>Token emitido (cole aqui para testar; só aparece uma vez)</label>
-      <input id="credToken" placeholder="token..." />
-      <label style="margin-top:8px">Elegíveis via API (cpf,nome,data_nascimento,tipo_vinculo,cpf_titular,codigo_lotacao,codigo_rh)</label>
-      <textarea id="ingCsv" rows="3" style="width:100%;padding:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;color:var(--txt)"
-        placeholder="52998224725,Ana Costa,1992-03-01,terceiro,,LOT-02,RH-2001"></textarea>
-      <div style="margin-top:12px"><button onclick="testarIngestaoParceiro()">Testar ingestão via API (Bearer)</button></div>
-    </div>
-
-    <!-- APLICAÇÃO -->
-    <div class="card full">
-      <h2>6. Registrar aplicação (vacinado)</h2>
-      <div class="row">
-        <div>
-          <label>Campanha</label>
-          <select id="aplicCampanha"><option value="">— liste as campanhas —</option></select>
-        </div>
-        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="carregarAplicacao()">Carregar elegíveis/vacinas</button></div>
-        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="ativarCampanha()">Ativar campanha</button></div>
-        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="encerrarCampanha()">Encerrar (expira pendentes)</button></div>
-      </div>
-      <div class="row">
-        <div><label>Elegível (paciente)</label><select id="aplicElegivel"><option value="">—</option></select></div>
-        <div><label>Vacina</label><select id="aplicVacina"><option value="">—</option></select></div>
-        <div style="flex:0;min-width:90px"><label>Dose</label><input id="aplicDose" type="number" value="1" min="1" /></div>
-      </div>
-      <div class="row">
-        <div><label>Lote</label><input id="aplicLote" value="ABC-2026-77" /></div>
-        <div><label>Data/hora da aplicação</label><input id="aplicData" type="datetime-local" value="2026-07-15T10:00" /></div>
-      </div>
-      <div class="row">
-        <div><label>Profissional (nome)</label><input id="aplicProfNome" value="Enf. Ana" /></div>
-        <div><label>Profissional (CPF)</label><input id="aplicProfCpf" value="52998224725" /></div>
-      </div>
-      <div class="row">
-        <div><label>Cidade</label><input id="aplicCidade" value="São Paulo" /></div>
-        <div style="flex:0;min-width:90px"><label>UF</label><input id="aplicUf" value="SP" maxlength="2" /></div>
-        <div><label>Unidade/local (opcional)</label><input id="aplicUnidade" value="Sede - 3º andar" /></div>
-      </div>
-      <div style="margin-top:12px"><button onclick="registrarAplicacao()">Registrar aplicação</button></div>
-      <hr style="border:0;border-top:1px solid var(--line);margin:14px 0" />
-      <p class="muted">App in company via TOKEN (PWA / app próprio / terceiro):</p>
-      <div class="row">
-        <div style="flex:0"><label>&nbsp;</label><button onclick="emitirTokenApp()">Emitir token do app</button></div>
-        <div><label>Token do app</label><input id="appToken" placeholder="token..." /></div>
-        <div><label>Consultar CPF</label><input id="appCpf" placeholder="52998224725" /></div>
-        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="appConsultar()">Consultar (API)</button></div>
-        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="appRegistrar()">Registrar (API)</button></div>
-      </div>
-    </div>
-
-    <!-- TABELA VERDADE -->
-    <div class="card full">
-      <h2>7. Tabela verdade / Dashboard</h2>
-      <div class="row">
-        <div>
-          <label>Campanha</label>
-          <select id="tvCampanha"><option value="">— liste as campanhas —</option></select>
-        </div>
-        <div style="flex:0"><label>&nbsp;</label><button onclick="verTabelaVerdade()">Tabela verdade</button></div>
-        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="verDashboard()">Dashboard</button></div>
-        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="exportarCsv()">Exportar CSV</button></div>
-      </div>
-      <p id="tvResumo" class="muted"></p>
-      <table id="tblTabelaVerdade"></table>
-    </div>
-
-    <!-- REDE CREDENCIADA -->
-    <div class="card full">
-      <h2>8. Rede credenciada (fluxo da clínica via API) — RN-012</h2>
-      <div class="row">
-        <div><label>Nome da clínica</label><input id="clinicaNome" value="Clínica Parceira A" /></div>
-        <div><label>CNPJ</label><input id="clinicaCnpj" value="11444777000161" /></div>
-        <div style="flex:0"><label>&nbsp;</label><button onclick="criarClinica()">Criar clínica</button></div>
-        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="listarClinicasRede()">Listar</button></div>
-      </div>
-      <div class="row">
-        <div><label>Campanha</label><select id="redeCampanha"><option value="">— liste as campanhas —</option></select></div>
-        <div><label>Clínica</label><select id="redeClinica"><option value="">— liste as clínicas —</option></select></div>
-      </div>
-      <label>Atribuir elegíveis à clínica (CPFs, um por linha)</label>
-      <textarea id="redeCpfs" rows="2" style="width:100%;padding:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;color:var(--txt)"
-        placeholder="52998224725&#10;11144477735"></textarea>
-      <div class="row" style="margin-top:8px">
-        <button class="sec" onclick="atribuirClinica()">Atribuir CPFs à clínica</button>
-        <button onclick="emitirTokenRede()">Emitir token da clínica</button>
-      </div>
-      <label>Token da clínica (use nas chamadas abaixo)</label>
-      <input id="redeToken" placeholder="token..." />
-      <hr style="border:0;border-top:1px solid var(--line);margin:14px 0" />
-      <p class="muted">Agora simulando a clínica (via API, com o token acima):</p>
-      <div class="row">
-        <div><label>Consultar CPF</label><input id="redeConsultaCpf" placeholder="52998224725" /></div>
-        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="consultarElegivelRede()">Consultar elegível (API)</button></div>
-      </div>
-      <div class="row">
-        <div><label>Elegível encontrado</label><input id="redeElegivelId" readonly placeholder="id do elegível" /></div>
-        <div><label>Vacina</label><select id="redeVacina"><option value="">consulte primeiro</option></select></div>
-        <div style="flex:0;min-width:80px"><label>Dose</label><input id="redeDose" type="number" value="1" min="1" /></div>
-      </div>
-      <div class="row">
-        <div><label>Lote</label><input id="redeLote" value="RED-2026-01" /></div>
-        <div><label>Data/hora</label><input id="redeData" type="datetime-local" value="2026-07-16T09:00" /></div>
-      </div>
-      <div class="row">
-        <div><label>Profissional (nome)</label><input id="redeProfNome" value="Enf. Clínica A" /></div>
-        <div><label>Profissional (CPF)</label><input id="redeProfCpf" value="11144477735" /></div>
-        <div><label>Cidade</label><input id="redeCidade" value="Campinas" /></div>
-        <div style="flex:0;min-width:80px"><label>UF</label><input id="redeUf" value="SP" maxlength="2" /></div>
-      </div>
-      <div style="margin-top:8px"><button onclick="registrarViaClinica()">Registrar via API clínica</button></div>
-      <label style="margin-top:8px">Registro em LOTE (uma linha: <span class="muted">elegivel_id;vacina_id;dose;lote;data;prof_nome;prof_cpf;cidade;uf</span>)</label>
-      <textarea id="redeLote2" rows="3" style="width:100%;padding:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;color:var(--txt)"
-        placeholder="12;5;1;RED-2026-01;2026-07-16 09:00;Enf. A;11144477735;Campinas;SP&#10;13;5;1;RED-2026-01;2026-07-16 09:10;Enf. A;11144477735;Campinas;SP"></textarea>
-      <div style="margin-top:8px"><button onclick="registrarLoteClinica()">Registrar em lote (API)</button></div>
-    </div>
-
-    <!-- CORREÇÕES E HISTÓRICO -->
-    <div class="card full">
-      <h2>9. Correções e histórico (integridade — RN-021/022)</h2>
-      <p class="muted">Editar elegível (deixe em branco o que não quer alterar):</p>
-      <div class="row">
-        <div style="flex:0;min-width:110px"><label>Elegível ID</label><input id="edElegId" placeholder="id" /></div>
-        <div><label>Nome</label><input id="edNome" placeholder="(manter)" /></div>
-        <div><label>CPF</label><input id="edCpf" placeholder="(manter)" /></div>
-        <div><label>Nascimento</label><input id="edNasc" placeholder="AAAA-MM-DD" /></div>
-      </div>
-      <div class="row">
-        <div><label>Tipo</label>
-          <select id="edTipo"><option value="">(manter)</option><option>colaborador</option><option>dependente</option><option>terceiro</option></select>
-        </div>
-        <div><label>CPF titular</label><input id="edTitular" placeholder="(se dependente)" /></div>
-        <div><label>Cód. lotação</label><input id="edLotacao" placeholder="(manter)" /></div>
-        <div><label>Cód. RH</label><input id="edRh" placeholder="(manter)" /></div>
-      </div>
-      <div class="row" style="margin-top:8px">
-        <button onclick="editarElegivel()">Salvar correção</button>
-        <button class="sec" onclick="verHistoricoElegivel()">Ver histórico do elegível</button>
-      </div>
-      <hr style="border:0;border-top:1px solid var(--line);margin:14px 0" />
-      <p class="muted">Estornar ("desvacinar") uma aplicação e ver seu histórico:</p>
-      <div class="row">
-        <div style="flex:0;min-width:110px"><label>Aplicação ID</label><input id="estAplId" placeholder="id" /></div>
-        <div><label>Motivo do estorno</label><input id="estMotivo" placeholder="ex.: vacinado por engano" /></div>
-        <div style="flex:0"><label>&nbsp;</label><button onclick="estornarAplicacao()">Estornar</button></div>
-        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="verHistoricoAplicacao()">Histórico da aplicação</button></div>
-      </div>
-    </div>
-
-    <!-- CARTEIRA & RELATÓRIOS -->
-    <div class="card full">
-      <h2>10. Carteira de vacinação & relatório ano a ano (9c)</h2>
-      <div class="row">
-        <div><label>Carteira do paciente (CPF)</label><input id="cartCpf" placeholder="52998224725" /></div>
-        <div style="flex:0"><label>&nbsp;</label><button onclick="verCarteira()">Ver carteira</button></div>
-        <div><label>Resumo de campanhas do cliente (ID)</label><input id="relCliente" placeholder="1" /></div>
-        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="verResumoCliente()">Resumo ano a ano</button></div>
-      </div>
-      <table id="tblCarteira"></table>
-    </div>
-
-    <!-- IMPORTAR VACINADOS HISTÓRICOS -->
-    <div class="card full">
-      <h2>10b. Importar vacinados de anos anteriores (histórico — RN-027)</h2>
-      <p class="muted">Migração retrocompatível: cria automaticamente a campanha
-        <b>“Histórico — {vacina} {ano}”</b> por cliente/vacina/ano e grava a carteira perpétua.
-        Ignora período/elegibilidade de propósito (uso interno). A <b>vacina precisa existir no catálogo</b>
-        (mesmo nome). Sem lote? usa “HISTORICO”. Data pode ser <code>AAAA-MM-DD</code> ou só o ano <code>AAAA</code>.</p>
-      <div class="row">
-        <div>
-          <label>Cliente B2B</label>
-          <select id="vhCliente"><option value="">— carregue os clientes (seção 2) —</option></select>
-        </div>
-      </div>
-      <label>Colar CSV — <span class="muted">cpf,nome,data_nascimento,vacina,dose,lote,aplicado_em,codigo_lotacao,cidade,uf,identificador</span></label>
-      <textarea id="vhCsv" rows="5" style="width:100%;padding:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;color:var(--txt)"
-        placeholder="52998224725,Maria Silva,1990-05-10,Gripe,1,LOTE-2023-A,2023-04-15,LOT-01,São Paulo,SP&#10;,John Doe,1988-02-10,Gripe,1,,2022,LOT-02,Campinas,SP,PASS-XYZ"></textarea>
-      <p class="muted">Lotes acima de 2.000 linhas são processados em segundo plano (worker); acompanhe pelo status.</p>
-      <div style="margin-top:12px" class="row">
-        <button onclick="importarVacinadosHistorico()">Importar histórico</button>
-        <button class="sec" onclick="statusVacinadosHistorico()">Ver status do lote</button>
-        <input id="vhJob" placeholder="id do lote" style="max-width:120px" />
-      </div>
-      <p id="vhInfo" class="muted"></p>
-      <table id="tblVh"></table>
-    </div>
-
-    <!-- FATURAMENTO -->
-    <div class="card full">
-      <h2>12. Faturamento (item 4)</h2>
-      <p class="muted">Preços — cliente (por modalidade e vacina) e clínica (por vacina):</p>
-      <div class="row">
-        <div style="flex:0;min-width:90px"><label>Cliente ID</label><input id="pcCliente" placeholder="1" /></div>
-        <div><label>Modalidade</label><select id="pcModal"><option value="in_company">in_company</option><option value="rede_credenciada">rede_credenciada</option></select></div>
-        <div style="flex:0;min-width:90px"><label>Vacina ID</label><input id="pcVacina" placeholder="1" /></div>
-        <div style="flex:0;min-width:90px"><label>Valor</label><input id="pcValor" placeholder="35.00" /></div>
-        <div style="flex:0"><label>&nbsp;</label><button onclick="definirPrecoCliente()">Preço cliente</button></div>
-      </div>
-      <div class="row">
-        <div style="flex:0;min-width:90px"><label>Clínica ID</label><input id="pclClinica" placeholder="1" /></div>
-        <div style="flex:0;min-width:90px"><label>Vacina ID</label><input id="pclVacina" placeholder="1" /></div>
-        <div style="flex:0;min-width:90px"><label>Valor</label><input id="pclValor" placeholder="20.00" /></div>
-        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="definirPrecoClinica()">Preço clínica</button></div>
-      </div>
-      <hr style="border:0;border-top:1px solid var(--line);margin:14px 0" />
-      <div class="row">
-        <div style="flex:0;min-width:110px"><label>Campanha ID</label><input id="fatCampanha" placeholder="1" /></div>
-        <div style="flex:0"><label>&nbsp;</label><button onclick="faturamentoCliente()">A cobrar do cliente</button></div>
-        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="faturamentoClinicas()">A pagar às clínicas</button></div>
-      </div>
-      <p id="fatInfo" class="muted"></p>
-      <table id="tblFaturamento"></table>
-    </div>
-
-    <!-- OBSERVABILIDADE -->
-    <div class="card full">
-      <h2>11. Observabilidade (item 13)</h2>
-      <div class="row">
-        <div style="flex:0"><label>&nbsp;</label><button onclick="verMetricas()">Métricas operacionais</button></div>
-        <div><label>Auditoria — evento (opcional)</label><input id="audEvento" placeholder="ex.: login.falha, aplicacao.registrada" /></div>
-        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="verAuditoria()">Últimos eventos</button></div>
-      </div>
-      <p id="metInfo" class="muted"></p>
-      <table id="tblAuditoria"></table>
-    </div>
-
-    <!-- INTEGRAÇÕES / WEBHOOKS -->
-    <div class="card full">
-      <h2>13. Integrações — Webhooks (Fase A)</h2>
-      <div class="row">
-        <div><label>Evento</label>
-          <select id="whEvento">
-            <option>aplicacao.registrada</option><option>aplicacao.estornada</option>
-            <option>elegivel.situacao_definida</option><option>importacao.concluida</option>
-            <option>campanha.encerrada</option><option>elegiveis.importados</option>
-          </select>
-        </div>
-        <div><label>URL de destino (https)</label><input id="whUrl" placeholder="https://sistema-cliente/webhook" /></div>
-        <div style="flex:0;min-width:90px"><label>Cliente (opcional)</label><input id="whTenant" placeholder="tenant" /></div>
-        <div style="flex:0"><label>&nbsp;</label><button onclick="criarWebhook()">Criar</button></div>
-        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="listarWebhooks()">Listar</button></div>
-      </div>
-      <div class="row">
-        <div style="flex:0;min-width:110px"><label>Webhook ID</label><input id="whId" placeholder="id" /></div>
-        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="testarWebhook()">Testar</button></div>
-        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="entregasWebhook()">Ver entregas</button></div>
-        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="desativarWebhook()">Desativar</button></div>
-      </div>
-      <table id="tblWebhooks"></table>
-      <hr style="border:0;border-top:1px solid var(--line);margin:14px 0" />
-      <p class="muted">API externa de consulta (token do cliente — sistema de carteira / RH):</p>
-      <div class="row">
-        <div style="flex:0;min-width:110px"><label>Cliente ID</label><input id="tcCliente" placeholder="1" /></div>
-        <div style="flex:0"><label>&nbsp;</label><button onclick="emitirTokenConsulta()">Emitir token de consulta</button></div>
-        <div><label>Token de consulta</label><input id="tcToken" placeholder="token..." /></div>
-      </div>
-      <div class="row">
-        <div><label>Consultar carteira (CPF/voucher)</label><input id="tcCpf" placeholder="52998224725" /></div>
-        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="consultarCarteiraExterna()">Consultar (API externa)</button></div>
-      </div>
-    </div>
-
-    <!-- ACESSO / HIERARQUIA (PORTAL D0) -->
-    <div class="card full">
-      <h2>14. Acesso e hierarquia (Portal D0)</h2>
-      <div class="row">
-        <div style="flex:0"><label>&nbsp;</label><button onclick="acessoEu()">Minhas atribuições</button></div>
-        <div><label>Novo grupo empresarial</label><input id="grpNome" placeholder="Holding X" /></div>
-        <div style="flex:0"><label>&nbsp;</label><button onclick="criarGrupo()">Criar grupo</button></div>
-        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="listarGrupos()">Listar grupos</button></div>
-      </div>
-      <div class="row">
-        <div style="flex:0;min-width:90px"><label>Cliente ID</label><input id="uniCliente" placeholder="1" /></div>
-        <div><label>Nova unidade</label><input id="uniNome" placeholder="Planta São Paulo" /></div>
-        <div><label>Cidade/UF</label><input id="uniCidade" placeholder="São Paulo" /></div>
-        <div style="flex:0;min-width:70px"><label>UF</label><input id="uniUf" placeholder="SP" maxlength="2" /></div>
-        <div style="flex:0"><label>&nbsp;</label><button onclick="criarUnidade()">Criar unidade</button></div>
-        <div style="flex:0"><label>&nbsp;</label><button class="sec" onclick="listarUnidades()">Listar</button></div>
-      </div>
-      <p class="muted">Criar usuário do portal (nível + escopo):</p>
-      <div class="row">
-        <div><label>Nome</label><input id="usrNome" placeholder="Gestor RH" /></div>
-        <div><label>E-mail</label><input id="usrEmail" placeholder="rh@empresa.com" /></div>
-        <div><label>Senha</label><input id="usrSenha" placeholder="min 8" /></div>
-        <div><label>Nível</label><select id="usrNivel"><option>negocio</option><option>grupo</option><option>local</option><option>gestao_interna</option></select></div>
-        <div style="flex:0;min-width:100px"><label>Escopo ID</label><input id="usrEscopo" placeholder="cliente/grupo/unidade id" /></div>
-        <div style="flex:0"><label>&nbsp;</label><button onclick="criarUsuarioPortal()">Criar usuário</button></div>
-      </div>
-    </div>
-
-    <!-- RESPOSTA -->
-    <div class="card full">
-      <h2>Última resposta da API</h2>
-      <pre id="saida">—</pre>
+      <label>E-mail</label>
+      <input id="email" autocomplete="username" />
+      <label>Senha</label>
+      <input id="senha" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')entrar()" />
+      <div class="msg" id="loginMsg"></div>
+      <button class="btn primary" style="width:100%;justify-content:center;margin-top:12px" onclick="entrar()">Entrar</button>
     </div>
   </div>
 
-<script>
-// ---------------------------------------------------------------------------
-// Console de testes — vanilla JS + Fetch. Mesma origem: cookies de sessão são
-// enviados automaticamente. Mutações enviam o header X-CSRF-Token.
-// ---------------------------------------------------------------------------
-let CSRF = null;
+  <!-- Sidebar -->
+  <aside class="side">
+    <div class="brand">
+      <div class="logo"><svg width="24" height="24" viewBox="0 0 32 32"><path d="M13.5 7h5v6.5H25v5h-6.5V25h-5v-6.5H7v-5h6.5z" fill="#fff"/></svg></div>
+      <div>
+        <div class="nome">Gestão de Vacinas</div>
+        <div class="tag">Administrador Central</div>
+      </div>
+    </div>
+    <nav>
+      <button class="navlink active"><span class="material-symbols-outlined">dashboard</span> Dashboard</button>
+      <a class="navlink" href="/admin/console.html"><span class="material-symbols-outlined">group</span> Pacientes</a>
+      <a class="navlink" href="/admin/console.html"><span class="material-symbols-outlined">person</span> Usuários</a>
+      <a class="navlink" href="/admin/console.html"><span class="material-symbols-outlined">sync</span> Integrações</a>
+      <a class="navlink" href="/portal/"><span class="material-symbols-outlined">history</span> Auditoria</a>
+    </nav>
+    <div class="foot">
+      <a class="navlink" href="/admin/console.html"><span class="material-symbols-outlined">terminal</span> Console interno</a>
+      <a class="navlink" href="/portal/"><span class="material-symbols-outlined">settings</span> Portal do cliente</a>
+    </div>
+  </aside>
 
-function log(obj) {
-  document.getElementById('saida').textContent =
-    typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
-}
+  <!-- Main -->
+  <div class="main">
+    <div class="content">
+      <!-- Page header -->
+      <div class="pagehead">
+        <div>
+          <h1>Visão Geral da Imunização</h1>
+          <p id="subtitulo">Métricas consolidadas das campanhas ativas do seu escopo.</p>
+        </div>
+        <div class="actions">
+          <span class="who">Olá, <b id="quem">—</b></span>
+          <button class="btn sec" onclick="carregar()"><span class="material-symbols-outlined">refresh</span> Atualizar</button>
+          <button class="btn sec" onclick="sair()"><span class="material-symbols-outlined">logout</span> Sair</button>
+        </div>
+      </div>
 
-async function api(path, metodo = 'GET', corpo = null) {
-  const opts = { method: metodo, headers: {}, credentials: 'same-origin' };
-  if (corpo) {
-    opts.headers['Content-Type'] = 'application/json';
-    opts.body = JSON.stringify(corpo);
+      <!-- Metric cards -->
+      <section class="metrics">
+        <div class="metric">
+          <div class="head"><span class="label">Total de Elegíveis</span><span class="icon blue material-symbols-outlined">group</span></div>
+          <div class="big" id="mEleg">—</div>
+          <div class="delta"><small>em campanhas ativas</small></div>
+        </div>
+        <div class="metric">
+          <div class="head"><span class="label">Total Vacinados</span><span class="icon green material-symbols-outlined">vaccines</span></div>
+          <div class="big" id="mVac">—</div>
+          <div class="delta" id="mVacDelta"><small>vacinações no mês</small></div>
+        </div>
+        <div class="metric">
+          <div class="head"><span class="label">Cobertura Vacinal</span><span class="icon teal material-symbols-outlined">pie_chart</span></div>
+          <div class="big" id="mCob">—</div>
+          <div class="bar"><span id="mCobBar" style="width:0%"></span></div>
+          <div class="delta"><small>Meta: 90%</small></div>
+        </div>
+        <div class="metric">
+          <div class="head"><span class="label">Pendentes</span><span class="icon red material-symbols-outlined">pending_actions</span></div>
+          <div class="big" id="mPend">—</div>
+          <div class="delta"><small>aguardando aplicação</small></div>
+        </div>
+      </section>
+
+      <!-- Lower grid -->
+      <div class="lower">
+        <!-- Chart -->
+        <div class="panel">
+          <div class="phead"><h2 id="chartTitulo">Vacinações por mês</h2></div>
+          <div class="chart" id="chart"></div>
+        </div>
+
+        <!-- Active campaigns -->
+        <div class="panel">
+          <div class="phead mini"><h2>Campanhas Ativas</h2><span class="material-symbols-outlined" style="color:var(--pri)">more_horiz</span></div>
+          <div class="camps" id="camps"></div>
+          <div class="pfoot"><a href="/admin/console.html">Gerir campanhas no console</a></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // ---------------------------------------------------------------------------
+  // Console admin — dashboard "Visão Geral" ligada ao backend.
+  // Mesma origem: cookie de sessão automático; CSRF só nas mutações (logout).
+  // ---------------------------------------------------------------------------
+  let CSRF = null;
+
+  async function api(path, metodo = 'GET', corpo = null) {
+    const opts = { method: metodo, headers: {}, credentials: 'same-origin' };
+    if (corpo) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(corpo); }
+    if (metodo !== 'GET' && CSRF) opts.headers['X-CSRF-Token'] = CSRF;
+    const r = await fetch('/api/v1' + path, opts);
+    let d; try { d = await r.json(); } catch (e) { d = { success: false }; }
+    return { http: r.status, ...d };
   }
-  if (metodo !== 'GET' && CSRF) {
-    opts.headers['X-CSRF-Token'] = CSRF;
-  }
-  const resp = await fetch('/api/v1' + path, opts);
-  let dados;
-  try { dados = await resp.json(); } catch (e) { dados = { erro: 'resposta não-JSON', status: resp.status }; }
-  log(dados);
-  return dados;
-}
 
-async function checarHealth() {
-  const d = await api('/health');
-  const pill = document.getElementById('healthPill');
-  const ok = d && d.data && d.data.banco === 'ok';
-  pill.className = 'pill ' + (ok ? 'ok' : 'err');
-  pill.textContent = d?.data?.banco || 'erro';
-}
+  // Números em pt-BR (milhar com ponto). Cobertura já vem com 1 casa.
+  const fmt = n => (n ?? 0).toLocaleString('pt-BR');
+  const pct = n => (n ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const ddmm = s => s ? s.substring(8, 10) + '/' + s.substring(5, 7) : '—';
 
-async function login() {
-  const d = await api('/interno/auth/login', 'POST', {
-    email: document.getElementById('loginEmail').value,
-    senha: document.getElementById('loginSenha').value,
-  });
-  if (d.success) {
+  async function entrar() {
+    document.getElementById('loginMsg').textContent = '...';
+    const d = await api('/interno/auth/login', 'POST', {
+      email: document.getElementById('email').value,
+      senha: document.getElementById('senha').value,
+    });
+    if (!d.success) { document.getElementById('loginMsg').textContent = 'E-mail ou senha inválidos.'; return; }
     CSRF = d.data.csrf_token;
-    document.getElementById('usuarioNome').textContent = d.data.usuario.nome;
-    document.getElementById('usuarioPerfil').textContent = d.data.usuario.perfil;
-    document.getElementById('loginForm').classList.add('hide');
-    document.getElementById('logadoInfo').classList.remove('hide');
-    listarClientes();
+    document.getElementById('loginMsg').textContent = '';
+    document.getElementById('senha').value = '';
+    await carregar();
   }
-}
 
-async function logout() {
-  await api('/interno/auth/logout', 'POST');
-  CSRF = null;
-  document.getElementById('loginForm').classList.remove('hide');
-  document.getElementById('logadoInfo').classList.add('hide');
-}
-
-async function criarCliente() {
-  await api('/interno/clientes', 'POST', {
-    razao_social: document.getElementById('cliRazao').value,
-    cnpj: document.getElementById('cliCnpj').value,
-  });
-  listarClientes();
-}
-
-async function listarClientes() {
-  const d = await api('/interno/clientes');
-  const tbl = document.getElementById('tblClientes');
-  const sel = document.getElementById('campCliente');
-  if (!d.success) return;
-  const itens = d.data.itens || [];
-  tbl.innerHTML = '<tr><th>ID</th><th>Razão social</th><th>CNPJ</th><th>Status</th></tr>' +
-    itens.map(c => `<tr><td>${c.id}</td><td>${c.razao_social}</td><td>${c.cnpj}</td><td>${c.status}</td></tr>`).join('');
-  const opcoes = '<option value="">— selecione —</option>' +
-    itens.map(c => `<option value="${c.id}">${c.razao_social} (#${c.id})</option>`).join('');
-  sel.innerHTML = opcoes;
-  const selVh = document.getElementById('vhCliente'); if (selVh) selVh.innerHTML = opcoes;
-}
-
-async function carregarVacinas() {
-  const d = await api('/interno/vacinas');
-  const box = document.getElementById('campVacinas');
-  if (!d.success) return;
-  box.innerHTML = (d.data.itens || []).map(v =>
-    `<label><input type="checkbox" value="${v.id}" data-doses="${v.doses_padrao}"> ${v.nome} (${v.doses_padrao} dose(s))</label>`
-  ).join('') || '<span class="muted">nenhuma vacina</span>';
-}
-
-async function criarCampanha() {
-  const vacinas = [...document.querySelectorAll('#campVacinas input:checked')]
-    .map(el => ({ vacina_id: Number(el.value), doses_previstas: Number(el.dataset.doses) }));
-  await api('/interno/campanhas', 'POST', {
-    cliente_b2b_id: Number(document.getElementById('campCliente').value),
-    nome: document.getElementById('campNome').value,
-    modalidade: document.getElementById('campModalidade').value,
-    periodo_inicio: document.getElementById('campInicio').value,
-    periodo_fim: document.getElementById('campFim').value,
-    vacinas,
-  });
-  listarCampanhas();
-}
-
-async function listarCampanhas() {
-  const d = await api('/interno/campanhas');
-  const tbl = document.getElementById('tblCampanhas');
-  if (!d.success) return;
-  const itens = d.data.itens || [];
-  tbl.innerHTML = '<tr><th>ID</th><th>Cliente</th><th>Nome</th><th>Modalidade</th><th>Período</th><th>Status</th></tr>' +
-    itens.map(c => `<tr><td>${c.id}</td><td>${c.cliente}</td><td>${c.nome}</td><td>${c.modalidade}</td><td>${c.periodo_inicio} → ${c.periodo_fim}</td><td>${c.status}</td></tr>`).join('');
-  // Popula os seletores de campanha das seções 4, 5, 6 e 7.
-  const opts = '<option value="">— selecione —</option>' +
-    itens.map(c => `<option value="${c.id}">${c.nome} (#${c.id})</option>`).join('');
-  ['elegCampanha', 'credCampanha', 'aplicCampanha', 'tvCampanha', 'redeCampanha'].forEach(idsel => {
-    const el = document.getElementById(idsel); if (el) el.innerHTML = opts;
-  });
-}
-
-// Fetch para o grupo parceiro (Bearer). Loga a resposta e devolve o JSON.
-async function apiBearer(path, metodo, corpo, token) {
-  const opts = { method: metodo, headers: { 'Authorization': 'Bearer ' + token }, credentials: 'same-origin' };
-  if (corpo) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(corpo); }
-  const resp = await fetch('/api/v1' + path, opts);
-  let d; try { d = await resp.json(); } catch (e) { d = { erro: 'não-JSON', status: resp.status }; }
-  log(d); return d;
-}
-
-async function criarClinica() {
-  await api('/interno/clinicas', 'POST', {
-    nome: document.getElementById('clinicaNome').value,
-    cnpj: document.getElementById('clinicaCnpj').value,
-  });
-  listarClinicasRede();
-}
-
-async function listarClinicasRede() {
-  const d = await api('/interno/clinicas');
-  if (!d.success) return;
-  document.getElementById('redeClinica').innerHTML = '<option value="">— selecione —</option>' +
-    (d.data.itens || []).map(c => `<option value="${c.id}">${c.nome} (#${c.id})</option>`).join('');
-}
-
-async function atribuirClinica() {
-  const id = document.getElementById('redeCampanha').value;
-  const clinica_id = Number(document.getElementById('redeClinica').value);
-  if (!id || !clinica_id) return log('Selecione campanha e clínica.');
-  const cpfs = document.getElementById('redeCpfs').value.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-  await api(`/interno/campanhas/${id}/atribuir-clinica`, 'POST', { clinica_id, cpfs });
-}
-
-async function emitirTokenRede() {
-  const id = document.getElementById('redeCampanha').value;
-  const clinica_id = Number(document.getElementById('redeClinica').value);
-  if (!id || !clinica_id) return log('Selecione campanha e clínica.');
-  const d = await api('/interno/credenciais', 'POST', { tipo: 'rede_credenciada', campanha_id: Number(id), clinica_id });
-  if (d.success) document.getElementById('redeToken').value = d.data.token;
-}
-
-async function consultarElegivelRede() {
-  const id = document.getElementById('redeCampanha').value;
-  const token = document.getElementById('redeToken').value.trim();
-  const cpf = document.getElementById('redeConsultaCpf').value.replace(/\D/g, '');
-  if (!id || !token || !cpf) return log('Informe campanha, token e CPF.');
-  const d = await apiBearer(`/parceiro/campanhas/${id}/elegiveis/${cpf}`, 'GET', null, token);
-  if (d.success) {
-    document.getElementById('redeElegivelId').value = d.data.elegivel_id;
-    document.getElementById('redeVacina').innerHTML =
-      (d.data.vacinas_previstas || []).map(v => `<option value="${v.vacina_id}">${v.nome}</option>`).join('');
+  async function sair() {
+    await api('/interno/auth/logout', 'POST', {});
+    CSRF = null;
+    document.getElementById('login').classList.remove('hide');
   }
-}
 
-async function registrarLoteClinica() {
-  const token = document.getElementById('redeToken').value.trim();
-  if (!token) return log('Emita/cole um token da clínica.');
-  const aplicacoes = document.getElementById('redeLote2').value.split(/\r?\n/)
-    .map(l => l.trim()).filter(Boolean).map(l => {
-      const p = l.split(';').map(x => x.trim());
-      return {
-        elegivel_id: Number(p[0]), vacina_id: Number(p[1]), dose: Number(p[2]),
-        lote: p[3], aplicado_em: p[4],
-        profissional_nome: p[5], profissional_cpf: p[6], cidade: p[7], uf: p[8],
-      };
-    });
-  await apiBearer('/parceiro/aplicacoes-lote', 'POST', { aplicacoes }, token);
-}
-
-async function registrarViaClinica() {
-  const token = document.getElementById('redeToken').value.trim();
-  const body = {
-    elegivel_id: Number(document.getElementById('redeElegivelId').value),
-    vacina_id: Number(document.getElementById('redeVacina').value),
-    dose: Number(document.getElementById('redeDose').value),
-    lote: document.getElementById('redeLote').value,
-    aplicado_em: document.getElementById('redeData').value.replace('T', ' ') + ':00',
-    profissional_nome: document.getElementById('redeProfNome').value,
-    profissional_cpf: document.getElementById('redeProfCpf').value,
-    cidade: document.getElementById('redeCidade').value,
-    uf: document.getElementById('redeUf').value,
-  };
-  await apiBearer('/parceiro/aplicacoes', 'POST', body, token);
-}
-
-async function carregarAplicacao() {
-  const id = document.getElementById('aplicCampanha').value;
-  if (!id) return log('Selecione uma campanha.');
-  // Elegíveis da campanha.
-  const de = await api(`/interno/campanhas/${id}/elegiveis`);
-  const selE = document.getElementById('aplicElegivel');
-  selE.innerHTML = (de.data?.itens || [])
-    .map(e => `<option value="${e.id}">${e.nome} (${e.cpf}) — ${e.status}</option>`).join('') || '<option value="">sem elegíveis</option>';
-  // Vacinas da campanha (via detalhe).
-  const dc = await api(`/interno/campanhas/${id}`);
-  const selV = document.getElementById('aplicVacina');
-  selV.innerHTML = (dc.data?.vacinas || [])
-    .map(v => `<option value="${v.vacina_id}">${v.nome}</option>`).join('') || '<option value="">sem vacinas</option>';
-}
-
-async function ativarCampanha() {
-  const id = document.getElementById('aplicCampanha').value;
-  if (!id) return log('Selecione uma campanha.');
-  await api(`/interno/campanhas/${id}`, 'PUT', { status: 'ativa' });
-  listarCampanhas();
-}
-
-async function encerrarCampanha() {
-  const id = document.getElementById('aplicCampanha').value;
-  if (!id) return log('Selecione uma campanha.');
-  await api(`/interno/campanhas/${id}/encerrar`, 'POST');
-  listarCampanhas();
-}
-
-async function registrarAplicacao() {
-  const body = {
-    elegivel_id: Number(document.getElementById('aplicElegivel').value),
-    vacina_id: Number(document.getElementById('aplicVacina').value),
-    dose: Number(document.getElementById('aplicDose').value),
-    lote: document.getElementById('aplicLote').value,
-    aplicado_em: document.getElementById('aplicData').value.replace('T', ' ') + ':00',
-    profissional_nome: document.getElementById('aplicProfNome').value,
-    profissional_cpf: document.getElementById('aplicProfCpf').value,
-    cidade: document.getElementById('aplicCidade').value,
-    uf: document.getElementById('aplicUf').value,
-    unidade: document.getElementById('aplicUnidade').value,
-  };
-  await api('/interno/aplicacoes', 'POST', body);
-}
-
-async function emitirTokenApp() {
-  const id = document.getElementById('aplicCampanha').value;
-  if (!id) return log('Selecione a campanha (seção 6).');
-  const d = await api('/interno/credenciais', 'POST', { tipo: 'app_in_company', campanha_id: Number(id) });
-  if (d.success) document.getElementById('appToken').value = d.data.token;
-}
-
-async function appConsultar() {
-  const id = document.getElementById('aplicCampanha').value;
-  const token = document.getElementById('appToken').value.trim();
-  const cpf = document.getElementById('appCpf').value.trim();
-  if (!id || !token || !cpf) return log('Selecione campanha, emita token e informe CPF.');
-  const d = await apiBearer(`/parceiro/incompany/campanhas/${id}/elegiveis/${encodeURIComponent(cpf)}`, 'GET', null, token);
-  if (d.success) document.getElementById('aplicElegivel').innerHTML =
-    `<option value="${d.data.elegivel_id}">${d.data.paciente.nome} — ${d.data.status}</option>`;
-}
-
-async function appRegistrar() {
-  const token = document.getElementById('appToken').value.trim();
-  if (!token) return log('Emita/cole o token do app.');
-  const body = {
-    elegivel_id: Number(document.getElementById('aplicElegivel').value),
-    vacina_id: Number(document.getElementById('aplicVacina').value),
-    dose: Number(document.getElementById('aplicDose').value),
-    lote: document.getElementById('aplicLote').value,
-    aplicado_em: document.getElementById('aplicData').value.replace('T', ' ') + ':00',
-    profissional_nome: document.getElementById('aplicProfNome').value,
-    profissional_cpf: document.getElementById('aplicProfCpf').value,
-    cidade: document.getElementById('aplicCidade').value,
-    uf: document.getElementById('aplicUf').value,
-    unidade: document.getElementById('aplicUnidade').value,
-  };
-  await apiBearer('/parceiro/incompany/aplicacoes', 'POST', body, token);
-}
-
-async function verTabelaVerdade() {
-  const id = document.getElementById('tvCampanha').value;
-  if (!id) return log('Selecione uma campanha.');
-  const d = await api(`/interno/campanhas/${id}/tabela-verdade`);
-  if (!d.success) return;
-  const r = d.data.resumo || {};
-  document.getElementById('tvResumo').textContent =
-    `Pendentes: ${r.pendente||0} · Aplicados: ${r.aplicado||0} · Recusados: ${r.recusado||0} · Total: ${d.meta?.total||0}`;
-  document.getElementById('tblTabelaVerdade').innerHTML =
-    '<tr><th>CPF</th><th>Nome</th><th>Situação</th><th>Aplicações</th><th>Última</th></tr>' +
-    (d.data.itens || []).map(i =>
-      `<tr><td>${i.cpf}</td><td>${i.nome}</td><td>${i.situacao_elegivel}</td><td>${i.total_aplicacoes}</td><td>${i.ultima_aplicacao_em||'—'}</td></tr>`).join('');
-}
-
-function exportarCsv() {
-  const id = document.getElementById('tvCampanha').value;
-  if (!id) return log('Selecione uma campanha.');
-  // GET com cookie de sessão (mesma origem) — dispara download pelo Content-Disposition.
-  window.open(`/api/v1/interno/campanhas/${id}/exportar`, '_blank');
-}
-
-async function verDashboard() {
-  const id = document.getElementById('tvCampanha').value;
-  if (!id) return log('Selecione uma campanha.');
-  const d = await api(`/interno/campanhas/${id}/dashboard`);
-  if (d.success) {
-    const x = d.data;
-    document.getElementById('tvResumo').textContent =
-      `Cobertura ${x.cobertura_percentual}% — Elegíveis: ${x.total_elegiveis} · Aplicados: ${x.aplicados} · Pendentes: ${x.pendentes} · Recusados: ${x.recusados}`;
+  async function carregar() {
+    const d = await api('/interno/dashboard');
+    if (d.http === 401) { document.getElementById('login').classList.remove('hide'); return; }
+    document.getElementById('login').classList.add('hide');
+    if (d.http === 403) {
+      document.getElementById('subtitulo').textContent = 'Seu usuário não gere clientes — sem métricas para exibir.';
+      return;
+    }
+    if (!d.success) return;
+    render(d.data);
+    const eu = await api('/interno/auth/eu');
+    if (eu.success) document.getElementById('quem').textContent = eu.data.usuario.nome || '—';
   }
-}
 
-// Converte texto "cpf,nome,nascimento,tipo_vinculo,cpf_titular" (uma linha por
-// pessoa) em array de objetos. Tolera aspas ao redor dos campos.
-function parseElegiveis(texto) {
-  const limpa = s => (s || '').trim().replace(/^"(.*)"$/, '$1').trim();
-  return texto.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(linha => {
-    const p = linha.split(/[;,](?=(?:[^"]*"[^"]*")*[^"]*$)/).map(limpa);
-    return {
-      cpf: p[0] || '', nome: p[1] || '', data_nascimento: p[2] || null,
-      tipo_vinculo: p[3] || null, cpf_titular: p[4] || null,
-      codigo_lotacao: p[5] || null, codigo_rh: p[6] || null, identificador: p[7] || null,
-    };
-  });
-}
+  function render(x) {
+    document.getElementById('mEleg').textContent = fmt(x.total_elegiveis);
+    document.getElementById('mVac').textContent  = fmt(x.total_vacinados);
+    document.getElementById('mCob').textContent  = pct(x.cobertura_percentual) + '%';
+    document.getElementById('mCobBar').style.width = Math.min(100, x.cobertura_percentual || 0) + '%';
+    document.getElementById('mPend').textContent  = fmt(x.pendentes);
 
-let ULTIMA_IMPORTACAO = null;
+    // Delta real de vacinações (mês vs. anterior).
+    const dv = document.getElementById('mVacDelta');
+    if (x.vacinados_delta_pct === null || x.vacinados_delta_pct === undefined) {
+      dv.className = 'delta';
+      dv.innerHTML = '<small>' + fmt(x.vacinados_mes) + ' no mês corrente</small>';
+    } else {
+      const up = x.vacinados_delta_pct >= 0;
+      dv.className = 'delta ' + (up ? 'up' : 'down');
+      dv.innerHTML = '<span class="material-symbols-outlined">' + (up ? 'trending_up' : 'trending_down') + '</span> '
+        + (up ? '+' : '') + pct(x.vacinados_delta_pct) + '% <small>vs. mês anterior</small>';
+    }
 
-async function importarElegiveis() {
-  const id = document.getElementById('elegCampanha').value;
-  if (!id) return log('Selecione uma campanha (clique em Listar campanhas antes).');
-  const elegiveis = parseElegiveis(document.getElementById('elegCsv').value);
-  const d = await api(`/interno/campanhas/${id}/elegiveis/importar`, 'POST', { elegiveis });
-  if (d.success) {
-    ULTIMA_IMPORTACAO = d.data.importacao_id;
-    const t = d.data.totais;
-    document.getElementById('impInfo').textContent = t
-      ? `Importação #${d.data.importacao_id} (${d.data.status}) — válidos: ${t.validos}, rejeitados: ${t.rejeitados}`
-      : `Importação #${d.data.importacao_id} (${d.data.status}) — processando em segundo plano; use "Status".`;
+    // Gráfico — vacinações por mês.
+    const evo = x.evolucao || [];
+    const max = Math.max(1, ...evo.map(e => e.aplicacoes));
+    document.getElementById('chart').innerHTML = evo.map(e => {
+      const h = Math.round((e.aplicacoes / max) * 100);
+      return '<div class="col" title="' + e.aplicacoes + ' vacinação(ões)">'
+        + '<span class="v">' + (e.aplicacoes || '') + '</span>'
+        + '<div class="fill" style="height:' + h + '%"></div>'
+        + '<span class="m">' + e.mes + '</span></div>';
+    }).join('') || '<div class="empty">Sem vacinações no período.</div>';
+
+    // Campanhas.
+    const CHIP = { em_andamento: ['Em andamento', 'ok'], atrasada: ['Atrasada', 'late'], planejada: ['Planejada', 'plan'] };
+    const camps = x.campanhas || [];
+    document.getElementById('camps').innerHTML = camps.length ? camps.map(c => {
+      const [rot, cls] = CHIP[c.situacao] || ['—', 'plan'];
+      const fim = c.situacao === 'planejada' ? ('Início: ' + ddmm(c.periodo_inicio)) : ('Fim: ' + ddmm(c.periodo_fim));
+      return '<div class="camp">'
+        + '<div class="top"><div><div class="nm">' + c.nome + '</div><div class="cli">' + (c.cliente || '') + '</div></div>'
+        + '<span class="chip ' + cls + '">' + rot + '</span></div>'
+        + '<div class="cbar"><span class="' + cls + '" style="width:' + Math.max(2, c.cobertura) + '%"></span></div>'
+        + '<div class="meta"><span>' + pct(c.cobertura) + '% de cobertura</span><span>' + fim + '</span></div>'
+        + '</div>';
+    }).join('') : '<div class="empty">Nenhuma campanha ativa no seu escopo.</div>';
   }
-  listarElegiveis();
-}
 
-async function sincronizarElegiveis() {
-  const id = document.getElementById('elegCampanha').value;
-  if (!id) return log('Selecione uma campanha.');
-  if (!confirm('Sincronizar: quem NÃO estiver nesta lista (e não vacinado) será marcado como removido. Continuar?')) return;
-  const elegiveis = parseElegiveis(document.getElementById('elegCsv').value);
-  const d = await api(`/interno/campanhas/${id}/elegiveis/sincronizar`, 'POST', { elegiveis });
-  if (d.success) {
-    ULTIMA_IMPORTACAO = d.data.importacao_id;
-    const t = d.data.totais;
-    document.getElementById('impInfo').textContent = t
-      ? `Sync #${d.data.importacao_id} (${d.data.status}) — válidos: ${t.validos}, removidos: ${t.removidos}, rejeitados: ${t.rejeitados}`
-      : `Sync #${d.data.importacao_id} (${d.data.status}) — processando; use "Status".`;
-  }
-  listarElegiveis();
-}
-
-async function statusImportacao() {
-  if (!ULTIMA_IMPORTACAO) return log('Importe algo primeiro (ou informe o id).');
-  const d = await api(`/interno/importacoes/${ULTIMA_IMPORTACAO}`);
-  if (d.success) {
-    const x = d.data;
-    document.getElementById('impInfo').textContent =
-      `Importação #${x.importacao_id} (${x.status}) — processados ${x.total_processados}/${x.total_linhas}, válidos ${x.total_validos}, rejeitados ${x.total_invalidos}`;
-  }
-}
-
-function baixarErrosImportacao() {
-  if (!ULTIMA_IMPORTACAO) return log('Importe algo primeiro.');
-  window.open(`/api/v1/interno/importacoes/${ULTIMA_IMPORTACAO}/erros/exportar`, '_blank');
-}
-
-async function listarElegiveis() {
-  const id = document.getElementById('elegCampanha').value;
-  if (!id) return log('Selecione uma campanha.');
-  const d = await api(`/interno/campanhas/${id}/elegiveis`);
-  if (!d.success) return;
-  const r = d.data.resumo || {};
-  document.getElementById('elegResumo').textContent =
-    `Pendentes: ${r.pendente||0} · Aplicados: ${r.aplicado||0} · Recusados: ${r.recusado||0} · Total: ${d.meta?.total||0}`;
-  const itens = d.data.itens || [];
-  document.getElementById('tblElegiveis').innerHTML =
-    '<tr><th>ID</th><th>CPF</th><th>Nome</th><th>Tipo</th><th>Status</th><th>Motivo</th></tr>' +
-    itens.map(e => `<tr><td>${e.id}</td><td>${e.cpf}</td><td>${e.nome}</td><td>${e.tipo_vinculo||'—'}</td><td>${e.status}</td><td>${e.motivo_situacao||'—'}</td></tr>`).join('');
-}
-
-async function definirSituacao() {
-  const id = document.getElementById('sitElegId').value;
-  if (!id) return log('Informe o ID do elegível (veja na listagem).');
-  await api(`/interno/elegiveis/${id}/situacao`, 'POST', {
-    status: document.getElementById('sitStatus').value,
-    motivo: document.getElementById('sitMotivo').value,
-  });
-  listarElegiveis();
-}
-
-async function emitirCredencial() {
-  const id = document.getElementById('credCampanha').value;
-  if (!id) return log('Selecione uma campanha.');
-  const d = await api('/interno/credenciais', 'POST', { tipo: 'ingestao_b2b', campanha_id: Number(id) });
-  if (d.success) document.getElementById('credToken').value = d.data.token;
-}
-
-async function testarIngestaoParceiro() {
-  const id = document.getElementById('credCampanha').value;
-  const token = document.getElementById('credToken').value.trim();
-  if (!id || !token) return log('Selecione a campanha e emita/cole um token.');
-  const elegiveis = parseElegiveis(document.getElementById('ingCsv').value);
-  const resp = await fetch(`/api/v1/parceiro/campanhas/${id}/elegiveis`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-    body: JSON.stringify({ elegiveis }),
-  });
-  log(await resp.json());
-  listarElegiveis();
-}
-
-async function editarElegivel() {
-  const id = document.getElementById('edElegId').value;
-  if (!id) return log('Informe o ID do elegível.');
-  const body = {};
-  const add = (campo, elId) => { const v = document.getElementById(elId).value.trim(); if (v !== '') body[campo] = v; };
-  add('nome', 'edNome'); add('cpf', 'edCpf'); add('data_nascimento', 'edNasc');
-  add('tipo_vinculo', 'edTipo'); add('cpf_titular', 'edTitular');
-  add('codigo_lotacao', 'edLotacao'); add('codigo_rh', 'edRh');
-  await api(`/interno/elegiveis/${id}`, 'PUT', body);
-  listarElegiveis();
-}
-
-async function verHistoricoElegivel() {
-  const id = document.getElementById('edElegId').value;
-  if (!id) return log('Informe o ID do elegível.');
-  await api(`/interno/elegiveis/${id}/historico`);
-}
-
-async function estornarAplicacao() {
-  const id = document.getElementById('estAplId').value;
-  if (!id) return log('Informe o ID da aplicação.');
-  await api(`/interno/aplicacoes/${id}/estornar`, 'POST', { motivo: document.getElementById('estMotivo').value });
-}
-
-async function verHistoricoAplicacao() {
-  const id = document.getElementById('estAplId').value;
-  if (!id) return log('Informe o ID da aplicação.');
-  await api(`/interno/aplicacoes/${id}/historico`);
-}
-
-async function verCarteira() {
-  const raw = document.getElementById('cartCpf').value.trim();
-  if (!raw) return log('Informe o CPF ou voucher.');
-  const d = await api(`/interno/pacientes/${encodeURIComponent(raw)}/carteira`);
-  if (!d.success) return;
-  document.getElementById('tblCarteira').innerHTML =
-    `<tr><th colspan="6">${d.data.paciente.nome} — ${d.data.total_doses} dose(s)</th></tr>` +
-    '<tr><th>Data</th><th>Vacina</th><th>Dose</th><th>Lote</th><th>Campanha/Cliente</th><th>Local</th></tr>' +
-    (d.data.doses || []).map(x =>
-      `<tr><td>${(x.aplicado_em||'').substring(0,10)}</td><td>${x.vacina}</td><td>${x.dose}</td><td>${x.lote}</td><td>${x.campanha} / ${x.cliente}</td><td>${x.cidade||''}/${x.uf||''}</td></tr>`).join('');
-}
-
-async function verResumoCliente() {
-  const id = document.getElementById('relCliente').value;
-  if (!id) return log('Informe o ID do cliente.');
-  const d = await api(`/interno/clientes/${id}/campanhas-resumo`);
-  if (!d.success) return;
-  document.getElementById('tblCarteira').innerHTML =
-    '<tr><th>Ano</th><th>Campanha</th><th>Modalidade</th><th>Período</th><th>Elegíveis</th><th>Aplicados</th><th>Cobertura</th></tr>' +
-    (d.data.itens || []).map(c =>
-      `<tr><td>${c.ano||''}</td><td>${c.nome}</td><td>${c.modalidade}</td><td>${c.periodo_inicio}→${c.periodo_fim}</td><td>${c.elegiveis}</td><td>${c.aplicados}</td><td>${c.cobertura_percentual}%</td></tr>`).join('');
-}
-
-function resumoHistorico(r) {
-  return `Recebidos ${r.recebidos ?? r.total_processados ?? 0} · aplicações ${r.aplicacoes_criadas} · ` +
-    `duplicados ${r.duplicados} · rejeitados ${r.rejeitados} · campanhas ${r.campanhas_criadas} · vacinas criadas ${r.vacinas_criadas}`;
-}
-function tabelaErrosHistorico(erros) {
-  document.getElementById('tblVh').innerHTML = (erros && erros.length)
-    ? '<tr><th>Linha</th><th>Erro</th></tr>' + erros.map(e => `<tr><td>${e.linha}</td><td>${e.code}</td></tr>`).join('')
-    : '';
-}
-async function importarVacinadosHistorico() {
-  const id = document.getElementById('vhCliente').value;
-  if (!id) return log('Selecione o cliente (liste os clientes na seção 2).');
-  const csv = document.getElementById('vhCsv').value;
-  if (!csv.trim()) return log('Cole ao menos uma linha de vacinado histórico.');
-  const d = await api(`/interno/clientes/${id}/vacinados-historico/importar`, 'POST', { csv });
-  if (!d.success) {
-    document.getElementById('vhInfo').textContent = 'Erro: ' + (d.errors && d.errors[0] ? d.errors[0].message : d.message);
-    return;
-  }
-  const r = d.data;
-  if (r.status === 'pendente') {
-    document.getElementById('vhJob').value = r.importacao_id;
-    document.getElementById('vhInfo').textContent =
-      `Lote #${r.importacao_id} enfileirado — processando em segundo plano. Clique em “Ver status do lote”.`;
-    document.getElementById('tblVh').innerHTML = '';
-    return;
-  }
-  document.getElementById('vhInfo').textContent = 'Concluído (imediato). ' + resumoHistorico(r);
-  tabelaErrosHistorico(r.erros);
-}
-async function statusVacinadosHistorico() {
-  const job = document.getElementById('vhJob').value.trim();
-  if (!job) return log('Informe o id do lote (aparece após enfileirar).');
-  const d = await api(`/interno/importacoes-historico/${job}`);
-  if (!d.success) {
-    document.getElementById('vhInfo').textContent = 'Erro: ' + (d.errors && d.errors[0] ? d.errors[0].message : d.message);
-    return;
-  }
-  const r = d.data;
-  document.getElementById('vhInfo').textContent =
-    `Lote #${r.importacao_id} [${r.status}] — processados ${r.total_processados}/${r.total_linhas}. ` +
-    (r.status === 'concluida' ? resumoHistorico(r) : (r.mensagem_erro || ''));
-  tabelaErrosHistorico(r.erros);
-}
-
-async function definirPrecoCliente() {
-  const id = document.getElementById('pcCliente').value;
-  if (!id) return log('Informe o Cliente ID.');
-  await api(`/interno/clientes/${id}/precos`, 'POST', {
-    modalidade: document.getElementById('pcModal').value,
-    vacina_id: Number(document.getElementById('pcVacina').value),
-    valor: Number(document.getElementById('pcValor').value),
-  });
-}
-
-async function definirPrecoClinica() {
-  const id = document.getElementById('pclClinica').value;
-  if (!id) return log('Informe a Clínica ID.');
-  await api(`/interno/clinicas/${id}/precos`, 'POST', {
-    vacina_id: Number(document.getElementById('pclVacina').value),
-    valor: Number(document.getElementById('pclValor').value),
-  });
-}
-
-async function faturamentoCliente() {
-  const id = document.getElementById('fatCampanha').value;
-  if (!id) return log('Informe a Campanha ID.');
-  const d = await api(`/interno/campanhas/${id}/faturamento-cliente`);
-  if (!d.success) return;
-  const x = d.data;
-  document.getElementById('fatInfo').textContent =
-    `Cobrar (${x.campanha.modalidade}, base: ${x.base}) — TOTAL R$ ${x.total}` +
-    (x.sem_preco.length ? ` · sem preço: ${x.sem_preco.join(', ')}` : '');
-  document.getElementById('tblFaturamento').innerHTML =
-    '<tr><th>Vacina</th><th>Qtd</th><th>Valor unit.</th><th>Subtotal</th></tr>' +
-    (x.itens || []).map(i => `<tr><td>${i.vacina}</td><td>${i.quantidade}</td><td>${i.valor_unitario ?? '—'}</td><td>${i.subtotal}</td></tr>`).join('');
-}
-
-async function faturamentoClinicas() {
-  const id = document.getElementById('fatCampanha').value;
-  if (!id) return log('Informe a Campanha ID.');
-  const d = await api(`/interno/campanhas/${id}/faturamento-clinicas`);
-  if (!d.success) return;
-  const x = d.data;
-  document.getElementById('fatInfo').textContent =
-    `Pagar às clínicas — TOTAL R$ ${x.total_geral ?? 0}` + (x.observacao ? ` · ${x.observacao}` : '') +
-    (x.sem_preco && x.sem_preco.length ? ` · sem preço: ${x.sem_preco.join(', ')}` : '');
-  let html = '<tr><th>Clínica</th><th>Vacina</th><th>Qtd</th><th>Valor unit.</th><th>Subtotal</th></tr>';
-  (x.clinicas || []).forEach(c => {
-    (c.itens || []).forEach(i => {
-      html += `<tr><td>${c.clinica}</td><td>${i.vacina}</td><td>${i.quantidade}</td><td>${i.valor_unitario ?? '—'}</td><td>${i.subtotal}</td></tr>`;
-    });
-    html += `<tr><td colspan="4" style="text-align:right"><b>Subtotal ${c.clinica}</b></td><td><b>${c.total}</b></td></tr>`;
-  });
-  document.getElementById('tblFaturamento').innerHTML = html;
-}
-
-async function verMetricas() {
-  const d = await api('/interno/metricas');
-  if (!d.success) return;
-  const x = d.data;
-  document.getElementById('metInfo').textContent =
-    `versão ${x.versao} · banco ${x.banco_ms}ms · campanhas ativas ${x.campanhas_ativas} · ` +
-    `import(pend ${x.importacoes.pendentes}, proc ${x.importacoes.processando}, falhas24h ${x.importacoes.falhas_24h}) · ` +
-    `aplic(hoje ${x.aplicacoes.confirmadas_hoje}, 24h ${x.aplicacoes.lancadas_24h}) · ` +
-    `seg(login.falha ${x.seguranca_24h.login_falha}, perm.negada ${x.seguranca_24h.permissao_negada})`;
-}
-
-async function verAuditoria() {
-  const ev = document.getElementById('audEvento').value.trim();
-  const d = await api('/interno/auditoria' + (ev ? `?evento=${encodeURIComponent(ev)}` : ''));
-  if (!d.success) return;
-  document.getElementById('tblAuditoria').innerHTML =
-    '<tr><th>Data</th><th>Evento</th><th>Origem</th><th>Ator</th><th>Entidade</th><th>request_id</th></tr>' +
-    (d.data.itens || []).map(a =>
-      `<tr><td>${a.data_hora}</td><td>${a.evento}</td><td>${a.origem}</td><td>${a.ator_tipo}#${a.ator_id||''}</td><td>${a.entidade_tipo||''}#${a.entidade_id||''}</td><td>${a.request_id||''}</td></tr>`).join('');
-}
-
-async function criarWebhook() {
-  const url = document.getElementById('whUrl').value.trim();
-  if (!url) return log('Informe a URL de destino.');
-  const body = { evento: document.getElementById('whEvento').value, url };
-  const t = document.getElementById('whTenant').value; if (t) body.tenant_id = Number(t);
-  const d = await api('/interno/webhooks', 'POST', body);
-  if (d.success) { document.getElementById('whId').value = d.data.webhook_id; listarWebhooks(); }
-}
-
-async function listarWebhooks() {
-  const d = await api('/interno/webhooks');
-  if (!d.success) return;
-  document.getElementById('tblWebhooks').innerHTML =
-    '<tr><th>ID</th><th>Evento</th><th>URL</th><th>Cliente</th><th>Ativo</th></tr>' +
-    (d.data.itens || []).map(w => `<tr><td>${w.id}</td><td>${w.evento}</td><td>${w.url}</td><td>${w.tenant_id||'global'}</td><td>${w.ativo==1?'sim':'não'}</td></tr>`).join('');
-}
-
-async function testarWebhook() {
-  const id = document.getElementById('whId').value; if (!id) return log('Informe o Webhook ID.');
-  await api(`/interno/webhooks/${id}/testar`, 'POST');
-}
-
-async function desativarWebhook() {
-  const id = document.getElementById('whId').value; if (!id) return log('Informe o Webhook ID.');
-  await api(`/interno/webhooks/${id}/desativar`, 'POST');
-  listarWebhooks();
-}
-
-async function entregasWebhook() {
-  const id = document.getElementById('whId').value; if (!id) return log('Informe o Webhook ID.');
-  const d = await api(`/interno/webhooks/${id}/entregas`);
-  if (!d.success) return;
-  document.getElementById('tblWebhooks').innerHTML =
-    '<tr><th>Entrega</th><th>Evento</th><th>Status</th><th>Tent.</th><th>HTTP</th><th>Próx. tentativa</th><th>Entregue</th></tr>' +
-    (d.data.itens || []).map(e => `<tr><td>${e.id}</td><td>${e.evento}</td><td>${e.status}</td><td>${e.tentativas}</td><td>${e.ultimo_status_code||'—'}</td><td>${e.proxima_tentativa_em||''}</td><td>${e.entregue_em||'—'}</td></tr>`).join('');
-}
-
-async function emitirTokenConsulta() {
-  const id = document.getElementById('tcCliente').value;
-  if (!id) return log('Informe o Cliente ID.');
-  const d = await api('/interno/credenciais', 'POST', { tipo: 'consulta', cliente_b2b_id: Number(id) });
-  if (d.success) document.getElementById('tcToken').value = d.data.token;
-}
-
-async function consultarCarteiraExterna() {
-  const token = document.getElementById('tcToken').value.trim();
-  const cpf = document.getElementById('tcCpf').value.trim();
-  if (!token || !cpf) return log('Informe o token de consulta e o CPF/voucher.');
-  await apiBearer(`/parceiro/carteira/${encodeURIComponent(cpf)}`, 'GET', null, token);
-}
-
-async function acessoEu() { await api('/interno/acesso/eu'); }
-async function criarGrupo() {
-  const nome = document.getElementById('grpNome').value.trim();
-  if (!nome) return log('Informe o nome do grupo.');
-  await api('/interno/grupos', 'POST', { nome });
-}
-async function listarGrupos() { await api('/interno/grupos'); }
-async function criarUnidade() {
-  const c = document.getElementById('uniCliente').value;
-  if (!c) return log('Informe o Cliente ID.');
-  await api(`/interno/clientes/${c}/unidades`, 'POST', {
-    nome: document.getElementById('uniNome').value,
-    cidade: document.getElementById('uniCidade').value,
-    uf: document.getElementById('uniUf').value,
-  });
-}
-async function listarUnidades() {
-  const c = document.getElementById('uniCliente').value;
-  if (!c) return log('Informe o Cliente ID.');
-  await api(`/interno/clientes/${c}/unidades`);
-}
-async function criarUsuarioPortal() {
-  const body = {
-    nome: document.getElementById('usrNome').value,
-    email: document.getElementById('usrEmail').value,
-    senha: document.getElementById('usrSenha').value,
-    nivel: document.getElementById('usrNivel').value,
-    escopo_id: Number(document.getElementById('usrEscopo').value || 0),
-  };
-  await api('/interno/usuarios', 'POST', body);
-}
-
-// Ao abrir, checa a saúde do serviço.
-checarHealth();
-</script>
+  // Ao abrir: tenta carregar (sessão viva?) — senão mostra login.
+  carregar();
+  </script>
 </body>
 </html>

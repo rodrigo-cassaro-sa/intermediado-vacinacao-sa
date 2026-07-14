@@ -16,6 +16,9 @@ return [
     'POST /api/v1/interno/auth/logout' => ['arquivo' => 'interno/auth.php', 'funcao' => 'rota_logout'],
     'GET  /api/v1/interno/auth/eu'     => ['arquivo' => 'interno/auth.php', 'funcao' => 'rota_eu'],
 
+    // --- Dashboard admin: visão geral consolidada do escopo ---
+    'GET  /api/v1/interno/dashboard' => ['arquivo' => 'interno/dashboard.php', 'funcao' => 'rota_dashboard_visao_geral'],
+
     // --- Portal D1: jornada (estado, consentimento, onboarding) ---
     'GET  /api/v1/interno/portal/estado'        => ['arquivo' => 'interno/portal.php', 'funcao' => 'rota_portal_estado'],
     'POST /api/v1/interno/consentimento'        => ['arquivo' => 'interno/portal.php', 'funcao' => 'rota_consentir'],
