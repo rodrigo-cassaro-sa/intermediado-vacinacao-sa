@@ -221,6 +221,11 @@
               <option value="recusado">Recusado</option>
               <option value="ausente">Ausente</option>
             </select>
+            <select id="fVacina" onchange="recarregar()"><option value="">Todas as vacinas</option></select>
+            <select id="fClinica" onchange="recarregar()"><option value="">Todas as clínicas</option></select>
+            <input id="fDe" type="date" title="Aplicado de" onchange="recarregar()" />
+            <input id="fAte" type="date" title="Aplicado até" onchange="recarregar()" />
+            <button class="btn sec" onclick="limparFiltros()" title="Limpar filtros"><span class="material-symbols-outlined">filter_alt_off</span></button>
           </div>
         </div>
         <!-- Barra de seleção em massa -->
@@ -356,13 +361,17 @@
     document.getElementById('regVacina').innerHTML = CAMP_VACINAS.length
       ? CAMP_VACINAS.map(v => '<option value="' + v.vacina_id + '">' + esc(v.nome) + '</option>').join('')
       : '<option value="">(campanha sem vacina)</option>';
-    // Clínicas credenciadas (uma vez) para o campo "clínica que aplicou".
+    // Filtro de vacina (as vacinas da campanha).
+    document.getElementById('fVacina').innerHTML = '<option value="">Todas as vacinas</option>'
+      + CAMP_VACINAS.map(v => '<option value="' + v.vacina_id + '">' + esc(v.nome) + '</option>').join('');
+    // Clínicas credenciadas (uma vez) para o registro e o filtro.
     if (!CLINICAS.length) {
       const cl = await api('/interno/clinicas');
       if (cl.success) CLINICAS = cl.data.itens || [];
     }
-    document.getElementById('regClinica').innerHTML = '<option value="">— In company / sem clínica —</option>'
-      + CLINICAS.map(x => '<option value="' + x.id + '">' + esc(x.nome) + '</option>').join('');
+    const optClin = CLINICAS.map(x => '<option value="' + x.id + '">' + esc(x.nome) + '</option>').join('');
+    document.getElementById('regClinica').innerHTML = '<option value="">— In company / sem clínica —</option>' + optClin;
+    document.getElementById('fClinica').innerHTML = '<option value="">Todas as clínicas</option>' + optClin;
     recarregar();
   }
 
@@ -377,10 +386,8 @@
   async function carregarVacinados() {
     const c = campSelObj();
     if (!c) { document.getElementById('vazio').classList.remove('hide'); document.getElementById('contagem').textContent = 'Selecione uma campanha.'; return; }
-    const p = new URLSearchParams({ por_pagina: '25' });
-    const q = document.getElementById('busca').value.trim(); if (q) p.set('q', q);
-    const t = document.getElementById('fTipo').value; if (t) p.set('tipo', t);
-    const s = document.getElementById('fStatus').value; if (s) p.set('status', s);
+    const p = filtrosQuery();
+    p.set('por_pagina', '25');
     if (CURSOR) p.set('apos', CURSOR);
     const d = await api('/interno/campanhas/' + c.id + '/vacinados?' + p.toString());
     if (d.http === 401) { document.getElementById('login').classList.remove('hide'); return; }
@@ -565,13 +572,31 @@
     const marc = document.querySelectorAll('#tbody .rowchk:checked').length;
     if (all) { all.checked = total > 0 && marc === total; all.indeterminate = marc > 0 && marc < total; }
   }
-  function exportar() {
-    const c = campSelObj(); if (!c) return;
+  // Monta os parâmetros de filtro comuns à listagem e ao export.
+  function filtrosQuery() {
     const p = new URLSearchParams();
     const q = document.getElementById('busca').value.trim(); if (q) p.set('q', q);
     const t = document.getElementById('fTipo').value; if (t) p.set('tipo', t);
     const s = document.getElementById('fStatus').value; if (s) p.set('status', s);
-    const qs = p.toString();
+    const v = document.getElementById('fVacina').value; if (v) p.set('vacina_id', v);
+    const cl = document.getElementById('fClinica').value; if (cl) p.set('clinica_id', cl);
+    const de = document.getElementById('fDe').value; if (de) p.set('de', de);
+    const ate = document.getElementById('fAte').value; if (ate) p.set('ate', ate);
+    return p;
+  }
+  function limparFiltros() {
+    document.getElementById('busca').value = '';
+    document.getElementById('fTipo').value = '';
+    document.getElementById('fStatus').value = 'aplicado';
+    document.getElementById('fVacina').value = '';
+    document.getElementById('fClinica').value = '';
+    document.getElementById('fDe').value = '';
+    document.getElementById('fAte').value = '';
+    recarregar();
+  }
+  function exportar() {
+    const c = campSelObj(); if (!c) return;
+    const qs = filtrosQuery().toString();
     window.open('/api/v1/interno/campanhas/' + c.id + '/vacinados/exportar' + (qs ? ('?' + qs) : ''), '_blank');
   }
 

@@ -48,6 +48,30 @@ function rota_tabela_verdade(array $params): void
 }
 
 /**
+ * Aplica os filtros da tela de vacinados a ($where, $bind) — reusado pela
+ * listagem e pelo export. Filtra por status/tipo do elegível (e/p) e por
+ * atributos da aplicação confirmada (alias 'a'): vacina, clínica, dose, período.
+ */
+function _filtros_vacinados(string &$where, array &$bind): void
+{
+    if (!empty($_GET['status'])) { $where .= ' AND e.status = :st'; $bind[':st'] = (string) $_GET['status']; }
+    if (!empty($_GET['tipo']))   { $where .= ' AND e.tipo_vinculo = :tp'; $bind[':tp'] = (string) $_GET['tipo']; }
+    if (!empty($_GET['vacina_id'])  && is_numeric($_GET['vacina_id']))  { $where .= ' AND a.vacina_id = :vac';  $bind[':vac']  = (int) $_GET['vacina_id']; }
+    if (!empty($_GET['clinica_id']) && is_numeric($_GET['clinica_id'])) { $where .= ' AND a.clinica_id = :cli'; $bind[':cli'] = (int) $_GET['clinica_id']; }
+    if (!empty($_GET['dose'])       && is_numeric($_GET['dose']))       { $where .= ' AND a.dose = :dose';       $bind[':dose'] = (int) $_GET['dose']; }
+    if (!empty($_GET['de'])  && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $_GET['de']))  { $where .= ' AND a.aplicado_em >= :de';  $bind[':de']  = $_GET['de'] . ' 00:00:00'; }
+    if (!empty($_GET['ate']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $_GET['ate'])) { $where .= ' AND a.aplicado_em <= :ate'; $bind[':ate'] = $_GET['ate'] . ' 23:59:59'; }
+    if (isset($_GET['q']) && trim((string) $_GET['q']) !== '') {
+        $q = trim((string) $_GET['q']);
+        $partes = ['COALESCE(e.nome, p.nome) LIKE :q', 'e.codigo_rh LIKE :q'];
+        $bind[':q'] = '%' . $q . '%';
+        $qd = so_digitos($q);
+        if ($qd !== '') { $partes[] = 'p.cpf LIKE :qd'; $bind[':qd'] = '%' . $qd . '%'; }
+        $where .= ' AND (' . implode(' OR ', $partes) . ')';
+    }
+}
+
+/**
  * GET /api/v1/interno/campanhas/{id}/vacinados
  * Lista os elegíveis da campanha com a aplicação CONFIRMADA mais recente (se
  * houver) — base da tela de vacinados. Traz elegivel_id (para registrar) e
@@ -70,22 +94,7 @@ function rota_listar_vacinados(array $params): void
         $where .= ' AND e.id < :apos';
         $bind[':apos'] = $apos;
     }
-    if (!empty($_GET['status'])) {
-        $where .= ' AND e.status = :st';
-        $bind[':st'] = (string) $_GET['status'];
-    }
-    if (!empty($_GET['tipo'])) {
-        $where .= ' AND e.tipo_vinculo = :tp';
-        $bind[':tp'] = (string) $_GET['tipo'];
-    }
-    if (isset($_GET['q']) && trim((string) $_GET['q']) !== '') {
-        $q = trim((string) $_GET['q']);
-        $partes = ['COALESCE(e.nome, p.nome) LIKE :q', 'e.codigo_rh LIKE :q'];
-        $bind[':q'] = '%' . $q . '%';
-        $qd = so_digitos($q);
-        if ($qd !== '') { $partes[] = 'p.cpf LIKE :qd'; $bind[':qd'] = '%' . $qd . '%'; }
-        $where .= ' AND (' . implode(' OR ', $partes) . ')';
-    }
+    _filtros_vacinados($where, $bind);
 
     $itens = db_todos(
         "SELECT e.id, p.cpf, COALESCE(e.nome, p.nome) AS nome, e.tipo_vinculo, e.status,
@@ -133,16 +142,7 @@ function rota_exportar_vacinados(array $params): void
 
     $where = 'e.campanha_id = :id' . $fUni;
     $bind  = array_merge([':id' => $id], $bUni);
-    if (!empty($_GET['status'])) { $where .= ' AND e.status = :st'; $bind[':st'] = (string) $_GET['status']; }
-    if (!empty($_GET['tipo']))   { $where .= ' AND e.tipo_vinculo = :tp'; $bind[':tp'] = (string) $_GET['tipo']; }
-    if (isset($_GET['q']) && trim((string) $_GET['q']) !== '') {
-        $q = trim((string) $_GET['q']);
-        $partes = ['COALESCE(e.nome, p.nome) LIKE :q', 'e.codigo_rh LIKE :q'];
-        $bind[':q'] = '%' . $q . '%';
-        $qd = so_digitos($q);
-        if ($qd !== '') { $partes[] = 'p.cpf LIKE :qd'; $bind[':qd'] = '%' . $qd . '%'; }
-        $where .= ' AND (' . implode(' OR ', $partes) . ')';
-    }
+    _filtros_vacinados($where, $bind);
 
     $linhas = db_todos(
         "SELECT p.cpf, COALESCE(e.nome, p.nome) AS nome, e.tipo_vinculo, e.status,
