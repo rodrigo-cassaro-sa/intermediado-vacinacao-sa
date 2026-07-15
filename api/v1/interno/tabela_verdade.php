@@ -46,6 +46,70 @@ function rota_tabela_verdade(array $params): void
     ]);
 }
 
+/**
+ * GET /api/v1/interno/campanhas/{id}/vacinados
+ * Lista os elegíveis da campanha com a aplicação CONFIRMADA mais recente (se
+ * houver) — base da tela de vacinados. Traz elegivel_id (para registrar) e
+ * aplicacao_id (para estornar). Filtros: ?status, ?tipo, ?q. Keyset por e.id.
+ */
+function rota_listar_vacinados(array $params): void
+{
+    $usuario = exigir_login();
+    $id = id_campanha_rota($params['id'] ?? null);
+    $campanha = exigir_campanha_do_usuario($usuario, $id);
+    [$fUni, $bUni] = filtro_unidade_sql($usuario, (int) $campanha['tenant_id'], 'e');
+    [$apos, $porPagina] = paginacao_keyset();
+
+    $resumo = resumo_situacao($id, $usuario, (int) $campanha['tenant_id']);
+    $total = array_sum($resumo);
+
+    $where = 'e.campanha_id = :id' . $fUni;
+    $bind  = array_merge([':id' => $id], $bUni);
+    if ($apos > 0) {
+        $where .= ' AND e.id < :apos';
+        $bind[':apos'] = $apos;
+    }
+    if (!empty($_GET['status'])) {
+        $where .= ' AND e.status = :st';
+        $bind[':st'] = (string) $_GET['status'];
+    }
+    if (!empty($_GET['tipo'])) {
+        $where .= ' AND e.tipo_vinculo = :tp';
+        $bind[':tp'] = (string) $_GET['tipo'];
+    }
+    if (isset($_GET['q']) && trim((string) $_GET['q']) !== '') {
+        $q = trim((string) $_GET['q']);
+        $partes = ['COALESCE(e.nome, p.nome) LIKE :q', 'e.codigo_rh LIKE :q'];
+        $bind[':q'] = '%' . $q . '%';
+        $qd = so_digitos($q);
+        if ($qd !== '') { $partes[] = 'p.cpf LIKE :qd'; $bind[':qd'] = '%' . $qd . '%'; }
+        $where .= ' AND (' . implode(' OR ', $partes) . ')';
+    }
+
+    $itens = db_todos(
+        "SELECT e.id, p.cpf, COALESCE(e.nome, p.nome) AS nome, e.tipo_vinculo, e.status,
+                a.id AS aplicacao_id, a.aplicado_em, a.dose, a.lote, vv.nome AS vacina
+           FROM elegivel e
+           JOIN paciente p ON p.id = e.paciente_id
+      LEFT JOIN aplicacao a ON a.elegivel_id = e.id AND a.status = 'confirmada'
+                AND a.id = (SELECT MAX(a2.id) FROM aplicacao a2 WHERE a2.elegivel_id = e.id AND a2.status = 'confirmada')
+      LEFT JOIN vacina vv ON vv.id = a.vacina_id
+          WHERE $where
+          ORDER BY e.id DESC
+          LIMIT $porPagina",
+        $bind
+    );
+    foreach ($itens as &$it) {
+        $it['cpf'] = mascarar_cpf($it['cpf']);
+    }
+    unset($it);
+    $proximo = count($itens) === $porPagina ? (int) end($itens)['id'] : null;
+
+    responder_sucesso(['resumo' => $resumo, 'itens' => $itens], 'OK.', 200, [
+        'por_pagina' => $porPagina, 'total' => $total, 'proximo_cursor' => $proximo,
+    ]);
+}
+
 /** GET /api/v1/interno/campanhas/{id}/dashboard — métricas consolidadas. */
 function rota_dashboard(array $params): void
 {

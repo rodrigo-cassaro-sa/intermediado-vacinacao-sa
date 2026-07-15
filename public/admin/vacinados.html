@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pacientes Elegíveis — S&amp;A Imunizações</title>
+  <title>Vacinados — S&amp;A Imunizações</title>
   <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
   <link rel="stylesheet" href="/assets/marca.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -43,7 +43,6 @@
     .btn.sec { background: var(--card); color: var(--txt); border: 1px solid var(--line); }
     .btn.sec:hover { background: var(--surface-2); }
 
-    /* Bento header: resumo + fila */
     .bento { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
     .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--sombra); padding: 18px 20px; }
     .card .top { display: flex; justify-content: space-between; align-items: start; gap: 8px; }
@@ -52,9 +51,9 @@
     .infogrid .k { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
     .infogrid .v { font-weight: 600; margin-top: 2px; }
     .fila .lbl { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
-    .fila .big { font-size: 40px; font-weight: 700; letter-spacing: -.02em; margin: 6px 0 2px; }
+    .fila .big { font-size: 40px; font-weight: 700; letter-spacing: -.02em; margin: 6px 0 2px; color: var(--acc2); }
     .fila .sub { font-size: 12px; color: var(--muted); }
-    .ico { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: rgba(22,102,196,.12); color: var(--pri); }
+    .ico { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: rgba(20,160,90,.14); color: var(--acc2); }
 
     .chip { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 99px; white-space: nowrap; }
     .chip.ok { background: rgba(20,160,90,.14); color: var(--acc2); }
@@ -88,19 +87,18 @@
     .st.ausente, .st.expirado, .st.removido { background: rgba(199,122,10,.14); color: var(--warn, #c77a0a); }
     .iconbtn { background: none; border: 0; cursor: pointer; color: var(--pri); padding: 6px; border-radius: 6px; }
     .iconbtn:hover { background: var(--surface-2); }
+    .iconbtn.ok { color: var(--acc2); } .iconbtn.danger { color: var(--err); }
     .empty { padding: 28px 20px; text-align: center; color: var(--muted); }
     .pfoot { padding: 12px 20px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
     .pfoot .cnt { font-size: 12px; color: var(--muted); }
     th.chkcol, td.chkcol { width: 40px; text-align: center; padding-left: 12px; padding-right: 4px; }
     input.rowchk, #chkAll { width: 16px; height: 16px; cursor: pointer; accent-color: var(--pri); vertical-align: middle; }
-    .bulkbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 20px; background: rgba(22,102,196,.06); border-bottom: 1px solid var(--line); }
-    .bulkbar .cnt { font-weight: 700; color: var(--pri); }
+    .bulkbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 20px; background: rgba(20,160,90,.06); border-bottom: 1px solid var(--line); }
+    .bulkbar .cnt { font-weight: 700; color: var(--acc2); }
     .bulkbar label { font-size: 13px; color: var(--muted); }
     .bulkbar select, .bulkbar input { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--txt); font: inherit; }
-    .bulkbar input { min-width: 220px; flex: 1; }
     .bulkbar .btn { padding: 8px 12px; }
 
-    /* Drawer detalhes */
     .drawer { position: fixed; inset: 0; z-index: 60; }
     .drawer .backdrop { position: absolute; inset: 0; background: rgba(18,35,59,.45); }
     .drawer .box { position: absolute; right: 0; top: 0; bottom: 0; width: 100%; max-width: 440px; background: var(--card); box-shadow: var(--sombra); display: flex; flex-direction: column; animation: slideIn .25s ease-out; }
@@ -116,14 +114,7 @@
     .drawer select, .drawer input, .drawer textarea { width: 100%; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; color: var(--txt); font: inherit; }
     .drawer select:focus, .drawer input:focus, .drawer textarea:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
     .drawer .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .drawer .hint { font-size: 12px; color: var(--muted); background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 4px 0; }
-    .drawer .chk { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
-    .drawer .chk input { width: auto; }
-    .tabs { display: flex; gap: 4px; margin-bottom: 12px; background: var(--surface-2); padding: 4px; border-radius: 8px; }
-    .tabs button { flex: 1; padding: 8px; border: 0; background: none; border-radius: 6px; font: inherit; font-weight: 600; color: var(--muted); cursor: pointer; }
-    .tabs button.on { background: var(--card); color: var(--pri); box-shadow: var(--sombra); }
     .drawer .msg { font-size: 12px; min-height: 16px; margin-top: 10px; }
-    .drawer .msg a { color: var(--pri); font-weight: 600; }
     .drawer .msg.err { color: var(--err); } .drawer .msg.ok { color: var(--acc2); font-weight: 600; }
     .drawer .dfoot { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--line); background: var(--surface-2); }
 
@@ -166,8 +157,8 @@
       <a class="navlink" href="/admin/"><span class="material-symbols-outlined">dashboard</span> Dashboard</a>
       <a class="navlink" href="/admin/campanhas.html"><span class="material-symbols-outlined">campaign</span> Campanhas</a>
       <a class="navlink" href="/admin/vacinas.html"><span class="material-symbols-outlined">vaccines</span> Vacinas</a>
-      <button class="navlink active"><span class="material-symbols-outlined">group</span> Pacientes</button>
-      <a class="navlink" href="/admin/vacinados.html"><span class="material-symbols-outlined">verified</span> Vacinados</a>
+      <a class="navlink" href="/admin/elegiveis.html"><span class="material-symbols-outlined">group</span> Pacientes</a>
+      <button class="navlink active"><span class="material-symbols-outlined">verified</span> Vacinados</button>
       <a class="navlink" href="/portal/"><span class="material-symbols-outlined">history</span> Auditoria</a>
     </nav>
     <div class="foot">
@@ -181,19 +172,17 @@
     <div class="content">
       <div class="pagehead">
         <div>
-          <h1>Pacientes Elegíveis</h1>
-          <p>Lista de elegibilidade da campanha selecionada.</p>
+          <h1>Vacinados</h1>
+          <p>Registro de vacinação da campanha selecionada.</p>
         </div>
         <div class="actions">
           <span class="who">Olá, <b id="quem">—</b></span>
           <select class="sel" id="campSel" onchange="trocarCampanha()"><option value="">— selecione a campanha —</option></select>
-          <button class="btn primary" onclick="abrirAdd('form')"><span class="material-symbols-outlined">person_add</span> Adicionar</button>
-          <button class="btn sec" onclick="abrirAdd('csv')"><span class="material-symbols-outlined">upload_file</span> Importar CSV</button>
+          <button class="btn sec" onclick="exportar()"><span class="material-symbols-outlined">download</span> Exportar</button>
           <button class="btn sec" onclick="sair()"><span class="material-symbols-outlined">logout</span> Sair</button>
         </div>
       </div>
 
-      <!-- Resumo da campanha + fila -->
       <div class="bento">
         <div class="card">
           <div class="top">
@@ -202,20 +191,19 @@
           </div>
           <div class="infogrid">
             <div><div class="k">Cliente</div><div class="v" id="cCliente">—</div></div>
-            <div><div class="k">Modalidade</div><div class="v" id="cModalidade">—</div></div>
+            <div><div class="k">Cobertura</div><div class="v" id="cCobertura">—</div></div>
           </div>
         </div>
         <div class="card fila">
-          <div class="top"><span class="lbl">Fila (pendentes)</span><span class="ico material-symbols-outlined">group</span></div>
-          <div class="big" id="cFila">—</div>
+          <div class="top"><span class="lbl">Vacinados</span><span class="ico material-symbols-outlined">verified</span></div>
+          <div class="big" id="cVac">—</div>
           <div class="sub" id="cResumo">—</div>
         </div>
       </div>
 
-      <!-- Tabela -->
       <div class="panel">
         <div class="phead">
-          <h3>Lista de Elegibilidade</h3>
+          <h3>Lista de vacinação</h3>
           <div class="filters">
             <div class="box"><span class="material-symbols-outlined">search</span>
               <input id="busca" placeholder="Nome, CPF ou RH..." onkeydown="if(event.key==='Enter')recarregar()" />
@@ -228,40 +216,31 @@
             </select>
             <select id="fStatus" onchange="recarregar()">
               <option value="">Todos os status</option>
-              <option value="pendente">Pendente</option>
-              <option value="aplicado">Aplicado</option>
+              <option value="aplicado">Vacinados</option>
+              <option value="pendente">Pendentes</option>
               <option value="recusado">Recusado</option>
               <option value="ausente">Ausente</option>
-              <option value="inelegivel">Inelegível</option>
-              <option value="expirado">Expirado</option>
-              <option value="removido">Removido</option>
             </select>
-            <button class="btn sec" onclick="exportar()" title="Exportar CSV"><span class="material-symbols-outlined">download</span></button>
           </div>
         </div>
-        <!-- Barra de ação em massa (aparece quando há seleção) -->
+        <!-- Barra de registro em massa -->
         <div class="bulkbar hide" id="bulkbar">
           <span><span class="cnt" id="bulkCnt">0</span> selecionado(s)</span>
-          <label>Situação</label>
-          <select id="bulkStatus">
-            <option value="">— escolher —</option>
-            <option value="pendente">Pendente</option>
-            <option value="recusado">Recusado</option>
-            <option value="ausente">Ausente</option>
-            <option value="inelegivel">Inelegível</option>
-          </select>
-          <input id="bulkMotivo" placeholder="Motivo (obrigatório se não for Pendente)" />
-          <button class="btn primary" onclick="aplicarLote()"><span class="material-symbols-outlined">done_all</span> Aplicar em massa</button>
-          <button class="btn sec" onclick="limparSelecao()">Limpar seleção</button>
+          <label>Vacina</label><select id="bulkVacina"></select>
+          <label>Dose</label><input id="bulkDose" type="number" min="1" value="1" style="width:70px" />
+          <label>Lote</label><input id="bulkLote" placeholder="lote" style="width:130px" />
+          <label>Data</label><input id="bulkData" type="date" style="width:150px" />
+          <button class="btn primary" onclick="aplicarLoteVac()"><span class="material-symbols-outlined">vaccines</span> Registrar em massa</button>
+          <button class="btn sec" onclick="limparSelecao()">Limpar</button>
         </div>
         <div style="overflow-x:auto">
           <table>
             <thead>
-              <tr><th class="chkcol"><input type="checkbox" id="chkAll" onchange="toggleTodos(this.checked)" title="Selecionar todos" /></th><th>Paciente / CPF</th><th>Tipo / Titular</th><th>Lotação / C. Custo</th><th>Nascimento / RH</th><th>Modalidade / Validade</th><th style="text-align:right">Ações</th></tr>
+              <tr><th class="chkcol"><input type="checkbox" id="chkAll" onchange="toggleTodos(this.checked)" title="Selecionar todos" /></th><th>Paciente / CPF</th><th>Tipo</th><th>Vacina / Dose</th><th>Lote</th><th>Aplicado em</th><th>Status</th><th style="text-align:right">Ações</th></tr>
             </thead>
             <tbody id="tbody"></tbody>
           </table>
-          <div class="empty hide" id="vazio">Nenhum elegível encontrado.</div>
+          <div class="empty hide" id="vazio">Nenhum registro encontrado.</div>
         </div>
         <div class="pfoot">
           <span class="cnt" id="contagem">—</span>
@@ -277,77 +256,46 @@
     <div class="box">
       <div class="dhead"><h3 id="dNome">Detalhes</h3><button class="x" onclick="fecharDrawer()"><span class="material-symbols-outlined">close</span></button></div>
       <div class="dbody" id="dBody"></div>
-      <div class="dfoot">
-        <button class="btn sec" onclick="fecharDrawer()">Fechar</button>
-        <button class="btn primary" onclick="salvarSituacao()">Aplicar situação</button>
-      </div>
+      <div class="dfoot"><button class="btn sec" onclick="fecharDrawer()">Fechar</button></div>
     </div>
   </div>
 
-  <!-- Drawer adicionar / importar -->
-  <div class="drawer hide" id="drawerAdd">
-    <div class="backdrop" onclick="fecharAdd()"></div>
+  <!-- Drawer registrar vacinação -->
+  <div class="drawer hide" id="drawerReg">
+    <div class="backdrop" onclick="fecharReg()"></div>
     <div class="box">
-      <div class="dhead"><h3>Adicionar elegíveis</h3><button class="x" onclick="fecharAdd()"><span class="material-symbols-outlined">close</span></button></div>
+      <div class="dhead"><h3>Registrar vacinação</h3><button class="x" onclick="fecharReg()"><span class="material-symbols-outlined">close</span></button></div>
       <div class="dbody">
-        <div class="tabs">
-          <button id="tabForm" class="on" onclick="setAba('form')">Um a um</button>
-          <button id="tabCsv" onclick="setAba('csv')">Importar CSV</button>
+        <div class="kv"><span class="k">Paciente</span><span class="v" id="regNome">—</span></div>
+        <label>Vacina</label>
+        <select id="regVacina"></select>
+        <div class="g2">
+          <div><label>Dose</label><input id="regDose" type="number" min="1" value="1" /></div>
+          <div><label>Aplicado em</label><input id="regData" type="date" /></div>
         </div>
-
-        <!-- Aba formulário -->
-        <div id="abaForm">
-          <div class="g2">
-            <div><label>CPF</label><input id="aCpf" placeholder="000.000.000-00" /></div>
-            <div><label>Nascimento</label><input id="aNasc" type="date" /></div>
-          </div>
-          <label>Nome *</label>
-          <input id="aNome" placeholder="Nome completo" />
-          <div class="g2">
-            <div><label>Tipo de vínculo</label>
-              <select id="aTipo">
-                <option value="colaborador">Colaborador</option>
-                <option value="dependente">Dependente</option>
-                <option value="terceiro">Terceiro</option>
-              </select>
-            </div>
-            <div><label>CPF do titular</label><input id="aTitular" placeholder="se dependente" /></div>
-          </div>
-          <div class="g2">
-            <div><label>Código de lotação</label><input id="aLotacao" placeholder="ex.: LOT-01" /></div>
-            <div><label>Código RH</label><input id="aRh" placeholder="ex.: 998877" /></div>
-          </div>
-          <label>Identificador / voucher (se sem CPF)</label>
-          <input id="aIdent" placeholder="opcional" />
+        <label>Lote *</label>
+        <input id="regLote" placeholder="ex.: ABC123" />
+        <div class="g2">
+          <div><label>Profissional (opcional)</label><input id="regProf" placeholder="nome" /></div>
+          <div><label>Unidade (opcional)</label><input id="regUnid" placeholder="local" /></div>
         </div>
-
-        <!-- Aba CSV -->
-        <div id="abaCsv" class="hide">
-          <div class="hint">Uma linha por pessoa, nesta ordem:<br><b>cpf,nome,data_nascimento,tipo_vinculo,cpf_titular,codigo_lotacao,codigo_rh,identificador</b><br>Ex.: <code>52998224725,Maria Silva,1990-05-10,colaborador,,LOT-01,RH-1001,</code></div>
-          <button class="btn sec" style="margin:4px 0 8px" onclick="baixarModelo()"><span class="material-symbols-outlined">download</span> Baixar modelo (CSV)</button>
-          <label>Colar linhas (CSV)</label>
-          <textarea id="csvTexto" rows="6" placeholder="52998224725,Maria Silva,1990-05-10,colaborador,,LOT-01,RH-1001,"></textarea>
-          <label>…ou enviar um arquivo (.csv)</label>
-          <input type="file" id="csvArquivo" accept=".csv,.txt" />
-          <label class="chk"><input type="checkbox" id="csvSync" /> Sincronizar (remove quem não está na lista)</label>
-        </div>
-
-        <div class="msg" id="addMsg"></div>
+        <div class="msg" id="regMsg"></div>
       </div>
       <div class="dfoot">
-        <button class="btn sec" onclick="fecharAdd()">Cancelar</button>
-        <button class="btn primary" onclick="salvarAdd()">Enviar</button>
+        <button class="btn sec" onclick="fecharReg()">Cancelar</button>
+        <button class="btn primary" onclick="salvarReg()"><span class="material-symbols-outlined">vaccines</span> Confirmar vacinação</button>
       </div>
     </div>
   </div>
 
   <script>
   // ---------------------------------------------------------------------------
-  // Pacientes elegíveis — lista da campanha (sessão + CSRF, keyset paginado).
+  // Vacinados — registro de aplicação por campanha (sessão + CSRF, keyset).
   // ---------------------------------------------------------------------------
-  let CSRF = null, CAMPANHAS = [], ITENS = [], CURSOR = null, CARREGADOS = 0, TOTAL = 0, EDIT_ID = null;
+  let CSRF = null, CAMPANHAS = [], CAMP_VACINAS = [], ITENS = [], CURSOR = null, CARREGADOS = 0, TOTAL = 0, REG_ELEG = null;
   let SELECIONADOS = new Set();
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const hoje = () => new Date().toISOString().substring(0, 10);
 
   async function api(path, metodo = 'GET', corpo = null) {
     const opts = { method: metodo, headers: {}, credentials: 'same-origin' };
@@ -363,7 +311,6 @@
   const CHIP = { ativa: ['Ativa', 'ok'], rascunho: ['Rascunho', 'plan'], encerrada: ['Encerrada', 'done'] };
   const fmt = n => (n ?? 0).toLocaleString('pt-BR');
   const ddmm = s => s ? s.substring(8, 10) + '/' + s.substring(5, 7) + '/' + s.substring(0, 4) : '—';
-  function idade(s) { if (!s) return ''; const n = new Date(), b = new Date(s); let a = n.getFullYear() - b.getFullYear(); const m = n.getMonth() - b.getMonth(); if (m < 0 || (m === 0 && n.getDate() < b.getDate())) a--; return isNaN(a) ? '' : ' (' + a + 'a)'; }
   const campSelObj = () => CAMPANHAS.find(c => String(c.id) === document.getElementById('campSel').value) || null;
 
   async function entrar() {
@@ -386,18 +333,27 @@
       + CAMPANHAS.map(c => '<option value="' + c.id + '">' + (c.codigo || c.nome || ('#' + c.id)) + ' — ' + (c.cliente || '') + '</option>').join('');
     const eu = await api('/interno/auth/eu');
     if (eu.success) { document.getElementById('quem').textContent = eu.data.usuario.nome || '—'; if (!CSRF && eu.data.csrf_token) CSRF = eu.data.csrf_token; }
-    // Seleciona a primeira campanha automaticamente.
     if (CAMPANHAS.length) { document.getElementById('campSel').value = String(CAMPANHAS[0].id); trocarCampanha(); }
   }
 
-  function trocarCampanha() {
+  async function trocarCampanha() {
     const c = campSelObj();
     document.getElementById('cCodigo').textContent = c ? (c.codigo || c.nome || ('#' + c.id)) : '—';
     document.getElementById('cRotulo').textContent = c && c.codigo && c.nome ? c.nome : '';
     document.getElementById('cCliente').textContent = c ? (c.cliente || '—') : '—';
-    document.getElementById('cModalidade').textContent = c ? (MOD[c.modalidade] || c.modalidade) : '—';
     const [rot, cls] = c ? (CHIP[c.status] || [c.status, 'plan']) : ['—', 'plan'];
     const st = document.getElementById('cStatus'); st.textContent = rot; st.className = 'chip ' + cls;
+    // Carrega as vacinas da campanha (para os selects de registro).
+    CAMP_VACINAS = [];
+    if (c) {
+      const det = await api('/interno/campanhas/' + c.id);
+      if (det.success) CAMP_VACINAS = det.data.vacinas || [];
+    }
+    const opts = CAMP_VACINAS.length
+      ? CAMP_VACINAS.map(v => '<option value="' + v.vacina_id + '">' + esc(v.nome) + '</option>').join('')
+      : '<option value="">(campanha sem vacina)</option>';
+    document.getElementById('regVacina').innerHTML = opts;
+    document.getElementById('bulkVacina').innerHTML = opts;
     recarregar();
   }
 
@@ -406,10 +362,10 @@
     SELECIONADOS.clear();
     document.getElementById('tbody').innerHTML = '';
     atualizarBulk();
-    carregarElegiveis();
+    carregarVacinados();
   }
 
-  async function carregarElegiveis() {
+  async function carregarVacinados() {
     const c = campSelObj();
     if (!c) { document.getElementById('vazio').classList.remove('hide'); document.getElementById('contagem').textContent = 'Selecione uma campanha.'; return; }
     const p = new URLSearchParams({ por_pagina: '25' });
@@ -417,29 +373,117 @@
     const t = document.getElementById('fTipo').value; if (t) p.set('tipo', t);
     const s = document.getElementById('fStatus').value; if (s) p.set('status', s);
     if (CURSOR) p.set('apos', CURSOR);
-    const d = await api('/interno/campanhas/' + c.id + '/elegiveis?' + p.toString());
+    const d = await api('/interno/campanhas/' + c.id + '/vacinados?' + p.toString());
     if (d.http === 401) { document.getElementById('login').classList.remove('hide'); return; }
     if (!d.success) return;
 
     const r = d.data.resumo || {};
-    document.getElementById('cFila').textContent = fmt(r.pendente || 0);
     TOTAL = (d.meta && d.meta.total) || 0;
-    document.getElementById('cResumo').textContent = 'Aplicados ' + fmt(r.aplicado || 0) + ' · Total ' + fmt(TOTAL);
+    const aplic = r.aplicado || 0;
+    document.getElementById('cVac').textContent = fmt(aplic);
+    document.getElementById('cResumo').textContent = 'Pendentes ' + fmt(r.pendente || 0) + ' · Total ' + fmt(TOTAL);
+    document.getElementById('cCobertura').textContent = TOTAL > 0 ? ((aplic * 100 / TOTAL).toFixed(1) + '%') : '—';
 
     const itens = d.data.itens || [];
     ITENS = ITENS.concat(itens);
     CARREGADOS += itens.length;
-    const html = itens.map(e => linha(e)).join('');
-    document.getElementById('tbody').insertAdjacentHTML('beforeend', html);
+    document.getElementById('tbody').insertAdjacentHTML('beforeend', itens.map(e => linha(e)).join(''));
     document.getElementById('vazio').classList.toggle('hide', CARREGADOS > 0);
-    document.getElementById('contagem').textContent = CARREGADOS + ' de ' + fmt(TOTAL) + ' elegível(is)';
+    document.getElementById('contagem').textContent = CARREGADOS + ' de ' + fmt(TOTAL) + ' registro(s)';
     CURSOR = (d.meta && d.meta.proximo_cursor) || null;
     document.getElementById('btnMais').classList.toggle('hide', !CURSOR);
     atualizarBulk();
   }
-  function carregarMais() { carregarElegiveis(); }
+  function carregarMais() { carregarVacinados(); }
 
-  // ---- Seleção em massa ----------------------------------------------------
+  function linha(e) {
+    const [trot, tcls] = TIPO[e.tipo_vinculo] || [e.tipo_vinculo || '—', 'dep'];
+    const aplicado = e.status === 'aplicado' && e.aplicacao_id;
+    const vac = aplicado ? (esc(e.vacina || '—') + (e.dose ? '<div class="sub">Dose ' + esc(e.dose) + '</div>' : '')) : '<span class="sub">—</span>';
+    const lote = aplicado ? esc(e.lote || '—') : '<span class="sub">—</span>';
+    const quando = aplicado ? ddmm(e.aplicado_em) : '<span class="sub">—</span>';
+    let acoes = '';
+    if (aplicado) {
+      acoes = '<button class="iconbtn danger" title="Estornar (desvacinar)" onclick="estornar(' + e.aplicacao_id + ', ' + e.id + ')"><span class="material-symbols-outlined" style="font-size:20px">undo</span></button>';
+    } else if (['pendente', 'ausente', 'recusado'].includes(e.status)) {
+      acoes = '<button class="iconbtn ok" title="Registrar vacinação" onclick="abrirReg(' + e.id + ')"><span class="material-symbols-outlined" style="font-size:20px">vaccines</span></button>';
+    }
+    acoes += '<button class="iconbtn" title="Detalhes" onclick="verDetalhe(' + e.id + ')"><span class="material-symbols-outlined" style="font-size:20px">visibility</span></button>';
+    return '<tr>'
+      + '<td class="chkcol"><input type="checkbox" class="rowchk" onchange="toggleRow(' + e.id + ', this.checked)"' + (SELECIONADOS.has(e.id) ? ' checked' : '') + ' /></td>'
+      + '<td><div class="nm">' + esc(e.nome || '—') + '</div><div class="sub">' + esc(e.cpf || '') + '</div></td>'
+      + '<td><span class="tag ' + tcls + '">' + esc(trot) + '</span></td>'
+      + '<td>' + vac + '</td>'
+      + '<td>' + lote + '</td>'
+      + '<td>' + quando + '</td>'
+      + '<td><span class="st ' + esc(e.status) + '">' + esc(e.status) + '</span></td>'
+      + '<td style="text-align:right;white-space:nowrap">' + acoes + '</td>'
+      + '</tr>';
+  }
+
+  function verDetalhe(id) {
+    const e = ITENS.find(x => x.id === id); if (!e) return;
+    document.getElementById('dNome').textContent = e.nome || 'Detalhes';
+    const kv = (k, v) => '<div class="kv"><span class="k">' + k + '</span><span class="v">' + esc(v || '—') + '</span></div>';
+    document.getElementById('dBody').innerHTML =
+        kv('CPF', e.cpf)
+      + kv('Tipo de vínculo', e.tipo_vinculo)
+      + kv('Situação', e.status)
+      + kv('Vacina', e.vacina)
+      + kv('Dose', e.dose)
+      + kv('Lote', e.lote)
+      + kv('Aplicado em', e.aplicado_em ? ddmm(e.aplicado_em) : '');
+    document.getElementById('drawer').classList.remove('hide');
+  }
+  function fecharDrawer() { document.getElementById('drawer').classList.add('hide'); }
+
+  // ---- Registrar (individual) ----------------------------------------------
+  function abrirReg(id) {
+    const e = ITENS.find(x => x.id === id); if (!e) return;
+    if (!CAMP_VACINAS.length) { alert('A campanha não tem vacina cadastrada.'); return; }
+    REG_ELEG = id;
+    document.getElementById('regNome').textContent = e.nome || ('#' + id);
+    document.getElementById('regDose').value = 1;
+    document.getElementById('regData').value = hoje();
+    document.getElementById('regLote').value = '';
+    document.getElementById('regProf').value = '';
+    document.getElementById('regUnid').value = '';
+    const msg = document.getElementById('regMsg'); msg.className = 'msg'; msg.textContent = '';
+    document.getElementById('drawerReg').classList.remove('hide');
+  }
+  function fecharReg() { document.getElementById('drawerReg').classList.add('hide'); }
+
+  async function salvarReg() {
+    const msg = document.getElementById('regMsg');
+    const vacina_id = Number(document.getElementById('regVacina').value || 0);
+    const dose = Number(document.getElementById('regDose').value || 1);
+    const lote = document.getElementById('regLote').value.trim();
+    const aplicado_em = document.getElementById('regData').value;
+    if (!vacina_id) { msg.className = 'msg err'; msg.textContent = 'Selecione a vacina.'; return; }
+    if (!lote) { msg.className = 'msg err'; msg.textContent = 'Informe o lote.'; return; }
+    if (!aplicado_em) { msg.className = 'msg err'; msg.textContent = 'Informe a data de aplicação.'; return; }
+    msg.className = 'msg'; msg.textContent = 'Salvando...';
+    const d = await api('/interno/aplicacoes', 'POST', {
+      elegivel_id: REG_ELEG, vacina_id, dose, lote, aplicado_em,
+      profissional_nome: document.getElementById('regProf').value.trim() || null,
+      unidade: document.getElementById('regUnid').value.trim() || null,
+    });
+    if (!d.success) { msg.className = 'msg err'; msg.textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Erro.')); return; }
+    msg.className = 'msg ok'; msg.textContent = 'Vacinação registrada!';
+    setTimeout(() => { fecharReg(); recarregar(); }, 600);
+  }
+
+  // ---- Estornar (desvacinar) -----------------------------------------------
+  async function estornar(aplicacaoId, elegId) {
+    const motivo = prompt('Motivo do estorno (desvacinar):');
+    if (motivo === null) return;
+    if (!motivo.trim()) { alert('O motivo é obrigatório.'); return; }
+    const d = await api('/interno/aplicacoes/' + aplicacaoId + '/estornar', 'POST', { motivo: motivo.trim() });
+    if (!d.success) { alert('Erro: ' + (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'falhou'))); return; }
+    recarregar();
+  }
+
+  // ---- Seleção em massa (registrar) ----------------------------------------
   function toggleRow(id, checked) { if (checked) SELECIONADOS.add(id); else SELECIONADOS.delete(id); atualizarBulk(); }
   function toggleTodos(checked) {
     document.querySelectorAll('#tbody .rowchk').forEach(cb => { cb.checked = checked; });
@@ -455,187 +499,33 @@
     const n = SELECIONADOS.size;
     document.getElementById('bulkbar').classList.toggle('hide', n === 0);
     document.getElementById('bulkCnt').textContent = n;
+    if (!document.getElementById('bulkData').value) document.getElementById('bulkData').value = hoje();
     const all = document.getElementById('chkAll');
     const total = document.querySelectorAll('#tbody .rowchk').length;
     const marc = document.querySelectorAll('#tbody .rowchk:checked').length;
     if (all) { all.checked = total > 0 && marc === total; all.indeterminate = marc > 0 && marc < total; }
   }
-  async function aplicarLote() {
-    const status = document.getElementById('bulkStatus').value;
-    const motivo = document.getElementById('bulkMotivo').value.trim();
-    if (!status) { alert('Escolha a situação a aplicar.'); return; }
-    if (status !== 'pendente' && !motivo) { alert('Informe o motivo (obrigatório quando não é Pendente).'); return; }
-    const ids = [...SELECIONADOS];
-    if (!ids.length) return;
-    if (!confirm('Aplicar a situação "' + status + '" a ' + ids.length + ' elegível(is)?')) return;
-
-    const d = await api('/interno/elegiveis/situacao-lote', 'POST', { ids, status, motivo });
-    if (!d.success) { alert('Erro: ' + (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Falha ao aplicar em lote.'))); return; }
-    const ign = (d.data.ignorados || []).length;
-    alert('Concluído: ' + d.data.atualizados + ' de ' + d.data.total + ' atualizado(s)' + (ign ? ' · ' + ign + ' ignorado(s)' : '') + '.');
+  async function aplicarLoteVac() {
+    const vacina_id = Number(document.getElementById('bulkVacina').value || 0);
+    const dose = Number(document.getElementById('bulkDose').value || 1);
+    const lote = document.getElementById('bulkLote').value.trim();
+    const aplicado_em = document.getElementById('bulkData').value;
+    if (!vacina_id) { alert('Selecione a vacina.'); return; }
+    if (!lote) { alert('Informe o lote.'); return; }
+    if (!aplicado_em) { alert('Informe a data.'); return; }
+    // Só registra quem AINDA não está vacinado.
+    const alvos = ITENS.filter(e => SELECIONADOS.has(e.id) && e.status !== 'aplicado');
+    if (!alvos.length) { alert('Nenhum selecionado pendente de vacinação.'); return; }
+    if (!confirm('Registrar vacinação de ' + alvos.length + ' pessoa(s)?')) return;
+    const aplicacoes = alvos.map(e => ({ elegivel_id: e.id, vacina_id, dose, lote, aplicado_em }));
+    const d = await api('/interno/aplicacoes-lote', 'POST', { aplicacoes });
+    if (!d.success) { alert('Erro: ' + (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'falhou'))); return; }
+    alert('Concluído: ' + d.data.confirmados + ' registrado(s)' + (d.data.rejeitados ? ' · ' + d.data.rejeitados + ' rejeitado(s)' : '') + '.');
     limparSelecao();
     recarregar();
   }
 
-  function linha(e) {
-    const c = campSelObj();
-    const [trot, tcls] = TIPO[e.tipo_vinculo] || [e.tipo_vinculo || '—', 'dep'];
-    const titular = e.cpf_titular ? esc(e.cpf_titular) : 'N/A';
-    const lot = esc(e.unidade || e.codigo_lotacao || '—');
-    const cc = e.codigo_lotacao ? ('Cód: ' + esc(e.codigo_lotacao)) : '';
-    const nasc = e.data_nascimento ? (ddmm(e.data_nascimento) + idade(e.data_nascimento)) : '—';
-    const rh = e.codigo_rh ? ('RH: ' + esc(e.codigo_rh)) : '';
-    const modal = c ? (MOD[c.modalidade] || c.modalidade) : '—';
-    const val = c && c.periodo_fim ? ddmm(c.periodo_fim) : '';
-    return '<tr>'
-      + '<td class="chkcol"><input type="checkbox" class="rowchk" onchange="toggleRow(' + e.id + ', this.checked)"' + (SELECIONADOS.has(e.id) ? ' checked' : '') + ' /></td>'
-      + '<td><div class="nm">' + esc(e.nome || '—') + '</div><div class="sub">' + esc(e.cpf || '') + '</div></td>'
-      + '<td><span class="tag ' + tcls + '">' + esc(trot) + '</span><div class="sub">Titular: ' + titular + '</div></td>'
-      + '<td><div>' + lot + '</div><div class="sub">' + cc + '</div></td>'
-      + '<td><div>' + nasc + '</div><div class="sub">' + rh + '</div></td>'
-      + '<td><div>' + esc(modal) + '</div><div class="sub">' + val + '</div></td>'
-      + '<td style="text-align:right"><span class="st ' + esc(e.status) + '">' + esc(e.status) + '</span> '
-      + '<button class="iconbtn" title="Detalhes" onclick="verDetalhe(' + e.id + ')"><span class="material-symbols-outlined" style="font-size:20px">visibility</span></button></td>'
-      + '</tr>';
-  }
-
-  function verDetalhe(id) {
-    const e = ITENS.find(x => x.id === id); if (!e) return;
-    EDIT_ID = e.id;
-    document.getElementById('dNome').textContent = e.nome || 'Detalhes';
-    const kv = (k, v) => '<div class="kv"><span class="k">' + k + '</span><span class="v">' + esc(v || '—') + '</span></div>';
-    document.getElementById('dBody').innerHTML =
-        kv('CPF', e.cpf)
-      + kv('Tipo de vínculo', e.tipo_vinculo)
-      + kv('CPF do titular', e.cpf_titular)
-      + kv('Lotação (unidade)', e.unidade)
-      + kv('Código de lotação', e.codigo_lotacao)
-      + kv('Código RH', e.codigo_rh)
-      + kv('Nascimento', e.data_nascimento ? (ddmm(e.data_nascimento) + idade(e.data_nascimento)) : '')
-      + kv('Situação atual', e.status)
-      + kv('Motivo', e.motivo_situacao)
-      + kv('Clínica', e.clinica)
-      + '<label>Alterar situação</label>'
-      + '<select id="dStatus"><option value="">— manter —</option><option value="pendente">Pendente</option><option value="recusado">Recusado</option><option value="ausente">Ausente</option><option value="inelegivel">Inelegível</option></select>'
-      + '<label>Motivo (opcional)</label><input id="dMotivo" placeholder="Ex.: recusou no local" />'
-      + '<div class="msg" id="dMsg"></div>';
-    document.getElementById('drawer').classList.remove('hide');
-  }
-  function fecharDrawer() { document.getElementById('drawer').classList.add('hide'); }
-
-  async function salvarSituacao() {
-    const st = document.getElementById('dStatus').value;
-    const msg = document.getElementById('dMsg');
-    if (!st) { msg.className = 'msg err'; msg.textContent = 'Escolha uma situação (ou feche).'; return; }
-    msg.className = 'msg'; msg.textContent = 'Salvando...';
-    const d = await api('/interno/elegiveis/' + EDIT_ID + '/situacao', 'POST', { status: st, motivo: document.getElementById('dMotivo').value.trim() });
-    if (!d.success) { msg.className = 'msg err'; msg.textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Erro.')); return; }
-    msg.className = 'msg ok'; msg.textContent = 'Situação atualizada!';
-    setTimeout(() => { fecharDrawer(); recarregar(); }, 600);
-  }
-
   function exportar() { const c = campSelObj(); if (!c) return; window.open('/api/v1/interno/campanhas/' + c.id + '/exportar', '_blank'); }
-
-  // ---- Adicionar / importar elegíveis --------------------------------------
-  let ABA_ADD = 'form', ULTIMA_IMP = null;
-
-  function abrirAdd(aba) {
-    if (!campSelObj()) { alert('Selecione uma campanha primeiro.'); return; }
-    const msg = document.getElementById('addMsg'); msg.className = 'msg'; msg.textContent = '';
-    setAba(aba || 'form');
-    document.getElementById('drawerAdd').classList.remove('hide');
-  }
-  function fecharAdd() { document.getElementById('drawerAdd').classList.add('hide'); }
-  function setAba(aba) {
-    ABA_ADD = aba;
-    document.getElementById('abaForm').classList.toggle('hide', aba !== 'form');
-    document.getElementById('abaCsv').classList.toggle('hide', aba !== 'csv');
-    document.getElementById('tabForm').classList.toggle('on', aba === 'form');
-    document.getElementById('tabCsv').classList.toggle('on', aba === 'csv');
-  }
-
-  // Uma linha -> objeto elegível (mesmo formato do portal).
-  function parseElegiveis(t) {
-    const limpa = s => (s || '').trim().replace(/^"(.*)"$/, '$1').trim();
-    return t.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
-      const p = l.split(/[;,]/).map(limpa);
-      return { cpf: p[0] || '', nome: p[1] || '', data_nascimento: p[2] || null, tipo_vinculo: p[3] || null, cpf_titular: p[4] || null, codigo_lotacao: p[5] || null, codigo_rh: p[6] || null, identificador: p[7] || null };
-    });
-  }
-
-  function baixarErros() { if (ULTIMA_IMP) window.open('/api/v1/interno/importacoes/' + ULTIMA_IMP + '/erros/exportar', '_blank'); return false; }
-
-  // Gera e baixa um modelo CSV (cabeçalho + exemplos válidos). BOM para o Excel.
-  function baixarModelo() {
-    const cab = 'cpf,nome,data_nascimento,tipo_vinculo,cpf_titular,codigo_lotacao,codigo_rh,identificador';
-    const exemplos = [
-      '52998224725,Maria Silva,1990-05-10,colaborador,,LOT-01,RH-1001,',
-      '11144477735,Joao Souza,1985-11-02,dependente,52998224725,LOT-01,RH-1002,',
-      ',Terceiro Sem CPF,1979-03-20,terceiro,,LOT-02,RH-2001,VCH-0001',
-    ];
-    const conteudo = '﻿' + cab + '\r\n' + exemplos.join('\r\n') + '\r\n';
-    const blob = new Blob([conteudo], { type: 'text/csv;charset=utf-8' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'modelo-elegiveis.csv';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  }
-
-  function msgImport(d) {
-    const msg = document.getElementById('addMsg');
-    if (!d.success) { msg.className = 'msg err'; msg.textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Falha na importação.')); return false; }
-    ULTIMA_IMP = d.data.importacao_id;
-    const t = d.data.totais;
-    const rej = t ? (t.rejeitados || 0) : 0;
-    const link = ' <a href="#" onclick="return baixarErros()">Baixar relatório de erros</a>';
-    msg.className = 'msg ' + (rej > 0 ? 'err' : 'ok');
-    msg.innerHTML = (t
-      ? 'Importação #' + d.data.importacao_id + ' — válidos: ' + (t.validos || 0) + ', rejeitados: ' + rej + (t.removidos !== undefined ? ', removidos: ' + t.removidos : '') + '.'
-      : 'Importação #' + d.data.importacao_id + ' recebida — processando em segundo plano.') + link;
-    recarregar();
-    return true;
-  }
-
-  async function salvarAdd() {
-    const c = campSelObj(); if (!c) return;
-    const msg = document.getElementById('addMsg'); msg.className = 'msg'; msg.textContent = 'Enviando...';
-
-    if (ABA_ADD === 'form') {
-      const nome = document.getElementById('aNome').value.trim();
-      const cpf = document.getElementById('aCpf').value.trim();
-      const ident = document.getElementById('aIdent').value.trim();
-      if (!nome) { msg.className = 'msg err'; msg.textContent = 'Informe o nome.'; return; }
-      if (!cpf && !ident) { msg.className = 'msg err'; msg.textContent = 'Informe o CPF ou um identificador/voucher.'; return; }
-      const obj = {
-        cpf, nome,
-        data_nascimento: document.getElementById('aNasc').value || null,
-        tipo_vinculo: document.getElementById('aTipo').value || null,
-        cpf_titular: document.getElementById('aTitular').value.trim() || null,
-        codigo_lotacao: document.getElementById('aLotacao').value.trim() || null,
-        codigo_rh: document.getElementById('aRh').value.trim() || null,
-        identificador: ident || null,
-      };
-      const d = await api('/interno/campanhas/' + c.id + '/elegiveis/importar', 'POST', { elegiveis: [obj] });
-      if (msgImport(d)) ['aCpf', 'aNome', 'aNasc', 'aTitular', 'aLotacao', 'aRh', 'aIdent'].forEach(i => document.getElementById(i).value = '');
-      return;
-    }
-
-    // Aba CSV: arquivo (multipart) tem prioridade; senão, texto colado (JSON).
-    const sync = document.getElementById('csvSync').checked;
-    const rota = sync ? 'sincronizar' : 'importar';
-    const file = document.getElementById('csvArquivo').files[0];
-    if (file) {
-      const fd = new FormData(); fd.append('arquivo', file);
-      const r = await fetch('/api/v1/interno/campanhas/' + c.id + '/elegiveis/' + rota, { method: 'POST', headers: CSRF ? { 'X-CSRF-Token': CSRF } : {}, credentials: 'same-origin', body: fd });
-      let d; try { d = await r.json(); } catch (e) { d = { success: false }; }
-      msgImport(d);
-      return;
-    }
-    const elegiveis = parseElegiveis(document.getElementById('csvTexto').value);
-    if (!elegiveis.length) { msg.className = 'msg err'; msg.textContent = 'Cole ao menos uma linha ou escolha um arquivo.'; return; }
-    msgImport(await api('/interno/campanhas/' + c.id + '/elegiveis/' + rota, 'POST', { elegiveis }));
-  }
 
   iniciar();
   </script>
