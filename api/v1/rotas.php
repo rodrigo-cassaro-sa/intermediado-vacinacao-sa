@@ -99,6 +99,7 @@ return [
     'GET  /api/v1/interno/campanhas/{id}/importacoes'        => ['arquivo' => 'interno/importacoes.php', 'funcao' => 'rota_listar_importacoes'],
     'GET  /api/v1/interno/importacoes/{id}'                  => ['arquivo' => 'interno/importacoes.php', 'funcao' => 'rota_status_importacao'],
     'GET  /api/v1/interno/importacoes/{id}/erros/exportar'   => ['arquivo' => 'interno/importacoes.php', 'funcao' => 'rota_exportar_erros_importacao'],
+    'POST /api/v1/interno/elegiveis/situacao-lote'           => ['arquivo' => 'interno/elegiveis.php', 'funcao' => 'rota_definir_situacao_elegiveis_lote'],
     'POST /api/v1/interno/elegiveis/{id}/situacao'           => ['arquivo' => 'interno/elegiveis.php', 'funcao' => 'rota_definir_situacao_elegivel'],
     'PUT  /api/v1/interno/elegiveis/{id}'                    => ['arquivo' => 'interno/elegivel_edicao.php', 'funcao' => 'rota_editar_elegivel'],
     'GET  /api/v1/interno/elegiveis/{id}/historico'         => ['arquivo' => 'interno/elegivel_edicao.php', 'funcao' => 'rota_historico_elegivel'],

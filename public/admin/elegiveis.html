@@ -468,12 +468,10 @@
     if (!ids.length) return;
     if (!confirm('Aplicar a situação "' + status + '" a ' + ids.length + ' elegível(is)?')) return;
 
-    let ok = 0, falhas = 0;
-    for (const id of ids) {
-      const d = await api('/interno/elegiveis/' + id + '/situacao', 'POST', { status, motivo });
-      if (d.success) ok++; else falhas++;
-    }
-    alert('Concluído: ' + ok + ' atualizado(s)' + (falhas ? ' · ' + falhas + ' falhou(aram)' : '') + '.');
+    const d = await api('/interno/elegiveis/situacao-lote', 'POST', { ids, status, motivo });
+    if (!d.success) { alert('Erro: ' + (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Falha ao aplicar em lote.'))); return; }
+    const ign = (d.data.ignorados || []).length;
+    alert('Concluído: ' + d.data.atualizados + ' de ' + d.data.total + ' atualizado(s)' + (ign ? ' · ' + ign + ' ignorado(s)' : '') + '.');
     limparSelecao();
     recarregar();
   }

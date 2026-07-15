@@ -137,6 +137,97 @@ function rota_definir_situacao_elegivel(array $params): void
 }
 
 /**
+ * POST /api/v1/interno/elegiveis/situacao-lote
+ * Aplica a MESMA situação (pendente|recusado|ausente|inelegivel) a vários
+ * elegíveis. Body: { ids: [int], status, motivo }. Escopo verificado por item;
+ * inexistentes, fora do escopo ou já vacinados são ignorados e reportados.
+ */
+function rota_definir_situacao_elegiveis_lote(array $params): void
+{
+    $usuario = exigir_login();
+    if (!in_array($usuario['perfil'], ['super_admin', 'operador_interno', 'profissional_saude'], true)) {
+        responder_erro('Sem permissão.', 403, [
+            ['field' => null, 'code' => 'SEM_PERMISSAO', 'message' => 'Seu perfil não permite esta ação.'],
+        ]);
+    }
+    exigir_csrf();
+
+    $dados  = corpo_json();
+    $ids    = array_values(array_unique(array_filter(
+        array_map('intval', (array) ($dados['ids'] ?? [])),
+        fn($v) => $v > 0
+    )));
+    $status = (string) ($dados['status'] ?? '');
+    $motivo = (string) ($dados['motivo'] ?? '');
+
+    if (!$ids) {
+        responder_erro('Nenhum elegível informado.', 400, [
+            ['field' => 'ids', 'code' => 'IDS_OBRIGATORIOS', 'message' => 'Envie ao menos um id.'],
+        ]);
+    }
+    if (count($ids) > 5000) {
+        responder_erro('Lote muito grande (máx. 5000).', 400, [
+            ['field' => 'ids', 'code' => 'LOTE_GRANDE', 'message' => 'Divida em lotes de até 5000.'],
+        ]);
+    }
+    // Mesma regra do individual (RN-020): status permitido e motivo quando != pendente.
+    if (!in_array($status, ['pendente', 'recusado', 'ausente', 'inelegivel'], true)) {
+        responder_erro('Situação inválida.', 400, [
+            ['field' => 'status', 'code' => 'STATUS_INVALIDO', 'message' => 'Use pendente, recusado, ausente ou inelegivel.'],
+        ]);
+    }
+    if ($status !== 'pendente' && trim($motivo) === '') {
+        responder_erro('Informe o motivo.', 400, [
+            ['field' => 'motivo', 'code' => 'MOTIVO_OBRIGATORIO', 'message' => 'Motivo obrigatório quando não é pendente.'],
+        ]);
+    }
+
+    // Carrega todos os elegíveis de uma vez (id, campanha, tenant).
+    $ph = []; $bind = [];
+    foreach ($ids as $i => $id) { $ph[] = ":i$i"; $bind[":i$i"] = $id; }
+    $rows = db_todos(
+        "SELECT e.id, e.campanha_id, c.tenant_id
+           FROM elegivel e JOIN campanha c ON c.id = e.campanha_id
+          WHERE e.id IN (" . implode(',', $ph) . ")",
+        $bind
+    );
+    $mapa = [];
+    foreach ($rows as $r) { $mapa[(int) $r['id']] = $r; }
+
+    $ator = ator_usuario($usuario);
+    $atualizados = 0;
+    $ignorados = [];
+    foreach ($ids as $id) {
+        $r = $mapa[$id] ?? null;
+        if ($r === null) { $ignorados[] = ['id' => $id, 'code' => 'NAO_ENCONTRADO']; continue; }
+        $tenantId = (int) $r['tenant_id'];
+        if (!usuario_eh_interno($usuario) && !usuario_pode_cliente($usuario, $tenantId)) {
+            $ignorados[] = ['id' => $id, 'code' => 'FORA_ESCOPO']; continue;
+        }
+        $res = alterar_situacao_elegivel($id, $status, $motivo);
+        if (!$res['ok']) { $ignorados[] = ['id' => $id, 'code' => $res['code']]; continue; }
+
+        registrar_auditoria('elegivel.situacao_definida', [
+            'tenant_id'     => $tenantId,
+            'ator_tipo'     => 'usuario',
+            'ator_id'       => (int) $usuario['id'],
+            'origem'        => 'admin',
+            'entidade_tipo' => 'elegivel',
+            'entidade_id'   => $id,
+            'metadata'      => ['status' => $status, 'motivo' => $motivo, 'lote' => 1],
+        ]);
+        historico_elegivel($id, 'situacao_alterada', $ator, null, ['status' => $status], $motivo);
+        $atualizados++;
+    }
+
+    responder_sucesso([
+        'total'       => count($ids),
+        'atualizados' => $atualizados,
+        'ignorados'   => $ignorados,
+    ], 'Lote processado.');
+}
+
+/**
  * POST /api/v1/interno/campanhas/{id}/elegiveis/remover
  * Remove (soft) elegíveis por CPF — turnover/limpeza. Não remove quem já foi
  * vacinado (integridade e faturamento). Body: { cpfs: [...] }. Item 6.
