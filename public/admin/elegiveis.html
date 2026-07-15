@@ -300,6 +300,7 @@
         <!-- Aba CSV -->
         <div id="abaCsv" class="hide">
           <div class="hint">Uma linha por pessoa, nesta ordem:<br><b>cpf,nome,data_nascimento,tipo_vinculo,cpf_titular,codigo_lotacao,codigo_rh,identificador</b><br>Ex.: <code>52998224725,Maria Silva,1990-05-10,colaborador,,LOT-01,RH-1001,</code></div>
+          <button class="btn sec" style="margin:4px 0 8px" onclick="baixarModelo()"><span class="material-symbols-outlined">download</span> Baixar modelo (CSV)</button>
           <label>Colar linhas (CSV)</label>
           <textarea id="csvTexto" rows="6" placeholder="52998224725,Maria Silva,1990-05-10,colaborador,,LOT-01,RH-1001,"></textarea>
           <label>…ou enviar um arquivo (.csv)</label>
@@ -492,6 +493,23 @@
   }
 
   function baixarErros() { if (ULTIMA_IMP) window.open('/api/v1/interno/importacoes/' + ULTIMA_IMP + '/erros/exportar', '_blank'); return false; }
+
+  // Gera e baixa um modelo CSV (cabeçalho + exemplos válidos). BOM para o Excel.
+  function baixarModelo() {
+    const cab = 'cpf,nome,data_nascimento,tipo_vinculo,cpf_titular,codigo_lotacao,codigo_rh,identificador';
+    const exemplos = [
+      '52998224725,Maria Silva,1990-05-10,colaborador,,LOT-01,RH-1001,',
+      '11144477735,Joao Souza,1985-11-02,dependente,52998224725,LOT-01,RH-1002,',
+      ',Terceiro Sem CPF,1979-03-20,terceiro,,LOT-02,RH-2001,VCH-0001',
+    ];
+    const conteudo = '﻿' + cab + '\r\n' + exemplos.join('\r\n') + '\r\n';
+    const blob = new Blob([conteudo], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'modelo-elegiveis.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
 
   function msgImport(d) {
     const msg = document.getElementById('addMsg');
