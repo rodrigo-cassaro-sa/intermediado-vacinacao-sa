@@ -91,6 +91,14 @@
     .empty { padding: 28px 20px; text-align: center; color: var(--muted); }
     .pfoot { padding: 12px 20px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
     .pfoot .cnt { font-size: 12px; color: var(--muted); }
+    th.chkcol, td.chkcol { width: 40px; text-align: center; padding-left: 12px; padding-right: 4px; }
+    input.rowchk, #chkAll { width: 16px; height: 16px; cursor: pointer; accent-color: var(--pri); vertical-align: middle; }
+    .bulkbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 20px; background: rgba(22,102,196,.06); border-bottom: 1px solid var(--line); }
+    .bulkbar .cnt { font-weight: 700; color: var(--pri); }
+    .bulkbar label { font-size: 13px; color: var(--muted); }
+    .bulkbar select, .bulkbar input { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--txt); font: inherit; }
+    .bulkbar input { min-width: 220px; flex: 1; }
+    .bulkbar .btn { padding: 8px 12px; }
 
     /* Drawer detalhes */
     .drawer { position: fixed; inset: 0; z-index: 60; }
@@ -230,10 +238,25 @@
             <button class="btn sec" onclick="exportar()" title="Exportar CSV"><span class="material-symbols-outlined">download</span></button>
           </div>
         </div>
+        <!-- Barra de ação em massa (aparece quando há seleção) -->
+        <div class="bulkbar hide" id="bulkbar">
+          <span><span class="cnt" id="bulkCnt">0</span> selecionado(s)</span>
+          <label>Situação</label>
+          <select id="bulkStatus">
+            <option value="">— escolher —</option>
+            <option value="pendente">Pendente</option>
+            <option value="recusado">Recusado</option>
+            <option value="ausente">Ausente</option>
+            <option value="inelegivel">Inelegível</option>
+          </select>
+          <input id="bulkMotivo" placeholder="Motivo (obrigatório se não for Pendente)" />
+          <button class="btn primary" onclick="aplicarLote()"><span class="material-symbols-outlined">done_all</span> Aplicar em massa</button>
+          <button class="btn sec" onclick="limparSelecao()">Limpar seleção</button>
+        </div>
         <div style="overflow-x:auto">
           <table>
             <thead>
-              <tr><th>Paciente / CPF</th><th>Tipo / Titular</th><th>Lotação / C. Custo</th><th>Nascimento / RH</th><th>Modalidade / Validade</th><th style="text-align:right">Ações</th></tr>
+              <tr><th class="chkcol"><input type="checkbox" id="chkAll" onchange="toggleTodos(this.checked)" title="Selecionar todos" /></th><th>Paciente / CPF</th><th>Tipo / Titular</th><th>Lotação / C. Custo</th><th>Nascimento / RH</th><th>Modalidade / Validade</th><th style="text-align:right">Ações</th></tr>
             </thead>
             <tbody id="tbody"></tbody>
           </table>
@@ -322,6 +345,7 @@
   // Pacientes elegíveis — lista da campanha (sessão + CSRF, keyset paginado).
   // ---------------------------------------------------------------------------
   let CSRF = null, CAMPANHAS = [], ITENS = [], CURSOR = null, CARREGADOS = 0, TOTAL = 0, EDIT_ID = null;
+  let SELECIONADOS = new Set();
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   async function api(path, metodo = 'GET', corpo = null) {
@@ -376,7 +400,13 @@
     recarregar();
   }
 
-  function recarregar() { CURSOR = null; CARREGADOS = 0; ITENS = []; document.getElementById('tbody').innerHTML = ''; carregarElegiveis(); }
+  function recarregar() {
+    CURSOR = null; CARREGADOS = 0; ITENS = [];
+    SELECIONADOS.clear();
+    document.getElementById('tbody').innerHTML = '';
+    atualizarBulk();
+    carregarElegiveis();
+  }
 
   async function carregarElegiveis() {
     const c = campSelObj();
@@ -404,8 +434,49 @@
     document.getElementById('contagem').textContent = CARREGADOS + ' de ' + fmt(TOTAL) + ' elegível(is)';
     CURSOR = (d.meta && d.meta.proximo_cursor) || null;
     document.getElementById('btnMais').classList.toggle('hide', !CURSOR);
+    atualizarBulk();
   }
   function carregarMais() { carregarElegiveis(); }
+
+  // ---- Seleção em massa ----------------------------------------------------
+  function toggleRow(id, checked) { if (checked) SELECIONADOS.add(id); else SELECIONADOS.delete(id); atualizarBulk(); }
+  function toggleTodos(checked) {
+    document.querySelectorAll('#tbody .rowchk').forEach(cb => { cb.checked = checked; });
+    ITENS.forEach(e => { if (checked) SELECIONADOS.add(e.id); else SELECIONADOS.delete(e.id); });
+    atualizarBulk();
+  }
+  function limparSelecao() {
+    SELECIONADOS.clear();
+    document.querySelectorAll('#tbody .rowchk').forEach(cb => cb.checked = false);
+    atualizarBulk();
+  }
+  function atualizarBulk() {
+    const n = SELECIONADOS.size;
+    document.getElementById('bulkbar').classList.toggle('hide', n === 0);
+    document.getElementById('bulkCnt').textContent = n;
+    const all = document.getElementById('chkAll');
+    const total = document.querySelectorAll('#tbody .rowchk').length;
+    const marc = document.querySelectorAll('#tbody .rowchk:checked').length;
+    if (all) { all.checked = total > 0 && marc === total; all.indeterminate = marc > 0 && marc < total; }
+  }
+  async function aplicarLote() {
+    const status = document.getElementById('bulkStatus').value;
+    const motivo = document.getElementById('bulkMotivo').value.trim();
+    if (!status) { alert('Escolha a situação a aplicar.'); return; }
+    if (status !== 'pendente' && !motivo) { alert('Informe o motivo (obrigatório quando não é Pendente).'); return; }
+    const ids = [...SELECIONADOS];
+    if (!ids.length) return;
+    if (!confirm('Aplicar a situação "' + status + '" a ' + ids.length + ' elegível(is)?')) return;
+
+    let ok = 0, falhas = 0;
+    for (const id of ids) {
+      const d = await api('/interno/elegiveis/' + id + '/situacao', 'POST', { status, motivo });
+      if (d.success) ok++; else falhas++;
+    }
+    alert('Concluído: ' + ok + ' atualizado(s)' + (falhas ? ' · ' + falhas + ' falhou(aram)' : '') + '.');
+    limparSelecao();
+    recarregar();
+  }
 
   function linha(e) {
     const c = campSelObj();
@@ -418,6 +489,7 @@
     const modal = c ? (MOD[c.modalidade] || c.modalidade) : '—';
     const val = c && c.periodo_fim ? ddmm(c.periodo_fim) : '';
     return '<tr>'
+      + '<td class="chkcol"><input type="checkbox" class="rowchk" onchange="toggleRow(' + e.id + ', this.checked)"' + (SELECIONADOS.has(e.id) ? ' checked' : '') + ' /></td>'
       + '<td><div class="nm">' + esc(e.nome || '—') + '</div><div class="sub">' + esc(e.cpf || '') + '</div></td>'
       + '<td><span class="tag ' + tcls + '">' + esc(trot) + '</span><div class="sub">Titular: ' + titular + '</div></td>'
       + '<td><div>' + lot + '</div><div class="sub">' + cc + '</div></td>'
