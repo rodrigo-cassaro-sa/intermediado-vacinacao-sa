@@ -61,13 +61,15 @@
     .chip.done { background: rgba(18,35,59,.08); color: var(--muted); }
 
     .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--sombra); overflow: hidden; }
-    .panel .phead { padding: 12px 20px; border-bottom: 1px solid var(--line); background: var(--surface-2); display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; }
+    .panel .phead { padding: 12px 20px; border-bottom: 1px solid var(--line); background: var(--surface-2); display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
     .panel .phead h3 { margin: 0; font-size: 14px; font-weight: 600; }
-    .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .filters { display: flex; gap: 8px; flex-wrap: nowrap; align-items: center; overflow-x: auto; padding-bottom: 2px; }
+    .filters > * { flex: 0 0 auto; }
     .filters .box { position: relative; }
     .filters .box .material-symbols-outlined { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--outline, #707880); font-size: 18px; }
     .filters input, .filters select { padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--txt); font: inherit; }
-    .filters .box input { padding-left: 32px; width: 220px; }
+    .filters .box input { padding-left: 32px; width: 200px; }
+    .filters .btn { padding: 8px 10px; }
     .filters input:focus, .filters select:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
 
     table { width: 100%; border-collapse: collapse; white-space: nowrap; }
