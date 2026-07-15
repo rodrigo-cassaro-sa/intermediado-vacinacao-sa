@@ -223,20 +223,16 @@
             </select>
           </div>
         </div>
-        <!-- Barra de registro em massa -->
+        <!-- Barra de seleção em massa -->
         <div class="bulkbar hide" id="bulkbar">
           <span><span class="cnt" id="bulkCnt">0</span> selecionado(s)</span>
-          <label>Vacina</label><select id="bulkVacina"></select>
-          <label>Dose</label><input id="bulkDose" type="number" min="1" value="1" style="width:70px" />
-          <label>Lote</label><input id="bulkLote" placeholder="lote" style="width:130px" />
-          <label>Data</label><input id="bulkData" type="date" style="width:150px" />
-          <button class="btn primary" onclick="aplicarLoteVac()"><span class="material-symbols-outlined">vaccines</span> Registrar em massa</button>
+          <button class="btn primary" onclick="abrirRegBulk()"><span class="material-symbols-outlined">vaccines</span> Registrar selecionados</button>
           <button class="btn sec" onclick="limparSelecao()">Limpar</button>
         </div>
         <div style="overflow-x:auto">
           <table>
             <thead>
-              <tr><th class="chkcol"><input type="checkbox" id="chkAll" onchange="toggleTodos(this.checked)" title="Selecionar todos" /></th><th>Paciente / CPF</th><th>Tipo</th><th>Vacina / Dose</th><th>Lote</th><th>Aplicado em</th><th>Status</th><th style="text-align:right">Ações</th></tr>
+              <tr><th class="chkcol"><input type="checkbox" id="chkAll" onchange="toggleTodos(this.checked)" title="Selecionar todos" /></th><th>Paciente / CPF</th><th>Tipo</th><th>Vacina / Dose</th><th>Lote</th><th>Aplicado em</th><th>Aplicado por</th><th>Status</th><th style="text-align:right">Ações</th></tr>
             </thead>
             <tbody id="tbody"></tbody>
           </table>
@@ -264,21 +260,29 @@
   <div class="drawer hide" id="drawerReg">
     <div class="backdrop" onclick="fecharReg()"></div>
     <div class="box">
-      <div class="dhead"><h3>Registrar vacinação</h3><button class="x" onclick="fecharReg()"><span class="material-symbols-outlined">close</span></button></div>
+      <div class="dhead"><h3 id="regTitulo">Registrar vacinação</h3><button class="x" onclick="fecharReg()"><span class="material-symbols-outlined">close</span></button></div>
       <div class="dbody">
-        <div class="kv"><span class="k">Paciente</span><span class="v" id="regNome">—</span></div>
+        <div class="kv"><span class="k" id="regAlvoLbl">Paciente</span><span class="v" id="regNome">—</span></div>
         <label>Vacina</label>
         <select id="regVacina"></select>
         <div class="g2">
           <div><label>Dose</label><input id="regDose" type="number" min="1" value="1" /></div>
-          <div><label>Aplicado em</label><input id="regData" type="date" /></div>
+          <div><label>Aplicado em *</label><input id="regData" type="date" /></div>
         </div>
         <label>Lote *</label>
         <input id="regLote" placeholder="ex.: ABC123" />
+        <label>Clínica que aplicou</label>
+        <select id="regClinica"><option value="">— In company / sem clínica —</option></select>
         <div class="g2">
-          <div><label>Profissional (opcional)</label><input id="regProf" placeholder="nome" /></div>
-          <div><label>Unidade (opcional)</label><input id="regUnid" placeholder="local" /></div>
+          <div><label>Profissional — nome *</label><input id="regProfNome" placeholder="quem aplicou" /></div>
+          <div><label>Profissional — CPF *</label><input id="regProfCpf" placeholder="000.000.000-00" /></div>
         </div>
+        <div class="g2">
+          <div><label>Cidade *</label><input id="regCidade" placeholder="cidade" /></div>
+          <div><label>UF *</label><input id="regUf" maxlength="2" placeholder="SP" style="text-transform:uppercase" /></div>
+        </div>
+        <label>Unidade / local (opcional)</label>
+        <input id="regUnid" placeholder="local de aplicação" />
         <div class="msg" id="regMsg"></div>
       </div>
       <div class="dfoot">
@@ -292,7 +296,7 @@
   // ---------------------------------------------------------------------------
   // Vacinados — registro de aplicação por campanha (sessão + CSRF, keyset).
   // ---------------------------------------------------------------------------
-  let CSRF = null, CAMPANHAS = [], CAMP_VACINAS = [], ITENS = [], CURSOR = null, CARREGADOS = 0, TOTAL = 0, REG_ELEG = null;
+  let CSRF = null, CAMPANHAS = [], CAMP_VACINAS = [], CLINICAS = [], ITENS = [], CURSOR = null, CARREGADOS = 0, TOTAL = 0, REG_ELEG = null, REG_BULK = false;
   let SELECIONADOS = new Set();
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const hoje = () => new Date().toISOString().substring(0, 10);
@@ -349,11 +353,16 @@
       const det = await api('/interno/campanhas/' + c.id);
       if (det.success) CAMP_VACINAS = det.data.vacinas || [];
     }
-    const opts = CAMP_VACINAS.length
+    document.getElementById('regVacina').innerHTML = CAMP_VACINAS.length
       ? CAMP_VACINAS.map(v => '<option value="' + v.vacina_id + '">' + esc(v.nome) + '</option>').join('')
       : '<option value="">(campanha sem vacina)</option>';
-    document.getElementById('regVacina').innerHTML = opts;
-    document.getElementById('bulkVacina').innerHTML = opts;
+    // Clínicas credenciadas (uma vez) para o campo "clínica que aplicou".
+    if (!CLINICAS.length) {
+      const cl = await api('/interno/clinicas');
+      if (cl.success) CLINICAS = cl.data.itens || [];
+    }
+    document.getElementById('regClinica').innerHTML = '<option value="">— In company / sem clínica —</option>'
+      + CLINICAS.map(x => '<option value="' + x.id + '">' + esc(x.nome) + '</option>').join('');
     recarregar();
   }
 
@@ -402,6 +411,12 @@
     const vac = aplicado ? (esc(e.vacina || '—') + (e.dose ? '<div class="sub">Dose ' + esc(e.dose) + '</div>' : '')) : '<span class="sub">—</span>';
     const lote = aplicado ? esc(e.lote || '—') : '<span class="sub">—</span>';
     const quando = aplicado ? ddmm(e.aplicado_em) : '<span class="sub">—</span>';
+    let porQuem = '<span class="sub">—</span>';
+    if (aplicado) {
+      const linha1 = e.clinica ? esc(e.clinica) : (e.profissional_nome ? esc(e.profissional_nome) : '—');
+      const linha2 = e.clinica && e.profissional_nome ? ('<div class="sub">' + esc(e.profissional_nome) + '</div>') : '';
+      porQuem = linha1 + linha2;
+    }
     let acoes = '';
     if (aplicado) {
       acoes = '<button class="iconbtn danger" title="Estornar (desvacinar)" onclick="estornar(' + e.aplicacao_id + ', ' + e.id + ')"><span class="material-symbols-outlined" style="font-size:20px">undo</span></button>';
@@ -416,6 +431,7 @@
       + '<td>' + vac + '</td>'
       + '<td>' + lote + '</td>'
       + '<td>' + quando + '</td>'
+      + '<td>' + porQuem + '</td>'
       + '<td><span class="st ' + esc(e.status) + '">' + esc(e.status) + '</span></td>'
       + '<td style="text-align:right;white-space:nowrap">' + acoes + '</td>'
       + '</tr>';
@@ -425,6 +441,7 @@
     const e = ITENS.find(x => x.id === id); if (!e) return;
     document.getElementById('dNome').textContent = e.nome || 'Detalhes';
     const kv = (k, v) => '<div class="kv"><span class="k">' + k + '</span><span class="v">' + esc(v || '—') + '</span></div>';
+    const local = [e.cidade, e.uf].filter(Boolean).join('/');
     document.getElementById('dBody').innerHTML =
         kv('CPF', e.cpf)
       + kv('Tipo de vínculo', e.tipo_vinculo)
@@ -432,43 +449,82 @@
       + kv('Vacina', e.vacina)
       + kv('Dose', e.dose)
       + kv('Lote', e.lote)
-      + kv('Aplicado em', e.aplicado_em ? ddmm(e.aplicado_em) : '');
+      + kv('Aplicado em', e.aplicado_em ? ddmm(e.aplicado_em) : '')
+      + kv('Clínica', e.clinica)
+      + kv('Profissional', e.profissional_nome)
+      + kv('CPF do profissional', e.profissional_cpf)
+      + kv('Cidade/UF', local)
+      + kv('Unidade / local', e.unidade);
     document.getElementById('drawer').classList.remove('hide');
   }
   function fecharDrawer() { document.getElementById('drawer').classList.add('hide'); }
 
-  // ---- Registrar (individual) ----------------------------------------------
-  function abrirReg(id) {
-    const e = ITENS.find(x => x.id === id); if (!e) return;
-    if (!CAMP_VACINAS.length) { alert('A campanha não tem vacina cadastrada.'); return; }
-    REG_ELEG = id;
-    document.getElementById('regNome').textContent = e.nome || ('#' + id);
+  // ---- Registrar (individual ou em massa) ----------------------------------
+  function fecharReg() { document.getElementById('drawerReg').classList.add('hide'); }
+  function falhaReg(t) { const m = document.getElementById('regMsg'); m.className = 'msg err'; m.textContent = t; }
+  function prepReg() {
+    ['regLote', 'regProfNome', 'regProfCpf', 'regCidade', 'regUf', 'regUnid'].forEach(i => document.getElementById(i).value = '');
     document.getElementById('regDose').value = 1;
     document.getElementById('regData').value = hoje();
-    document.getElementById('regLote').value = '';
-    document.getElementById('regProf').value = '';
-    document.getElementById('regUnid').value = '';
+    document.getElementById('regClinica').value = '';
     const msg = document.getElementById('regMsg'); msg.className = 'msg'; msg.textContent = '';
     document.getElementById('drawerReg').classList.remove('hide');
   }
-  function fecharReg() { document.getElementById('drawerReg').classList.add('hide'); }
+  function abrirReg(id) {
+    const e = ITENS.find(x => x.id === id); if (!e) return;
+    if (!CAMP_VACINAS.length) { alert('A campanha não tem vacina cadastrada.'); return; }
+    REG_BULK = false; REG_ELEG = id;
+    document.getElementById('regTitulo').textContent = 'Registrar vacinação';
+    document.getElementById('regAlvoLbl').textContent = 'Paciente';
+    document.getElementById('regNome').textContent = e.nome || ('#' + id);
+    prepReg();
+  }
+  function abrirRegBulk() {
+    if (!CAMP_VACINAS.length) { alert('A campanha não tem vacina cadastrada.'); return; }
+    const alvos = ITENS.filter(e => SELECIONADOS.has(e.id) && e.status !== 'aplicado');
+    if (!alvos.length) { alert('Nenhum selecionado pendente de vacinação.'); return; }
+    REG_BULK = true; REG_ELEG = null;
+    document.getElementById('regTitulo').textContent = 'Registrar em massa';
+    document.getElementById('regAlvoLbl').textContent = 'Selecionados (pendentes)';
+    document.getElementById('regNome').textContent = alvos.length;
+    prepReg();
+  }
 
   async function salvarReg() {
     const msg = document.getElementById('regMsg');
     const vacina_id = Number(document.getElementById('regVacina').value || 0);
-    const dose = Number(document.getElementById('regDose').value || 1);
-    const lote = document.getElementById('regLote').value.trim();
-    const aplicado_em = document.getElementById('regData').value;
-    if (!vacina_id) { msg.className = 'msg err'; msg.textContent = 'Selecione a vacina.'; return; }
-    if (!lote) { msg.className = 'msg err'; msg.textContent = 'Informe o lote.'; return; }
-    if (!aplicado_em) { msg.className = 'msg err'; msg.textContent = 'Informe a data de aplicação.'; return; }
-    msg.className = 'msg'; msg.textContent = 'Salvando...';
-    const d = await api('/interno/aplicacoes', 'POST', {
-      elegivel_id: REG_ELEG, vacina_id, dose, lote, aplicado_em,
-      profissional_nome: document.getElementById('regProf').value.trim() || null,
+    const base = {
+      vacina_id,
+      dose: Number(document.getElementById('regDose').value || 1),
+      lote: document.getElementById('regLote').value.trim(),
+      aplicado_em: document.getElementById('regData').value,
+      profissional_nome: document.getElementById('regProfNome').value.trim(),
+      profissional_cpf: document.getElementById('regProfCpf').value.trim(),
+      cidade: document.getElementById('regCidade').value.trim(),
+      uf: document.getElementById('regUf').value.trim().toUpperCase(),
+      clinica_id: document.getElementById('regClinica').value ? Number(document.getElementById('regClinica').value) : null,
       unidade: document.getElementById('regUnid').value.trim() || null,
-    });
-    if (!d.success) { msg.className = 'msg err'; msg.textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Erro.')); return; }
+    };
+    if (!vacina_id) return falhaReg('Selecione a vacina.');
+    if (!base.lote) return falhaReg('Informe o lote.');
+    if (!base.aplicado_em) return falhaReg('Informe a data de aplicação.');
+    if (!base.profissional_nome) return falhaReg('Informe o nome do profissional.');
+    if (!base.profissional_cpf) return falhaReg('Informe o CPF do profissional.');
+    if (!base.cidade) return falhaReg('Informe a cidade.');
+    if (base.uf.length !== 2) return falhaReg('Informe a UF (2 letras).');
+    msg.className = 'msg'; msg.textContent = 'Salvando...';
+
+    if (REG_BULK) {
+      const alvos = ITENS.filter(e => SELECIONADOS.has(e.id) && e.status !== 'aplicado');
+      const aplicacoes = alvos.map(e => ({ elegivel_id: e.id, ...base }));
+      const d = await api('/interno/aplicacoes-lote', 'POST', { aplicacoes });
+      if (!d.success) return falhaReg(d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Erro.'));
+      msg.className = 'msg ok'; msg.textContent = d.data.confirmados + ' registrado(s)' + (d.data.rejeitados ? ' · ' + d.data.rejeitados + ' rejeitado(s)' : '') + '.';
+      setTimeout(() => { fecharReg(); limparSelecao(); recarregar(); }, 900);
+      return;
+    }
+    const d = await api('/interno/aplicacoes', 'POST', { elegivel_id: REG_ELEG, ...base });
+    if (!d.success) return falhaReg(d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Erro.'));
     msg.className = 'msg ok'; msg.textContent = 'Vacinação registrada!';
     setTimeout(() => { fecharReg(); recarregar(); }, 600);
   }
@@ -499,32 +555,11 @@
     const n = SELECIONADOS.size;
     document.getElementById('bulkbar').classList.toggle('hide', n === 0);
     document.getElementById('bulkCnt').textContent = n;
-    if (!document.getElementById('bulkData').value) document.getElementById('bulkData').value = hoje();
     const all = document.getElementById('chkAll');
     const total = document.querySelectorAll('#tbody .rowchk').length;
     const marc = document.querySelectorAll('#tbody .rowchk:checked').length;
     if (all) { all.checked = total > 0 && marc === total; all.indeterminate = marc > 0 && marc < total; }
   }
-  async function aplicarLoteVac() {
-    const vacina_id = Number(document.getElementById('bulkVacina').value || 0);
-    const dose = Number(document.getElementById('bulkDose').value || 1);
-    const lote = document.getElementById('bulkLote').value.trim();
-    const aplicado_em = document.getElementById('bulkData').value;
-    if (!vacina_id) { alert('Selecione a vacina.'); return; }
-    if (!lote) { alert('Informe o lote.'); return; }
-    if (!aplicado_em) { alert('Informe a data.'); return; }
-    // Só registra quem AINDA não está vacinado.
-    const alvos = ITENS.filter(e => SELECIONADOS.has(e.id) && e.status !== 'aplicado');
-    if (!alvos.length) { alert('Nenhum selecionado pendente de vacinação.'); return; }
-    if (!confirm('Registrar vacinação de ' + alvos.length + ' pessoa(s)?')) return;
-    const aplicacoes = alvos.map(e => ({ elegivel_id: e.id, vacina_id, dose, lote, aplicado_em }));
-    const d = await api('/interno/aplicacoes-lote', 'POST', { aplicacoes });
-    if (!d.success) { alert('Erro: ' + (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'falhou'))); return; }
-    alert('Concluído: ' + d.data.confirmados + ' registrado(s)' + (d.data.rejeitados ? ' · ' + d.data.rejeitados + ' rejeitado(s)' : '') + '.');
-    limparSelecao();
-    recarregar();
-  }
-
   function exportar() { const c = campSelObj(); if (!c) return; window.open('/api/v1/interno/campanhas/' + c.id + '/exportar', '_blank'); }
 
   iniciar();

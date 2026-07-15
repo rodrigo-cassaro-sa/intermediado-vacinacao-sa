@@ -102,11 +102,11 @@ function processar_aplicacao(array $ctx): array
             "INSERT INTO aplicacao
                 (tenant_id, campanha_id, elegivel_id, paciente_id, vacina_id, dose, lote,
                  via_administracao, local_aplicacao, cidade, uf, unidade,
-                 profissional_nome, profissional_cpf, executor_tipo, executor_id, origem,
+                 profissional_nome, profissional_cpf, executor_tipo, executor_id, clinica_id, origem,
                  status, aplicado_em, criado_por)
              SELECT c.tenant_id, e.campanha_id, e.id, e.paciente_id, :vacina, :dose, :lote,
                     :via, :local, :cidade, :uf, :unidade,
-                    :pnome, :pcpf, :etipo, :eid, :origem, 'confirmada', :aplicado_em, :criado_por
+                    :pnome, :pcpf, :etipo, :eid, :clinica, :origem, 'confirmada', :aplicado_em, :criado_por
                FROM elegivel e JOIN campanha c ON c.id = e.campanha_id
               WHERE e.id = :elegivel",
             [
@@ -122,6 +122,7 @@ function processar_aplicacao(array $ctx): array
                 ':pcpf'        => $profCpf,
                 ':etipo'       => $ctx['executor_tipo'],
                 ':eid'         => (int) $ctx['executor_id'],
+                ':clinica'     => !empty($ctx['clinica_id']) ? (int) $ctx['clinica_id'] : null,
                 ':origem'      => $ctx['origem'],
                 ':aplicado_em' => date('Y-m-d H:i:s', $ts),
                 ':criado_por'  => $ctx['criado_por'] ?? null,

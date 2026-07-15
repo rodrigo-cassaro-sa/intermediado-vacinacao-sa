@@ -88,12 +88,15 @@ function rota_listar_vacinados(array $params): void
 
     $itens = db_todos(
         "SELECT e.id, p.cpf, COALESCE(e.nome, p.nome) AS nome, e.tipo_vinculo, e.status,
-                a.id AS aplicacao_id, a.aplicado_em, a.dose, a.lote, vv.nome AS vacina
+                a.id AS aplicacao_id, a.aplicado_em, a.dose, a.lote, vv.nome AS vacina,
+                a.profissional_nome, a.profissional_cpf, a.cidade, a.uf, a.unidade,
+                a.executor_tipo, a.clinica_id, cl.nome AS clinica
            FROM elegivel e
            JOIN paciente p ON p.id = e.paciente_id
       LEFT JOIN aplicacao a ON a.elegivel_id = e.id AND a.status = 'confirmada'
                 AND a.id = (SELECT MAX(a2.id) FROM aplicacao a2 WHERE a2.elegivel_id = e.id AND a2.status = 'confirmada')
       LEFT JOIN vacina vv ON vv.id = a.vacina_id
+      LEFT JOIN clinica_credenciada cl ON cl.id = a.clinica_id
           WHERE $where
           ORDER BY e.id DESC
           LIMIT $porPagina",
@@ -101,6 +104,9 @@ function rota_listar_vacinados(array $params): void
     );
     foreach ($itens as &$it) {
         $it['cpf'] = mascarar_cpf($it['cpf']);
+        if (!empty($it['profissional_cpf'])) {
+            $it['profissional_cpf'] = mascarar_cpf($it['profissional_cpf']);
+        }
     }
     unset($it);
     $proximo = count($itens) === $porPagina ? (int) end($itens)['id'] : null;

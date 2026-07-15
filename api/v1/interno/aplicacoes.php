@@ -47,6 +47,7 @@ function rota_registrar_aplicacao(array $params): void
         'unidade'           => $dados['unidade'] ?? null,
         'profissional_nome' => $dados['profissional_nome'] ?? null,
         'profissional_cpf'  => $dados['profissional_cpf'] ?? null,
+        'clinica_id'        => $dados['clinica_id'] ?? null,
         'aplicado_em'       => $dados['aplicado_em'],
         'executor_tipo'     => 'profissional_saude',
         'executor_id'       => (int) $usuario['id'],
@@ -204,6 +205,7 @@ function rota_registrar_aplicacoes_lote(array $params): void
             'unidade'           => $ap['unidade'] ?? null,
             'profissional_nome' => $ap['profissional_nome'] ?? null,
             'profissional_cpf'  => $ap['profissional_cpf'] ?? null,
+            'clinica_id'        => $ap['clinica_id'] ?? null,
             'aplicado_em'       => $ap['aplicado_em'] ?? '',
             'executor_tipo'     => 'profissional_saude',
             'executor_id'       => (int) $usuario['id'],
@@ -292,12 +294,12 @@ function rota_retificar_aplicacao(array $params): void
             "INSERT INTO aplicacao
                 (tenant_id, campanha_id, elegivel_id, paciente_id, vacina_id, dose, lote,
                  via_administracao, local_aplicacao, cidade, uf, unidade,
-                 profissional_nome, profissional_cpf, executor_tipo, executor_id, origem,
+                 profissional_nome, profissional_cpf, executor_tipo, executor_id, clinica_id, origem,
                  status, aplicacao_origem_id, motivo_retificacao, aplicado_em, criado_por)
              VALUES
                 (:tenant, :campanha, :elegivel, :paciente, :vacina, :dose, :lote,
                  :via, :local, :cidade, :uf, :unidade,
-                 :pnome, :pcpf, :etipo, :eid, :origem,
+                 :pnome, :pcpf, :etipo, :eid, :clinica, :origem,
                  'confirmada', :origem_id, :motivo, :aplicado_em, :criado_por)",
             [
                 ':tenant'      => (int) $orig['tenant_id'],
@@ -316,6 +318,7 @@ function rota_retificar_aplicacao(array $params): void
                 ':pcpf'        => $orig['profissional_cpf'],
                 ':etipo'       => $orig['executor_tipo'],
                 ':eid'         => (int) $orig['executor_id'],
+                ':clinica'     => isset($orig['clinica_id']) ? $orig['clinica_id'] : null,
                 ':origem'      => $orig['origem'],
                 ':origem_id'   => $id,
                 ':motivo'      => trim((string) $dados['motivo']),
