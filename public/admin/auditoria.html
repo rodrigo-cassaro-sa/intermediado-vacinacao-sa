@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Auditoria — S&amp;A Imunizações</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+  <link rel="stylesheet" href="/assets/marca.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Inter', system-ui, Segoe UI, Roboto, sans-serif; background: var(--bg); color: var(--txt); font-size: 14px; display: flex; height: 100vh; overflow: hidden; }
+    .material-symbols-outlined { font-family: 'Material Symbols Outlined'; font-size: 22px; line-height: 1; }
+    .hide { display: none !important; }
+
+    .side { width: 256px; flex: 0 0 256px; background: var(--card); border-right: 1px solid var(--line); box-shadow: var(--sombra); display: flex; flex-direction: column; padding: 16px 0; }
+    .side .brand { padding: 6px 20px 20px; display: flex; flex-direction: column; gap: 8px; }
+    .side .brand .logo { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, var(--acc) 0%, var(--pri) 100%); display: grid; place-items: center; box-shadow: 0 4px 12px rgba(22,102,196,.28); }
+    .side .brand .nome { font-size: 20px; font-weight: 800; letter-spacing: -.01em; color: var(--pri); line-height: 1.15; }
+    .side .brand .tag { font-size: 12px; color: var(--muted); }
+    .side nav { flex: 1; padding: 0 12px; display: flex; flex-direction: column; gap: 4px; }
+    .side .foot { padding: 12px 12px 0; margin-top: auto; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
+    .navlink { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; color: var(--muted); text-decoration: none; font-weight: 500; background: none; border: 0; font: inherit; cursor: pointer; text-align: left; width: 100%; transition: background .15s, color .15s; }
+    .navlink:hover { background: var(--surface-2); color: var(--txt); }
+    .navlink.active { background: var(--surface-2); color: var(--pri); font-weight: 600; }
+    .navlink .material-symbols-outlined { font-variation-settings: 'FILL' 0; }
+    .navlink.active .material-symbols-outlined { font-variation-settings: 'FILL' 1; }
+
+    .main { flex: 1; overflow-y: auto; }
+    .content { max-width: 1440px; margin: 0 auto; padding: 24px 32px; display: flex; flex-direction: column; gap: 20px; }
+    .pagehead { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+    .pagehead h1 { font-size: 32px; font-weight: 700; letter-spacing: -.02em; margin: 0; }
+    .pagehead p { margin: 6px 0 0; color: var(--muted); }
+    .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .who { color: var(--muted); font-size: 13px; margin-right: 4px; } .who b { color: var(--txt); }
+    .btn { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; padding: 10px 16px; border-radius: 8px; font: inherit; font-weight: 600; border: 0; }
+    .btn .material-symbols-outlined { font-size: 18px; }
+    .btn.primary { background: var(--pri); color: #fff; box-shadow: 0 2px 6px rgba(22,102,196,.25); }
+    .btn.primary:hover { background: var(--pri2); }
+    .btn.sec { background: var(--card); color: var(--txt); border: 1px solid var(--line); }
+    .btn.sec:hover { background: var(--surface-2); }
+
+    .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--sombra); overflow: hidden; }
+    .panel .phead { padding: 12px 20px; border-bottom: 1px solid var(--line); background: var(--surface-2); display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; }
+    .panel .phead h3 { margin: 0; font-size: 14px; font-weight: 600; }
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .filters .box { position: relative; }
+    .filters .box .material-symbols-outlined { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--outline, #707880); font-size: 18px; }
+    .filters input, .filters select { padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--txt); font: inherit; }
+    .filters .box input { padding-left: 32px; width: 220px; }
+    .filters input:focus, .filters select:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
+
+    table { width: 100%; border-collapse: collapse; }
+    thead th { text-align: left; padding: 10px 16px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: var(--surface-2); border-bottom: 1px solid var(--line); }
+    tbody td { padding: 10px 16px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+    tbody tr:hover { background: var(--surface-2); }
+    td .nm { font-weight: 600; }
+    td .sub { font-size: 12px; color: var(--muted); }
+    td.when { white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .ev { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+    .dot { width: 8px; height: 8px; border-radius: 99px; background: var(--pri); flex: 0 0 auto; }
+    .dot.ok { background: var(--acc); } .dot.warn { background: var(--warn, #c77a0a); } .dot.err { background: var(--err); }
+    .tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+    .det { color: var(--muted); font-size: 13px; max-width: 420px; white-space: normal; }
+    .iconbtn { background: none; border: 0; cursor: pointer; color: var(--pri); padding: 6px; border-radius: 6px; }
+    .iconbtn:hover { background: var(--surface-2); }
+    .empty { padding: 28px 20px; text-align: center; color: var(--muted); }
+    .pfoot { padding: 12px 20px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+    .pfoot .cnt { font-size: 12px; color: var(--muted); }
+
+    .drawer { position: fixed; inset: 0; z-index: 60; }
+    .drawer .backdrop { position: absolute; inset: 0; background: rgba(18,35,59,.45); }
+    .drawer .box { position: absolute; right: 0; top: 0; bottom: 0; width: 100%; max-width: 460px; background: var(--card); box-shadow: var(--sombra); display: flex; flex-direction: column; animation: slideIn .25s ease-out; }
+    @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    .drawer .dhead { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+    .drawer .dhead h3 { margin: 0; font-size: 18px; }
+    .drawer .x { background: none; border: 0; cursor: pointer; color: var(--muted); padding: 4px; border-radius: 6px; }
+    .drawer .dbody { padding: 16px 20px; overflow-y: auto; flex: 1; }
+    .drawer .kv { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+    .drawer .kv .k { color: var(--muted); font-size: 13px; }
+    .drawer .kv .v { font-weight: 600; text-align: right; word-break: break-word; }
+    .drawer pre { background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 12px; font-size: 12px; overflow: auto; max-height: 260px; margin-top: 12px; }
+    .drawer .dfoot { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--line); background: var(--surface-2); }
+
+    .login { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; z-index: 70; }
+    .login .lbox { background: var(--card); border: 1px solid var(--line); border-radius: var(--raio); box-shadow: var(--sombra); padding: 28px; width: 340px; }
+    .login .lbox .marca { margin-bottom: 18px; }
+    .login label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+    .login input { width: 100%; padding: 11px 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; color: var(--txt); font: inherit; }
+    .login input:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
+    .login .msg { font-size: 12px; color: var(--err); min-height: 16px; margin-top: 8px; }
+
+    @media (max-width: 720px) { .side { display: none; } .content { padding: 20px 16px; } .pagehead h1 { font-size: 24px; } .det { max-width: 220px; } }
+  </style>
+</head>
+<body>
+  <!-- Login gate -->
+  <div class="login" id="login">
+    <div class="lbox">
+      <div class="marca">
+        <div class="logo"><svg width="22" height="22" viewBox="0 0 32 32"><path d="M13.5 7h5v6.5H25v5h-6.5V25h-5v-6.5H7v-5h6.5z" fill="#fff"/></svg></div>
+        <div><div class="nome">S&amp;A <b>Imunizações</b></div><div class="tag">Console interno</div></div>
+      </div>
+      <label>E-mail</label>
+      <input id="email" autocomplete="username" />
+      <label>Senha</label>
+      <input id="senha" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')entrar()" />
+      <div class="msg" id="loginMsg"></div>
+      <button class="btn primary" style="width:100%;justify-content:center;margin-top:12px" onclick="entrar()">Entrar</button>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="side">
+    <div class="brand">
+      <div class="logo"><svg width="24" height="24" viewBox="0 0 32 32"><path d="M13.5 7h5v6.5H25v5h-6.5V25h-5v-6.5H7v-5h6.5z" fill="#fff"/></svg></div>
+      <div><div class="nome">Gestão de Vacinas</div><div class="tag">Administrador Central</div></div>
+    </div>
+    <nav>
+      <a class="navlink" href="/admin/"><span class="material-symbols-outlined">dashboard</span> Dashboard</a>
+      <a class="navlink" href="/admin/campanhas.html"><span class="material-symbols-outlined">campaign</span> Campanhas</a>
+      <a class="navlink" href="/admin/vacinas.html"><span class="material-symbols-outlined">vaccines</span> Vacinas</a>
+      <a class="navlink" href="/admin/elegiveis.html"><span class="material-symbols-outlined">group</span> Pacientes</a>
+      <a class="navlink" href="/admin/vacinados.html"><span class="material-symbols-outlined">verified</span> Vacinados</a>
+      <button class="navlink active"><span class="material-symbols-outlined">history</span> Auditoria</button>
+    </nav>
+    <div class="foot">
+      <a class="navlink" href="/admin/console.html"><span class="material-symbols-outlined">terminal</span> Console interno</a>
+      <a class="navlink" href="/portal/"><span class="material-symbols-outlined">settings</span> Portal do cliente</a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="content">
+      <div class="pagehead">
+        <div>
+          <h1>Auditoria</h1>
+          <p>O que aconteceu, quem fez e quando — restrito ao seu escopo (somente leitura).</p>
+        </div>
+        <div class="actions">
+          <span class="who">Olá, <b id="quem">—</b></span>
+          <button class="btn sec" onclick="carregar()"><span class="material-symbols-outlined">refresh</span> Atualizar</button>
+          <button class="btn sec" onclick="exportarCsv()"><span class="material-symbols-outlined">download</span> Exportar</button>
+          <button class="btn sec" onclick="sair()"><span class="material-symbols-outlined">logout</span> Sair</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="phead">
+          <h3>Trilha de eventos</h3>
+          <div class="filters">
+            <div class="box"><span class="material-symbols-outlined">search</span>
+              <input id="busca" placeholder="Filtrar (ator, detalhe...)" oninput="renderTabela()" />
+            </div>
+            <select id="fEvento" onchange="carregar()">
+              <option value="">Todos os eventos</option>
+              <option value="login.sucesso">Login</option>
+              <option value="elegiveis.importados">Elegíveis importados</option>
+              <option value="importacao.concluida">Importação concluída</option>
+              <option value="elegiveis.removidos">Elegíveis removidos</option>
+              <option value="elegivel.situacao_definida">Situação de elegível</option>
+              <option value="elegivel.editado">Elegível editado</option>
+              <option value="aplicacao.registrada">Aplicação registrada</option>
+              <option value="aplicacoes.lote_registradas">Aplicações em lote</option>
+              <option value="aplicacao.estornada">Aplicação estornada</option>
+              <option value="aplicacao.retificada">Aplicação retificada</option>
+              <option value="campanha.criada">Campanha criada</option>
+              <option value="campanha.editada">Campanha editada</option>
+              <option value="campanha.encerrada">Campanha encerrada</option>
+              <option value="vacina.criada">Vacina criada</option>
+              <option value="vacina.editada">Vacina editada</option>
+              <option value="cliente.criado">Cliente criado</option>
+              <option value="usuario.criado">Usuário criado</option>
+              <option value="usuario.permissao_cpf">Permissão CPF (global)</option>
+              <option value="usuario.permissao_cpf_cliente">Permissão CPF (cliente)</option>
+              <option value="vacinados.exportados">Vacinados exportados</option>
+              <option value="tabela_verdade.exportada">Tabela verdade exportada</option>
+              <option value="credencial.emitida">Token emitido</option>
+              <option value="credencial.revogada">Token revogado</option>
+              <option value="webhook.criado">Webhook criado</option>
+            </select>
+            <select id="fLimite" onchange="carregar()">
+              <option value="80">Últimos 80</option>
+              <option value="150">Últimos 150</option>
+              <option value="200">Últimos 200</option>
+            </select>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr><th>Quando</th><th>O que aconteceu</th><th>Quem fez</th><th>Origem</th><th>Detalhes</th><th style="text-align:right"></th></tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+          <div class="empty hide" id="vazio">Nenhum evento no seu escopo.</div>
+        </div>
+        <div class="pfoot"><span class="cnt" id="contagem">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drawer detalhes -->
+  <div class="drawer hide" id="drawer">
+    <div class="backdrop" onclick="fecharDrawer()"></div>
+    <div class="box">
+      <div class="dhead"><h3 id="dTitulo">Evento</h3><button class="x" onclick="fecharDrawer()"><span class="material-symbols-outlined">close</span></button></div>
+      <div class="dbody" id="dBody"></div>
+      <div class="dfoot"><button class="btn sec" onclick="fecharDrawer()">Fechar</button></div>
+    </div>
+  </div>
+
+  <script>
+  // ---------------------------------------------------------------------------
+  // Auditoria (admin) — trilha de eventos do escopo (sessão + CSRF). Somente
+  // leitura, via GET /interno/portal/auditoria (mesmo endpoint do portal).
+  // ---------------------------------------------------------------------------
+  let CSRF = null, ITENS = [];
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  async function api(path, metodo = 'GET', corpo = null) {
+    const opts = { method: metodo, headers: {}, credentials: 'same-origin' };
+    if (corpo) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(corpo); }
+    if (metodo !== 'GET' && CSRF) opts.headers['X-CSRF-Token'] = CSRF;
+    const r = await fetch('/api/v1' + path, opts);
+    let d; try { d = await r.json(); } catch (e) { d = { success: false }; }
+    return { http: r.status, ...d };
+  }
+
+  const AUD_LABEL = {
+    'login.sucesso': 'Login', 'logout': 'Logout',
+    'elegiveis.importados': 'Elegíveis importados', 'importacao.concluida': 'Importação concluída',
+    'elegiveis.removidos': 'Elegíveis removidos', 'elegivel.situacao_definida': 'Situação de elegível definida',
+    'elegivel.editado': 'Elegível editado', 'aplicacao.registrada': 'Aplicação registrada',
+    'aplicacoes.lote_registradas': 'Aplicações registradas (lote)', 'aplicacao.estornada': 'Aplicação estornada (desvacinado)',
+    'aplicacao.retificada': 'Aplicação retificada', 'campanha.criada': 'Campanha criada',
+    'campanha.editada': 'Campanha editada', 'campanha.encerrada': 'Campanha encerrada',
+    'vacina.criada': 'Vacina criada', 'vacina.editada': 'Vacina editada', 'cliente.criado': 'Cliente criado',
+    'usuario.criado': 'Usuário criado', 'usuario.permissao_cpf': 'Permissão CPF (global)',
+    'usuario.permissao_cpf_cliente': 'Permissão CPF (por cliente)', 'vacinados.exportados': 'Vacinados exportados',
+    'tabela_verdade.exportada': 'Tabela verdade exportada', 'credencial.emitida': 'Token emitido',
+    'credencial.revogada': 'Token revogado', 'webhook.criado': 'Webhook criado', 'webhook.desativado': 'Webhook desativado',
+    'portal.consentimento': 'Consentimento LGPD', 'vacinados.importados_historico': 'Vacinados históricos importados',
+  };
+  const DOT = { 'aplicacao.estornada': 'warn', 'campanha.encerrada': 'warn', 'credencial.revogada': 'err',
+    'elegiveis.removidos': 'warn', 'aplicacao.registrada': 'ok', 'aplicacoes.lote_registradas': 'ok',
+    'campanha.criada': 'ok', 'vacina.criada': 'ok', 'cliente.criado': 'ok' };
+
+  const evLabel = e => AUD_LABEL[e] || e;
+  function fmtData(s) {
+    if (!s) return '—';
+    const t = String(s).replace('T', ' ');
+    const d = t.substring(8, 10) + '/' + t.substring(5, 7) + '/' + t.substring(0, 4);
+    return d + ' ' + t.substring(11, 16);
+  }
+  function ator(a) {
+    if (a.ator_tipo === 'usuario') return a.ator_nome ? a.ator_nome : ('usuário #' + (a.ator_id || '?'));
+    if (a.ator_tipo === 'credencial_api') return 'integração/API (token #' + (a.ator_id || '?') + ')';
+    return a.ator_tipo || '—';
+  }
+  function metaObj(a) {
+    if (!a.metadata) return {};
+    try { return typeof a.metadata === 'string' ? JSON.parse(a.metadata) : a.metadata; } catch (e) { return {}; }
+  }
+  function detalhe(a) {
+    const partes = [];
+    if (a.entidade_tipo) partes.push(a.entidade_tipo + (a.entidade_id ? (' #' + a.entidade_id) : ''));
+    const m = metaObj(a);
+    Object.keys(m).slice(0, 5).forEach(k => { const v = m[k]; if (v !== null && typeof v !== 'object') partes.push(k + ': ' + v); });
+    return partes.join(' · ') || '—';
+  }
+
+  async function entrar() {
+    document.getElementById('loginMsg').textContent = '...';
+    const d = await api('/interno/auth/login', 'POST', { email: document.getElementById('email').value, senha: document.getElementById('senha').value });
+    if (!d.success) { document.getElementById('loginMsg').textContent = 'E-mail ou senha inválidos.'; return; }
+    CSRF = d.data.csrf_token;
+    document.getElementById('loginMsg').textContent = ''; document.getElementById('senha').value = '';
+    await carregar();
+  }
+  async function sair() { await api('/interno/auth/logout', 'POST', {}); CSRF = null; document.getElementById('login').classList.remove('hide'); }
+
+  async function carregar() {
+    const ev = document.getElementById('fEvento').value;
+    const lim = document.getElementById('fLimite').value || '80';
+    const p = new URLSearchParams({ limit: lim });
+    if (ev) p.set('evento', ev);
+    const d = await api('/interno/portal/auditoria?' + p.toString());
+    if (d.http === 401) { document.getElementById('login').classList.remove('hide'); return; }
+    document.getElementById('login').classList.add('hide');
+    if (!d.success) return;
+    ITENS = d.data.itens || [];
+    renderTabela();
+    const eu = await api('/interno/auth/eu');
+    if (eu.success) { document.getElementById('quem').textContent = eu.data.usuario.nome || '—'; if (!CSRF && eu.data.csrf_token) CSRF = eu.data.csrf_token; }
+  }
+
+  function filtrados() {
+    const q = (document.getElementById('busca').value || '').trim().toLowerCase();
+    if (!q) return ITENS;
+    return ITENS.filter(a =>
+      evLabel(a.evento).toLowerCase().includes(q)
+      || ator(a).toLowerCase().includes(q)
+      || detalhe(a).toLowerCase().includes(q)
+      || (a.origem || '').toLowerCase().includes(q));
+  }
+
+  function renderTabela() {
+    const lista = filtrados();
+    document.getElementById('vazio').classList.toggle('hide', lista.length > 0);
+    document.getElementById('contagem').textContent = lista.length + ' de ' + ITENS.length + ' evento(s)';
+    document.getElementById('tbody').innerHTML = lista.map(a => {
+      const dot = DOT[a.evento] || '';
+      return '<tr>'
+        + '<td class="when">' + esc(fmtData(a.data_hora)) + '</td>'
+        + '<td><span class="ev"><span class="dot ' + dot + '"></span>' + esc(evLabel(a.evento)) + '</span></td>'
+        + '<td>' + esc(ator(a)) + '</td>'
+        + '<td><span class="tag">' + esc(a.origem || '—') + '</span></td>'
+        + '<td class="det">' + esc(detalhe(a)) + '</td>'
+        + '<td style="text-align:right"><button class="iconbtn" title="Detalhes" onclick="verDetalhe(' + a.id + ')"><span class="material-symbols-outlined" style="font-size:20px">visibility</span></button></td>'
+        + '</tr>';
+    }).join('');
+  }
+
+  function verDetalhe(id) {
+    const a = ITENS.find(x => Number(x.id) === Number(id)); if (!a) return;
+    document.getElementById('dTitulo').textContent = evLabel(a.evento);
+    const kv = (k, v) => '<div class="kv"><span class="k">' + k + '</span><span class="v">' + esc(v || '—') + '</span></div>';
+    const m = metaObj(a);
+    document.getElementById('dBody').innerHTML =
+        kv('Evento', a.evento)
+      + kv('Quando', fmtData(a.data_hora))
+      + kv('Quem fez', ator(a))
+      + kv('Origem', a.origem)
+      + kv('Entidade', a.entidade_tipo ? (a.entidade_tipo + (a.entidade_id ? (' #' + a.entidade_id) : '')) : '')
+      + kv('Cliente (tenant)', a.tenant_id)
+      + (Object.keys(m).length ? ('<pre>' + esc(JSON.stringify(m, null, 2)) + '</pre>') : '');
+    document.getElementById('drawer').classList.remove('hide');
+  }
+  function fecharDrawer() { document.getElementById('drawer').classList.add('hide'); }
+
+  function exportarCsv() {
+    const lista = filtrados();
+    if (!lista.length) { alert('Nada para exportar.'); return; }
+    const cab = ['quando', 'evento', 'quem_fez', 'origem', 'entidade', 'detalhes'];
+    const linhas = lista.map(a => [
+      fmtData(a.data_hora), evLabel(a.evento), ator(a), a.origem || '',
+      a.entidade_tipo ? (a.entidade_tipo + (a.entidade_id ? (' #' + a.entidade_id) : '')) : '', detalhe(a),
+    ]);
+    const csv = '﻿' + [cab, ...linhas].map(r => r.map(v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"').join(';')).join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const el = document.createElement('a');
+    el.href = URL.createObjectURL(blob); el.download = 'auditoria.csv';
+    document.body.appendChild(el); el.click(); el.remove();
+    setTimeout(() => URL.revokeObjectURL(el.href), 1000);
+  }
+
+  carregar();
+  </script>
+</body>
+</html>
