@@ -565,7 +565,15 @@
     const marc = document.querySelectorAll('#tbody .rowchk:checked').length;
     if (all) { all.checked = total > 0 && marc === total; all.indeterminate = marc > 0 && marc < total; }
   }
-  function exportar() { const c = campSelObj(); if (!c) return; window.open('/api/v1/interno/campanhas/' + c.id + '/exportar', '_blank'); }
+  function exportar() {
+    const c = campSelObj(); if (!c) return;
+    const p = new URLSearchParams();
+    const q = document.getElementById('busca').value.trim(); if (q) p.set('q', q);
+    const t = document.getElementById('fTipo').value; if (t) p.set('tipo', t);
+    const s = document.getElementById('fStatus').value; if (s) p.set('status', s);
+    const qs = p.toString();
+    window.open('/api/v1/interno/campanhas/' + c.id + '/vacinados/exportar' + (qs ? ('?' + qs) : ''), '_blank');
+  }
 
   iniciar();
   </script>

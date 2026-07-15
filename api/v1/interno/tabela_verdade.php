@@ -116,6 +116,84 @@ function rota_listar_vacinados(array $params): void
     ]);
 }
 
+/**
+ * GET /api/v1/interno/campanhas/{id}/vacinados/exportar
+ * CSV completo dos vacinados (lastro RN-019): paciente, vacina, lote, data,
+ * clínica, profissional (nome/CPF), cidade/UF e unidade. Respeita os filtros
+ * ?status/?tipo/?q. Acesso auditado (dado sensível de saúde).
+ */
+function rota_exportar_vacinados(array $params): void
+{
+    $usuario = exigir_login();
+    $id = id_campanha_rota($params['id'] ?? null);
+    $campanha = exigir_campanha_do_usuario($usuario, $id);
+    [$fUni, $bUni] = filtro_unidade_sql($usuario, (int) $campanha['tenant_id'], 'e');
+
+    $where = 'e.campanha_id = :id' . $fUni;
+    $bind  = array_merge([':id' => $id], $bUni);
+    if (!empty($_GET['status'])) { $where .= ' AND e.status = :st'; $bind[':st'] = (string) $_GET['status']; }
+    if (!empty($_GET['tipo']))   { $where .= ' AND e.tipo_vinculo = :tp'; $bind[':tp'] = (string) $_GET['tipo']; }
+    if (isset($_GET['q']) && trim((string) $_GET['q']) !== '') {
+        $q = trim((string) $_GET['q']);
+        $partes = ['COALESCE(e.nome, p.nome) LIKE :q', 'e.codigo_rh LIKE :q'];
+        $bind[':q'] = '%' . $q . '%';
+        $qd = so_digitos($q);
+        if ($qd !== '') { $partes[] = 'p.cpf LIKE :qd'; $bind[':qd'] = '%' . $qd . '%'; }
+        $where .= ' AND (' . implode(' OR ', $partes) . ')';
+    }
+
+    $linhas = db_todos(
+        "SELECT p.cpf, COALESCE(e.nome, p.nome) AS nome, e.tipo_vinculo, e.status,
+                e.codigo_lotacao, e.codigo_rh,
+                vv.nome AS vacina, a.dose, a.lote, a.aplicado_em,
+                cl.nome AS clinica, a.executor_tipo, a.profissional_nome, a.profissional_cpf,
+                a.cidade, a.uf, a.unidade
+           FROM elegivel e
+           JOIN paciente p ON p.id = e.paciente_id
+      LEFT JOIN aplicacao a ON a.elegivel_id = e.id AND a.status = 'confirmada'
+                AND a.id = (SELECT MAX(a2.id) FROM aplicacao a2 WHERE a2.elegivel_id = e.id AND a2.status = 'confirmada')
+      LEFT JOIN vacina vv ON vv.id = a.vacina_id
+      LEFT JOIN clinica_credenciada cl ON cl.id = a.clinica_id
+          WHERE $where
+          ORDER BY p.nome",
+        $bind
+    );
+
+    registrar_auditoria('vacinados.exportados', [
+        'tenant_id'     => (int) $campanha['tenant_id'],
+        'ator_tipo'     => 'usuario',
+        'ator_id'       => (int) $usuario['id'],
+        'origem'        => 'admin',
+        'entidade_tipo' => 'campanha',
+        'entidade_id'   => $id,
+        'metadata'      => ['linhas' => count($linhas), 'filtro_status' => $_GET['status'] ?? ''],
+    ]);
+
+    if (!headers_sent()) {
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="vacinados-campanha-' . $id . '.csv"');
+        header('X-Request-Id: ' . request_id());
+    }
+    echo "\xEF\xBB\xBF"; // BOM (Excel)
+    $out = fopen('php://output', 'w');
+    fputcsv($out, [
+        'cpf', 'nome', 'tipo_vinculo', 'situacao', 'codigo_lotacao', 'codigo_rh',
+        'vacina', 'dose', 'lote', 'aplicado_em',
+        'clinica', 'executor', 'profissional_nome', 'profissional_cpf', 'cidade', 'uf', 'unidade',
+    ], ';');
+    foreach ($linhas as $l) {
+        fputcsv($out, [
+            $l['cpf'], $l['nome'], $l['tipo_vinculo'] ?? '', $l['status'],
+            $l['codigo_lotacao'] ?? '', $l['codigo_rh'] ?? '',
+            $l['vacina'] ?? '', $l['dose'] ?? '', $l['lote'] ?? '', $l['aplicado_em'] ?? '',
+            $l['clinica'] ?? '', $l['executor_tipo'] ?? '', $l['profissional_nome'] ?? '',
+            $l['profissional_cpf'] ?? '', $l['cidade'] ?? '', $l['uf'] ?? '', $l['unidade'] ?? '',
+        ], ';');
+    }
+    fclose($out);
+    exit;
+}
+
 /** GET /api/v1/interno/campanhas/{id}/dashboard — métricas consolidadas. */
 function rota_dashboard(array $params): void
 {

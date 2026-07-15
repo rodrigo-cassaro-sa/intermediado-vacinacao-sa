@@ -118,7 +118,8 @@ return [
 
     // --- Tabela verdade e dashboard (bloco 3) ---
     'GET  /api/v1/interno/campanhas/{id}/tabela-verdade' => ['arquivo' => 'interno/tabela_verdade.php', 'funcao' => 'rota_tabela_verdade'],
-    'GET  /api/v1/interno/campanhas/{id}/vacinados'      => ['arquivo' => 'interno/tabela_verdade.php', 'funcao' => 'rota_listar_vacinados'],
+    'GET  /api/v1/interno/campanhas/{id}/vacinados'          => ['arquivo' => 'interno/tabela_verdade.php', 'funcao' => 'rota_listar_vacinados'],
+    'GET  /api/v1/interno/campanhas/{id}/vacinados/exportar' => ['arquivo' => 'interno/tabela_verdade.php', 'funcao' => 'rota_exportar_vacinados'],
     'GET  /api/v1/interno/campanhas/{id}/dashboard'      => ['arquivo' => 'interno/tabela_verdade.php', 'funcao' => 'rota_dashboard'],
     'GET  /api/v1/interno/campanhas/{id}/exportar'       => ['arquivo' => 'interno/tabela_verdade.php', 'funcao' => 'rota_exportar_tabela_verdade'],
 
