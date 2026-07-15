@@ -61,13 +61,47 @@ function usuario_pode_ver_cpf(array $usuario): bool
     return $cache[$id];
 }
 
-/** Devolve o CPF completo (só dígitos->formatado) ou mascarado, conforme a permissão do usuário. */
-function cpf_para_usuario(?string $cpf, array $usuario): string
+/**
+ * Permissão de ver CPF NO CONTEXTO de um cliente (granular). Verdadeiro se:
+ *  - o usuário tem a flag global (pode_ver_cpf = 1, blanket p/ interno); OU
+ *  - há concessão em permissao_ver_cpf p/ (usuario, cliente) — migration 029.
+ * Tolerante à ausência da tabela/coluna (padrão seguro = mascarado).
+ */
+function usuario_pode_ver_cpf_do_cliente(array $usuario, int $clienteId): bool
+{
+    if (usuario_pode_ver_cpf($usuario)) {
+        return true;
+    }
+    static $cache = [];
+    $id = (int) ($usuario['id'] ?? 0);
+    if ($id <= 0 || $clienteId <= 0) {
+        return false;
+    }
+    $k = $id . '|' . $clienteId;
+    if (!array_key_exists($k, $cache)) {
+        try {
+            $r = db_primeiro(
+                "SELECT 1 FROM permissao_ver_cpf WHERE usuario_id = :u AND cliente_b2b_id = :c LIMIT 1",
+                [':u' => $id, ':c' => $clienteId]
+            );
+            $cache[$k] = $r !== null;
+        } catch (Throwable $e) {
+            $cache[$k] = false;
+        }
+    }
+    return $cache[$k];
+}
+
+/**
+ * Devolve o CPF completo (formatado) ou mascarado, conforme a permissão do
+ * usuário PARA AQUELE CLIENTE. $clienteId = 0 cai só na flag global.
+ */
+function cpf_para_usuario(?string $cpf, array $usuario, int $clienteId = 0): string
 {
     if ($cpf === null || $cpf === '') {
         return '';
     }
-    return usuario_pode_ver_cpf($usuario) ? formatar_cpf($cpf) : mascarar_cpf($cpf);
+    return usuario_pode_ver_cpf_do_cliente($usuario, $clienteId) ? formatar_cpf($cpf) : mascarar_cpf($cpf);
 }
 
 /** Grupo empresarial de um cliente (cache). */

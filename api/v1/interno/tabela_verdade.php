@@ -34,8 +34,9 @@ function rota_tabela_verdade(array $params): void
           LIMIT $porPagina",
         $bind
     );
+    $cli = (int) $campanha['tenant_id'];
     foreach ($itens as &$it) {
-        $it['cpf'] = cpf_para_usuario($it['cpf'], $usuario);
+        $it['cpf'] = cpf_para_usuario($it['cpf'], $usuario, $cli);
     }
     unset($it);
 
@@ -102,10 +103,11 @@ function rota_listar_vacinados(array $params): void
           LIMIT $porPagina",
         $bind
     );
+    $cli = (int) $campanha['tenant_id'];
     foreach ($itens as &$it) {
-        $it['cpf'] = cpf_para_usuario($it['cpf'], $usuario);
+        $it['cpf'] = cpf_para_usuario($it['cpf'], $usuario, $cli);
         if (!empty($it['profissional_cpf'])) {
-            $it['profissional_cpf'] = cpf_para_usuario($it['profissional_cpf'], $usuario);
+            $it['profissional_cpf'] = cpf_para_usuario($it['profissional_cpf'], $usuario, $cli);
         }
     }
     unset($it);
@@ -181,13 +183,14 @@ function rota_exportar_vacinados(array $params): void
         'vacina', 'dose', 'lote', 'aplicado_em',
         'clinica', 'executor', 'profissional_nome', 'profissional_cpf', 'cidade', 'uf', 'unidade',
     ], ';');
+    $cli = (int) $campanha['tenant_id'];
     foreach ($linhas as $l) {
         fputcsv($out, [
-            cpf_para_usuario($l['cpf'], $usuario), $l['nome'], $l['tipo_vinculo'] ?? '', $l['status'],
+            cpf_para_usuario($l['cpf'], $usuario, $cli), $l['nome'], $l['tipo_vinculo'] ?? '', $l['status'],
             $l['codigo_lotacao'] ?? '', $l['codigo_rh'] ?? '',
             $l['vacina'] ?? '', $l['dose'] ?? '', $l['lote'] ?? '', $l['aplicado_em'] ?? '',
             $l['clinica'] ?? '', $l['executor_tipo'] ?? '', $l['profissional_nome'] ?? '',
-            cpf_para_usuario($l['profissional_cpf'] ?? '', $usuario), $l['cidade'] ?? '', $l['uf'] ?? '', $l['unidade'] ?? '',
+            cpf_para_usuario($l['profissional_cpf'] ?? '', $usuario, $cli), $l['cidade'] ?? '', $l['uf'] ?? '', $l['unidade'] ?? '',
         ], ';');
     }
     fclose($out);
@@ -274,9 +277,10 @@ function rota_exportar_tabela_verdade(array $params): void
     echo "\xEF\xBB\xBF"; // BOM
     $out = fopen('php://output', 'w');
     fputcsv($out, ['cpf', 'nome', 'situacao', 'total_aplicacoes', 'ultima_aplicacao', 'vacinas'], ';');
+    $cli = (int) $campanha['tenant_id'];
     foreach ($linhas as $l) {
         fputcsv($out, [
-            cpf_para_usuario($l['cpf'], $usuario), $l['nome'], $l['situacao'],
+            cpf_para_usuario($l['cpf'], $usuario, $cli), $l['nome'], $l['situacao'],
             $l['total_aplicacoes'], $l['ultima_aplicacao'] ?? '', $l['vacinas'] ?? '',
         ], ';');
     }

@@ -169,6 +169,18 @@
         <button class="sec" onclick="listarUsuarios()">Listar</button>
       </div>
       <table id="tblUsr"></table>
+
+      <h2 style="margin-top:22px">Permissão de ver CPF (por cliente)</h2>
+      <p class="pill">Conceda a um usuário o direito de ver o <b>CPF completo</b> dos dados de um cliente específico.
+        Sem concessão, o CPF aparece <b>mascarado</b> (LGPD). A coluna "Ver CPF" acima é a liberação <b>global</b> (só super_admin).</p>
+      <div class="row">
+        <select id="pcUsuario" onchange="carregarPermCpf()"></select>
+        <select id="pcCliente"></select>
+        <button onclick="concederCpf(1)">Conceder</button>
+        <button class="sec" onclick="concederCpf(0)">Revogar</button>
+      </div>
+      <p class="pill" id="pcMsg"></p>
+      <table id="tblPcCpf"></table>
     </div>
 
     <!-- VIEW INTEGRAÇÕES (avançado) -->
@@ -409,19 +421,53 @@ async function verVerdade(){
 function extrair(){ const id=campId(); if(!id)return alert('Selecione uma campanha.'); window.open(`/api/v1/interno/campanhas/${id}/exportar`,'_blank'); }
 
 // ---- Usuários ----
+let CLIENTES_CPF=null;
 async function listarUsuarios(){
   const d=await api('/interno/usuarios'); if(!d.success)return;
-  document.getElementById('tblUsr').innerHTML='<tr><th>ID</th><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Ver CPF</th><th>Status</th></tr>'+
-    (d.data.itens||[]).map(u=>{
+  const usrs=d.data.itens||[];
+  document.getElementById('tblUsr').innerHTML='<tr><th>ID</th><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Ver CPF (global)</th><th>Status</th></tr>'+
+    usrs.map(u=>{
       const pode=Number(u.pode_ver_cpf);
       const btn=`<button class="ghost" onclick="toggleCpf(${u.id},${pode?0:1})" title="Só super_admin altera">${pode?'✓ completo':'mascarado'}</button>`;
       return `<tr><td>${u.id}</td><td>${u.nome}</td><td>${u.email}</td><td>${u.perfil}</td><td>${btn}</td><td>${u.status}</td></tr>`;
     }).join('');
+  // Seletor de usuário (permissão por cliente) + clientes.
+  document.getElementById('pcUsuario').innerHTML=usrs.map(u=>`<option value="${u.id}">${u.nome} (${u.email})</option>`).join('');
+  await carregarClientesCpf();
+  carregarPermCpf();
 }
 async function toggleCpf(id,novo){
   const d=await api(`/interno/usuarios/${id}/permissao-cpf`,'POST',{pode_ver_cpf:novo});
   if(!d.success){ alert('Erro: '+((d.errors&&d.errors[0]&&d.errors[0].message)||d.message||'falhou')); return; }
   listarUsuarios();
+}
+async function carregarClientesCpf(){
+  if(CLIENTES_CPF) return;
+  const d=await api('/interno/clientes'); if(!d.success)return;
+  CLIENTES_CPF=d.data.itens||[];
+  document.getElementById('pcCliente').innerHTML=CLIENTES_CPF.length
+    ? CLIENTES_CPF.map(c=>`<option value="${c.id}">${c.razao_social}</option>`).join('')
+    : '<option value="">(sem clientes)</option>';
+}
+async function carregarPermCpf(){
+  const uid=document.getElementById('pcUsuario').value;
+  if(!uid){ document.getElementById('tblPcCpf').innerHTML=''; return; }
+  const d=await api(`/interno/usuarios/${uid}/permissoes-cpf`); if(!d.success)return;
+  const itens=d.data.itens||[];
+  document.getElementById('tblPcCpf').innerHTML=itens.length
+    ? '<tr><th>Clientes com CPF liberado</th><th></th></tr>'+itens.map(i=>`<tr><td>${i.cliente}</td><td><button class="ghost" onclick="concederCpfId(${uid},${i.cliente_b2b_id},0)">revogar</button></td></tr>`).join('')
+    : '<tr><td class="pill">Nenhum cliente liberado — CPF mascarado para este usuário.</td></tr>';
+}
+async function concederCpf(conceder){
+  const uid=document.getElementById('pcUsuario').value, cid=document.getElementById('pcCliente').value;
+  if(!uid||!cid){ document.getElementById('pcMsg').textContent='Selecione usuário e cliente.'; return; }
+  concederCpfId(uid, Number(cid), conceder);
+}
+async function concederCpfId(uid,cid,conceder){
+  const d=await api(`/interno/usuarios/${uid}/permissao-cpf-cliente`,'POST',{cliente_b2b_id:cid,conceder});
+  if(!d.success){ document.getElementById('pcMsg').textContent='Erro: '+((d.errors&&d.errors[0]&&d.errors[0].message)||d.message||'falhou'); return; }
+  document.getElementById('pcMsg').textContent=conceder?'CPF liberado para o cliente.':'Acesso revogado.';
+  carregarPermCpf();
 }
 async function criarUsuario(){
   const body={nome:document.getElementById('uNome').value,email:document.getElementById('uEmail').value,senha:document.getElementById('uSenha').value,nivel:document.getElementById('uNivel').value,escopo_id:Number(document.getElementById('uEscopo').value||0)};

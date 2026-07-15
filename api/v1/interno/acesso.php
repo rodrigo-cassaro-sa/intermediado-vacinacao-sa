@@ -269,6 +269,70 @@ function rota_definir_permissao_cpf(array $params): void
     responder_sucesso(['usuario_id' => $id, 'pode_ver_cpf' => $pode], 'Permissão de CPF atualizada.');
 }
 
+/**
+ * POST /api/v1/interno/usuarios/{id}/permissao-cpf-cliente
+ * Body { cliente_b2b_id, conceder: 0|1 } — concede/retira ao usuário o direito de
+ * ver CPF completo DAQUELE cliente. Pode: super_admin/interno OU gestor do cliente.
+ */
+function rota_definir_permissao_cpf_cliente(array $params): void
+{
+    $ator = exigir_login();
+    exigir_csrf();
+
+    $usuarioId = (int) ($params['id'] ?? 0);
+    $dados = corpo_json();
+    $clienteId = (int) ($dados['cliente_b2b_id'] ?? 0);
+    $conceder = !empty($dados['conceder']) ? 1 : 0;
+    if ($usuarioId <= 0 || $clienteId <= 0) {
+        responder_erro('Informe usuário e cliente.', 400, [
+            ['field' => null, 'code' => 'CAMPOS_OBRIGATORIOS', 'message' => 'usuário e cliente_b2b_id são obrigatórios.'],
+        ]);
+    }
+    if (!usuario_eh_interno($ator) && !usuario_pode_cliente($ator, $clienteId, true)) {
+        responder_erro('Sem permissão para gerir o CPF deste cliente.', 403, [
+            ['field' => null, 'code' => 'SEM_PERMISSAO', 'message' => 'Você não gere este cliente.'],
+        ]);
+    }
+    if (db_primeiro("SELECT id FROM usuario WHERE id = :id AND excluido_em IS NULL LIMIT 1", [':id' => $usuarioId]) === null) {
+        responder_erro('Usuário não encontrado.', 404, [['field' => null, 'code' => 'USUARIO_NAO_ENCONTRADO', 'message' => 'Usuário inexistente.']]);
+    }
+    if (db_primeiro("SELECT id FROM cliente_b2b WHERE id = :id AND excluido_em IS NULL LIMIT 1", [':id' => $clienteId]) === null) {
+        responder_erro('Cliente não encontrado.', 404, [['field' => null, 'code' => 'CLIENTE_NAO_ENCONTRADO', 'message' => 'Cliente inexistente.']]);
+    }
+
+    if ($conceder) {
+        db_executar(
+            "INSERT IGNORE INTO permissao_ver_cpf (usuario_id, cliente_b2b_id, criado_por) VALUES (:u, :c, :by)",
+            [':u' => $usuarioId, ':c' => $clienteId, ':by' => (int) $ator['id']]
+        );
+    } else {
+        db_executar("DELETE FROM permissao_ver_cpf WHERE usuario_id = :u AND cliente_b2b_id = :c", [':u' => $usuarioId, ':c' => $clienteId]);
+    }
+
+    registrar_auditoria('usuario.permissao_cpf_cliente', [
+        'tenant_id' => $clienteId, 'ator_tipo' => 'usuario', 'ator_id' => (int) $ator['id'], 'origem' => 'admin',
+        'entidade_tipo' => 'usuario', 'entidade_id' => $usuarioId, 'metadata' => ['cliente_b2b_id' => $clienteId, 'conceder' => $conceder],
+    ]);
+    responder_sucesso(['usuario_id' => $usuarioId, 'cliente_b2b_id' => $clienteId, 'conceder' => $conceder], 'Permissão de CPF por cliente atualizada.');
+}
+
+/** GET /api/v1/interno/usuarios/{id}/permissoes-cpf — clientes cujo CPF o usuário pode ver. */
+function rota_listar_permissoes_cpf(array $params): void
+{
+    $ator = exigir_login();
+    if (!usuario_eh_interno($ator) && !clientes_geridos_pelo_usuario($ator)) {
+        responder_erro('Sem permissão.', 403, [['field' => null, 'code' => 'SEM_PERMISSAO', 'message' => 'Apenas gestão.']]);
+    }
+    $usuarioId = (int) ($params['id'] ?? 0);
+    $itens = db_todos(
+        "SELECT p.cliente_b2b_id, c.razao_social AS cliente
+           FROM permissao_ver_cpf p JOIN cliente_b2b c ON c.id = p.cliente_b2b_id
+          WHERE p.usuario_id = :u ORDER BY c.razao_social",
+        [':u' => $usuarioId]
+    );
+    responder_sucesso(['itens' => $itens], 'OK.');
+}
+
 /** Resolve escopo_tipo/escopo_id a partir do nível e do corpo. */
 function _escopo_do_nivel(string $nivel, array $dados): array
 {

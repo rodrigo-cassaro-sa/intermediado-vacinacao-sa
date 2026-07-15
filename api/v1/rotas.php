@@ -36,6 +36,8 @@ return [
     'POST /api/v1/interno/usuarios'                 => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_criar_usuario_portal'],
     'POST /api/v1/interno/usuarios/{id}/atribuicoes' => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_adicionar_atribuicao'],
     'POST /api/v1/interno/usuarios/{id}/permissao-cpf' => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_definir_permissao_cpf'],
+    'POST /api/v1/interno/usuarios/{id}/permissao-cpf-cliente' => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_definir_permissao_cpf_cliente'],
+    'GET  /api/v1/interno/usuarios/{id}/permissoes-cpf' => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_listar_permissoes_cpf'],
     'GET  /api/v1/interno/usuarios/{id}/atribuicoes' => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_listar_atribuicoes'],
 
     // --- Clientes B2B (tenants) ---

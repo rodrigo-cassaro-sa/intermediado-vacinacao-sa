@@ -347,10 +347,11 @@ function rota_listar_elegiveis(array $params): void
           LIMIT $porPagina",
         $bind
     );
+    $cli = (int) $campanha['tenant_id'];
     foreach ($itens as &$it) {
-        $it['cpf'] = cpf_para_usuario($it['cpf'], $usuario);
+        $it['cpf'] = cpf_para_usuario($it['cpf'], $usuario, $cli);
         if (!empty($it['cpf_titular'])) {
-            $it['cpf_titular'] = cpf_para_usuario($it['cpf_titular'], $usuario);
+            $it['cpf_titular'] = cpf_para_usuario($it['cpf_titular'], $usuario, $cli);
         }
     }
     unset($it);
