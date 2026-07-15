@@ -97,13 +97,28 @@ function rota_auditoria_portal(array $params): void
         $where .= ' AND la.evento = :e';
         $bind[':e'] = (string) $_GET['evento'];
     }
+    // Filtro por cliente (respeita o escopo: fora do escopo simplesmente não casa).
+    if (!empty($_GET['cliente_b2b_id']) && is_numeric($_GET['cliente_b2b_id'])) {
+        $where .= ' AND la.tenant_id = :cli';
+        $bind[':cli'] = (int) $_GET['cliente_b2b_id'];
+    }
+    // Período (YYYY-MM-DD): de 00:00:00 até ate 23:59:59.
+    if (!empty($_GET['de']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $_GET['de'])) {
+        $where .= ' AND la.data_hora >= :de';
+        $bind[':de'] = $_GET['de'] . ' 00:00:00';
+    }
+    if (!empty($_GET['ate']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $_GET['ate'])) {
+        $where .= ' AND la.data_hora <= :ate';
+        $bind[':ate'] = $_GET['ate'] . ' 23:59:59';
+    }
 
     $itens = db_todos(
         "SELECT la.id, la.tenant_id, la.evento, la.origem, la.ator_tipo, la.ator_id,
                 la.entidade_tipo, la.entidade_id, la.metadata, la.data_hora,
-                u.nome AS ator_nome
+                u.nome AS ator_nome, cb.razao_social AS cliente
            FROM log_auditoria la
            LEFT JOIN usuario u ON u.id = la.ator_id AND la.ator_tipo = 'usuario'
+           LEFT JOIN cliente_b2b cb ON cb.id = la.tenant_id
           WHERE $where
           ORDER BY la.id DESC
           LIMIT $limit",

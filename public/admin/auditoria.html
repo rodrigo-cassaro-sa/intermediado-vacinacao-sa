@@ -181,6 +181,9 @@
               <option value="credencial.revogada">Token revogado</option>
               <option value="webhook.criado">Webhook criado</option>
             </select>
+            <select id="fCliente" onchange="carregar()"><option value="">Todos os clientes</option></select>
+            <input id="fDe" type="date" title="De" onchange="carregar()" />
+            <input id="fAte" type="date" title="Até" onchange="carregar()" />
             <select id="fLimite" onchange="carregar()">
               <option value="80">Últimos 80</option>
               <option value="150">Últimos 150</option>
@@ -191,7 +194,7 @@
         <div style="overflow-x:auto">
           <table>
             <thead>
-              <tr><th>Quando</th><th>O que aconteceu</th><th>Quem fez</th><th>Origem</th><th>Detalhes</th><th style="text-align:right"></th></tr>
+              <tr><th>Quando</th><th>O que aconteceu</th><th>Quem fez</th><th>Cliente</th><th>Origem</th><th>Detalhes</th><th style="text-align:right"></th></tr>
             </thead>
             <tbody id="tbody"></tbody>
           </table>
@@ -282,17 +285,31 @@
   }
   async function sair() { await api('/interno/auth/logout', 'POST', {}); CSRF = null; document.getElementById('login').classList.remove('hide'); }
 
+  let CLIENTES = null;
+  async function carregarClientes() {
+    if (CLIENTES) return;
+    const d = await api('/interno/clientes');
+    if (!d.success) return;
+    CLIENTES = d.data.itens || [];
+    const atual = document.getElementById('fCliente').value;
+    document.getElementById('fCliente').innerHTML = '<option value="">Todos os clientes</option>'
+      + CLIENTES.map(c => '<option value="' + c.id + '">' + esc(c.razao_social) + '</option>').join('');
+    document.getElementById('fCliente').value = atual;
+  }
+
   async function carregar() {
-    const ev = document.getElementById('fEvento').value;
-    const lim = document.getElementById('fLimite').value || '80';
-    const p = new URLSearchParams({ limit: lim });
-    if (ev) p.set('evento', ev);
+    const p = new URLSearchParams({ limit: document.getElementById('fLimite').value || '80' });
+    const ev = document.getElementById('fEvento').value; if (ev) p.set('evento', ev);
+    const cli = document.getElementById('fCliente').value; if (cli) p.set('cliente_b2b_id', cli);
+    const de = document.getElementById('fDe').value; if (de) p.set('de', de);
+    const ate = document.getElementById('fAte').value; if (ate) p.set('ate', ate);
     const d = await api('/interno/portal/auditoria?' + p.toString());
     if (d.http === 401) { document.getElementById('login').classList.remove('hide'); return; }
     document.getElementById('login').classList.add('hide');
     if (!d.success) return;
     ITENS = d.data.itens || [];
     renderTabela();
+    await carregarClientes();
     const eu = await api('/interno/auth/eu');
     if (eu.success) { document.getElementById('quem').textContent = eu.data.usuario.nome || '—'; if (!CSRF && eu.data.csrf_token) CSRF = eu.data.csrf_token; }
   }
@@ -304,6 +321,7 @@
       evLabel(a.evento).toLowerCase().includes(q)
       || ator(a).toLowerCase().includes(q)
       || detalhe(a).toLowerCase().includes(q)
+      || (a.cliente || '').toLowerCase().includes(q)
       || (a.origem || '').toLowerCase().includes(q));
   }
 
@@ -317,6 +335,7 @@
         + '<td class="when">' + esc(fmtData(a.data_hora)) + '</td>'
         + '<td><span class="ev"><span class="dot ' + dot + '"></span>' + esc(evLabel(a.evento)) + '</span></td>'
         + '<td>' + esc(ator(a)) + '</td>'
+        + '<td class="sub">' + esc(a.cliente || ('#' + (a.tenant_id || '—'))) + '</td>'
         + '<td><span class="tag">' + esc(a.origem || '—') + '</span></td>'
         + '<td class="det">' + esc(detalhe(a)) + '</td>'
         + '<td style="text-align:right"><button class="iconbtn" title="Detalhes" onclick="verDetalhe(' + a.id + ')"><span class="material-symbols-outlined" style="font-size:20px">visibility</span></button></td>'
@@ -335,7 +354,7 @@
       + kv('Quem fez', ator(a))
       + kv('Origem', a.origem)
       + kv('Entidade', a.entidade_tipo ? (a.entidade_tipo + (a.entidade_id ? (' #' + a.entidade_id) : '')) : '')
-      + kv('Cliente (tenant)', a.tenant_id)
+      + kv('Cliente', a.cliente || (a.tenant_id ? ('#' + a.tenant_id) : ''))
       + (Object.keys(m).length ? ('<pre>' + esc(JSON.stringify(m, null, 2)) + '</pre>') : '');
     document.getElementById('drawer').classList.remove('hide');
   }
@@ -344,9 +363,9 @@
   function exportarCsv() {
     const lista = filtrados();
     if (!lista.length) { alert('Nada para exportar.'); return; }
-    const cab = ['quando', 'evento', 'quem_fez', 'origem', 'entidade', 'detalhes'];
+    const cab = ['quando', 'evento', 'quem_fez', 'cliente', 'origem', 'entidade', 'detalhes'];
     const linhas = lista.map(a => [
-      fmtData(a.data_hora), evLabel(a.evento), ator(a), a.origem || '',
+      fmtData(a.data_hora), evLabel(a.evento), ator(a), a.cliente || (a.tenant_id ? ('#' + a.tenant_id) : ''), a.origem || '',
       a.entidade_tipo ? (a.entidade_tipo + (a.entidade_id ? (' #' + a.entidade_id) : '')) : '', detalhe(a),
     ]);
     const csv = '﻿' + [cab, ...linhas].map(r => r.map(v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"').join(';')).join('\r\n');
