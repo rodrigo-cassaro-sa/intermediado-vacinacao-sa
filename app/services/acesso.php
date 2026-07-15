@@ -38,6 +38,38 @@ function usuario_eh_interno(array $usuario): bool
     return false;
 }
 
+/**
+ * Permissão de ver CPF completo (LGPD). Lê a flag usuario.pode_ver_cpf (migration
+ * 028), com cache por requisição. Sem a flag => CPF mascarado.
+ */
+function usuario_pode_ver_cpf(array $usuario): bool
+{
+    static $cache = [];
+    $id = (int) ($usuario['id'] ?? 0);
+    if ($id <= 0) {
+        return false;
+    }
+    if (!array_key_exists($id, $cache)) {
+        try {
+            $r = db_primeiro("SELECT pode_ver_cpf FROM usuario WHERE id = :id LIMIT 1", [':id' => $id]);
+            $cache[$id] = $r !== null && (int) $r['pode_ver_cpf'] === 1;
+        } catch (Throwable $e) {
+            // Coluna ainda não migrada (028): padrão seguro = mascarado.
+            $cache[$id] = false;
+        }
+    }
+    return $cache[$id];
+}
+
+/** Devolve o CPF completo (só dígitos->formatado) ou mascarado, conforme a permissão do usuário. */
+function cpf_para_usuario(?string $cpf, array $usuario): string
+{
+    if ($cpf === null || $cpf === '') {
+        return '';
+    }
+    return usuario_pode_ver_cpf($usuario) ? formatar_cpf($cpf) : mascarar_cpf($cpf);
+}
+
 /** Grupo empresarial de um cliente (cache). */
 function grupo_do_cliente(int $clienteId): ?int
 {

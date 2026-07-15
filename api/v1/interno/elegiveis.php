@@ -348,9 +348,9 @@ function rota_listar_elegiveis(array $params): void
         $bind
     );
     foreach ($itens as &$it) {
-        $it['cpf'] = mascarar_cpf($it['cpf']);
+        $it['cpf'] = cpf_para_usuario($it['cpf'], $usuario);
         if (!empty($it['cpf_titular'])) {
-            $it['cpf_titular'] = mascarar_cpf($it['cpf_titular']);
+            $it['cpf_titular'] = cpf_para_usuario($it['cpf_titular'], $usuario);
         }
     }
     unset($it);

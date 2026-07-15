@@ -41,6 +41,16 @@ function mascarar_cpf(?string $cpf): string
     return '***.***.' . substr($cpf, 6, 3) . '-**';
 }
 
+/** Formata CPF completo (000.000.000-00). Não-11 dígitos volta como veio. */
+function formatar_cpf(?string $cpf): string
+{
+    $d = so_digitos($cpf);
+    if (strlen($d) !== 11) {
+        return (string) $cpf;
+    }
+    return substr($d, 0, 3) . '.' . substr($d, 3, 3) . '.' . substr($d, 6, 3) . '-' . substr($d, 9, 2);
+}
+
 /** Valida e-mail simples. */
 function validar_email(?string $email): bool
 {

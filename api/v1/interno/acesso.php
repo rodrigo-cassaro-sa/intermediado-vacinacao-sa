@@ -211,7 +211,7 @@ function rota_listar_usuarios(array $params): void
     $ator = exigir_login();
     $managed = clientes_geridos_pelo_usuario($ator);
     if ($managed === ['*']) {
-        $itens = db_todos("SELECT id, nome, email, perfil, status, criado_em FROM usuario WHERE excluido_em IS NULL ORDER BY nome LIMIT 200");
+        $itens = db_todos("SELECT id, nome, email, perfil, pode_ver_cpf, status, criado_em FROM usuario WHERE excluido_em IS NULL ORDER BY nome LIMIT 200");
         responder_sucesso(['itens' => $itens], 'OK.');
     }
     if (!$managed) {
@@ -221,7 +221,7 @@ function rota_listar_usuarios(array $params): void
     foreach ($managed as $i => $c) { $ph[] = ":c_$i"; $bind[":c_$i"] = (int) $c; }
     $in = implode(',', $ph);
     $itens = db_todos(
-        "SELECT DISTINCT u.id, u.nome, u.email, u.perfil, u.status, u.criado_em
+        "SELECT DISTINCT u.id, u.nome, u.email, u.perfil, u.pode_ver_cpf, u.status, u.criado_em
            FROM usuario u
            JOIN usuario_atribuicao ua ON ua.usuario_id = u.id
       LEFT JOIN unidade un ON ua.escopo_tipo = 'unidade' AND un.id = ua.escopo_id
@@ -241,6 +241,32 @@ function rota_listar_atribuicoes(array $params): void
     $ator = exigir_login();
     $uid = (int) ($params['id'] ?? 0);
     responder_sucesso(['itens' => db_todos("SELECT id, nivel, escopo_tipo, escopo_id, criado_em FROM usuario_atribuicao WHERE usuario_id = :u ORDER BY id", [':u' => $uid])], 'OK.');
+}
+
+/**
+ * POST /api/v1/interno/usuarios/{id}/permissao-cpf  { pode_ver_cpf: 0|1 }
+ * Concede/retira a permissão de ver CPF completo. Só super_admin decide (LGPD).
+ */
+function rota_definir_permissao_cpf(array $params): void
+{
+    $ator = exigir_login();
+    exigir_perfil($ator, ['super_admin']);
+    exigir_csrf();
+
+    $id = (int) ($params['id'] ?? 0);
+    if (db_primeiro("SELECT id FROM usuario WHERE id = :id AND excluido_em IS NULL LIMIT 1", [':id' => $id]) === null) {
+        responder_erro('Usuário não encontrado.', 404, [
+            ['field' => null, 'code' => 'USUARIO_NAO_ENCONTRADO', 'message' => 'Usuário inexistente.'],
+        ]);
+    }
+    $pode = !empty(corpo_json()['pode_ver_cpf']) ? 1 : 0;
+    db_executar("UPDATE usuario SET pode_ver_cpf = :p WHERE id = :id", [':p' => $pode, ':id' => $id]);
+
+    registrar_auditoria('usuario.permissao_cpf', [
+        'ator_tipo' => 'usuario', 'ator_id' => (int) $ator['id'], 'origem' => 'admin',
+        'entidade_tipo' => 'usuario', 'entidade_id' => $id, 'metadata' => ['pode_ver_cpf' => $pode],
+    ]);
+    responder_sucesso(['usuario_id' => $id, 'pode_ver_cpf' => $pode], 'Permissão de CPF atualizada.');
 }
 
 /** Resolve escopo_tipo/escopo_id a partir do nível e do corpo. */

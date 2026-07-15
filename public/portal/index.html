@@ -411,8 +411,17 @@ function extrair(){ const id=campId(); if(!id)return alert('Selecione uma campan
 // ---- Usuários ----
 async function listarUsuarios(){
   const d=await api('/interno/usuarios'); if(!d.success)return;
-  document.getElementById('tblUsr').innerHTML='<tr><th>ID</th><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Status</th></tr>'+
-    (d.data.itens||[]).map(u=>`<tr><td>${u.id}</td><td>${u.nome}</td><td>${u.email}</td><td>${u.perfil}</td><td>${u.status}</td></tr>`).join('');
+  document.getElementById('tblUsr').innerHTML='<tr><th>ID</th><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Ver CPF</th><th>Status</th></tr>'+
+    (d.data.itens||[]).map(u=>{
+      const pode=Number(u.pode_ver_cpf);
+      const btn=`<button class="ghost" onclick="toggleCpf(${u.id},${pode?0:1})" title="Só super_admin altera">${pode?'✓ completo':'mascarado'}</button>`;
+      return `<tr><td>${u.id}</td><td>${u.nome}</td><td>${u.email}</td><td>${u.perfil}</td><td>${btn}</td><td>${u.status}</td></tr>`;
+    }).join('');
+}
+async function toggleCpf(id,novo){
+  const d=await api(`/interno/usuarios/${id}/permissao-cpf`,'POST',{pode_ver_cpf:novo});
+  if(!d.success){ alert('Erro: '+((d.errors&&d.errors[0]&&d.errors[0].message)||d.message||'falhou')); return; }
+  listarUsuarios();
 }
 async function criarUsuario(){
   const body={nome:document.getElementById('uNome').value,email:document.getElementById('uEmail').value,senha:document.getElementById('uSenha').value,nivel:document.getElementById('uNivel').value,escopo_id:Number(document.getElementById('uEscopo').value||0)};

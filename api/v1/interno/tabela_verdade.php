@@ -35,7 +35,7 @@ function rota_tabela_verdade(array $params): void
         $bind
     );
     foreach ($itens as &$it) {
-        $it['cpf'] = mascarar_cpf($it['cpf']);
+        $it['cpf'] = cpf_para_usuario($it['cpf'], $usuario);
     }
     unset($it);
 
@@ -103,9 +103,9 @@ function rota_listar_vacinados(array $params): void
         $bind
     );
     foreach ($itens as &$it) {
-        $it['cpf'] = mascarar_cpf($it['cpf']);
+        $it['cpf'] = cpf_para_usuario($it['cpf'], $usuario);
         if (!empty($it['profissional_cpf'])) {
-            $it['profissional_cpf'] = mascarar_cpf($it['profissional_cpf']);
+            $it['profissional_cpf'] = cpf_para_usuario($it['profissional_cpf'], $usuario);
         }
     }
     unset($it);
@@ -183,11 +183,11 @@ function rota_exportar_vacinados(array $params): void
     ], ';');
     foreach ($linhas as $l) {
         fputcsv($out, [
-            $l['cpf'], $l['nome'], $l['tipo_vinculo'] ?? '', $l['status'],
+            cpf_para_usuario($l['cpf'], $usuario), $l['nome'], $l['tipo_vinculo'] ?? '', $l['status'],
             $l['codigo_lotacao'] ?? '', $l['codigo_rh'] ?? '',
             $l['vacina'] ?? '', $l['dose'] ?? '', $l['lote'] ?? '', $l['aplicado_em'] ?? '',
             $l['clinica'] ?? '', $l['executor_tipo'] ?? '', $l['profissional_nome'] ?? '',
-            $l['profissional_cpf'] ?? '', $l['cidade'] ?? '', $l['uf'] ?? '', $l['unidade'] ?? '',
+            cpf_para_usuario($l['profissional_cpf'] ?? '', $usuario), $l['cidade'] ?? '', $l['uf'] ?? '', $l['unidade'] ?? '',
         ], ';');
     }
     fclose($out);
@@ -276,7 +276,7 @@ function rota_exportar_tabela_verdade(array $params): void
     fputcsv($out, ['cpf', 'nome', 'situacao', 'total_aplicacoes', 'ultima_aplicacao', 'vacinas'], ';');
     foreach ($linhas as $l) {
         fputcsv($out, [
-            $l['cpf'], $l['nome'], $l['situacao'],
+            cpf_para_usuario($l['cpf'], $usuario), $l['nome'], $l['situacao'],
             $l['total_aplicacoes'], $l['ultima_aplicacao'] ?? '', $l['vacinas'] ?? '',
         ], ';');
     }
