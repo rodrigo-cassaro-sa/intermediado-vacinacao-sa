@@ -73,9 +73,9 @@ function importacao_iniciar(int $tenantId, int $campanhaId, string $conteudo, st
         db_executar(
             "UPDATE importacao_elegiveis
                 SET total_linhas = :t, total_validos = :v, total_invalidos = :inv, total_removidos = :rem,
-                    total_processados = :t, status = 'concluida', finalizado_em = NOW()
+                    total_processados = :tp, status = 'concluida', finalizado_em = NOW()
               WHERE id = :id",
-            [':t' => $res['recebidos'], ':v' => $res['criados'] + $res['atualizados'],
+            [':t' => $res['recebidos'], ':tp' => $res['recebidos'], ':v' => $res['criados'] + $res['atualizados'],
              ':inv' => $res['rejeitados'], ':rem' => $removidos, ':id' => $impId]
         );
 
@@ -186,9 +186,9 @@ function importacao_processar(int $importacaoId): void
     db_executar(
         "UPDATE importacao_elegiveis
             SET total_linhas = :t, total_validos = :v, total_invalidos = :inv, total_removidos = :rem,
-                total_processados = :t, status = 'concluida', finalizado_em = NOW()
+                total_processados = :tp, status = 'concluida', finalizado_em = NOW()
           WHERE id = :id",
-        [':t' => $processados, ':v' => $totalValidos, ':inv' => $totalInvalidos, ':rem' => $removidos, ':id' => $importacaoId]
+        [':t' => $processados, ':tp' => $processados, ':v' => $totalValidos, ':inv' => $totalInvalidos, ':rem' => $removidos, ':id' => $importacaoId]
     );
 
     registrar_auditoria('importacao.concluida', [
