@@ -173,7 +173,7 @@
       <div class="pagehead">
         <div>
           <h1>Vacinados</h1>
-          <p>Registro de vacinação da campanha selecionada.</p>
+          <p>Pessoas vacinadas da campanha — onde e quem aplicou.</p>
         </div>
         <div class="actions">
           <span class="who">Olá, <b id="quem">—</b></span>
@@ -215,9 +215,9 @@
               <option value="terceiro">Terceiro</option>
             </select>
             <select id="fStatus" onchange="recarregar()">
+              <option value="aplicado" selected>Vacinados</option>
               <option value="">Todos os status</option>
-              <option value="aplicado">Vacinados</option>
-              <option value="pendente">Pendentes</option>
+              <option value="pendente">Pendentes (registrar)</option>
               <option value="recusado">Recusado</option>
               <option value="ausente">Ausente</option>
             </select>
@@ -232,7 +232,7 @@
         <div style="overflow-x:auto">
           <table>
             <thead>
-              <tr><th class="chkcol"><input type="checkbox" id="chkAll" onchange="toggleTodos(this.checked)" title="Selecionar todos" /></th><th>Paciente / CPF</th><th>Tipo</th><th>Vacina / Dose</th><th>Lote</th><th>Aplicado em</th><th>Aplicado por</th><th>Status</th><th style="text-align:right">Ações</th></tr>
+              <tr><th class="chkcol"><input type="checkbox" id="chkAll" onchange="toggleTodos(this.checked)" title="Selecionar todos" /></th><th>Paciente / CPF</th><th>Vacina / Dose</th><th>Lote</th><th>Aplicado em</th><th>Onde</th><th>Quem aplicou</th><th>Status</th><th style="text-align:right">Ações</th></tr>
             </thead>
             <tbody id="tbody"></tbody>
           </table>
@@ -406,17 +406,22 @@
   function carregarMais() { carregarVacinados(); }
 
   function linha(e) {
-    const [trot, tcls] = TIPO[e.tipo_vinculo] || [e.tipo_vinculo || '—', 'dep'];
     const aplicado = e.status === 'aplicado' && e.aplicacao_id;
     const vac = aplicado ? (esc(e.vacina || '—') + (e.dose ? '<div class="sub">Dose ' + esc(e.dose) + '</div>' : '')) : '<span class="sub">—</span>';
     const lote = aplicado ? esc(e.lote || '—') : '<span class="sub">—</span>';
     const quando = aplicado ? ddmm(e.aplicado_em) : '<span class="sub">—</span>';
-    let porQuem = '<span class="sub">—</span>';
+
+    // Onde: clínica (ou unidade), com cidade/UF na sublinha.
+    let onde = '<span class="sub">—</span>', quem = '<span class="sub">—</span>';
     if (aplicado) {
-      const linha1 = e.clinica ? esc(e.clinica) : (e.profissional_nome ? esc(e.profissional_nome) : '—');
-      const linha2 = e.clinica && e.profissional_nome ? ('<div class="sub">' + esc(e.profissional_nome) + '</div>') : '';
-      porQuem = linha1 + linha2;
+      const cidadeUf = [e.cidade, e.uf].filter(Boolean).join('/');
+      const ondeTop = e.clinica ? esc(e.clinica) : (e.unidade ? esc(e.unidade) : (cidadeUf ? esc(cidadeUf) : '—'));
+      const ondeSub = (e.clinica || e.unidade) && cidadeUf ? ('<div class="sub">' + esc(cidadeUf) + '</div>') : '';
+      onde = ondeTop + ondeSub;
+      quem = (e.profissional_nome ? esc(e.profissional_nome) : '—')
+        + (e.profissional_cpf ? ('<div class="sub">' + esc(e.profissional_cpf) + '</div>') : '');
     }
+
     let acoes = '';
     if (aplicado) {
       acoes = '<button class="iconbtn danger" title="Estornar (desvacinar)" onclick="estornar(' + e.aplicacao_id + ', ' + e.id + ')"><span class="material-symbols-outlined" style="font-size:20px">undo</span></button>';
@@ -427,11 +432,11 @@
     return '<tr>'
       + '<td class="chkcol"><input type="checkbox" class="rowchk" onchange="toggleRow(' + e.id + ', this.checked)"' + (SELECIONADOS.has(e.id) ? ' checked' : '') + ' /></td>'
       + '<td><div class="nm">' + esc(e.nome || '—') + '</div><div class="sub">' + esc(e.cpf || '') + '</div></td>'
-      + '<td><span class="tag ' + tcls + '">' + esc(trot) + '</span></td>'
       + '<td>' + vac + '</td>'
       + '<td>' + lote + '</td>'
       + '<td>' + quando + '</td>'
-      + '<td>' + porQuem + '</td>'
+      + '<td>' + onde + '</td>'
+      + '<td>' + quem + '</td>'
       + '<td><span class="st ' + esc(e.status) + '">' + esc(e.status) + '</span></td>'
       + '<td style="text-align:right;white-space:nowrap">' + acoes + '</td>'
       + '</tr>';
