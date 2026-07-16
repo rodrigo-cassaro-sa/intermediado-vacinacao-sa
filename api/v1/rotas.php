@@ -71,6 +71,8 @@ return [
     'GET  /api/v1/interno/portal/auditoria' => ['arquivo' => 'interno/observabilidade.php', 'funcao' => 'rota_auditoria_portal'],
 
     // --- Relatórios: carteira consolidada (9c) e resumo ano a ano ---
+    'GET  /api/v1/interno/relatorios/gestao'                => ['arquivo' => 'interno/relatorios_gestao.php', 'funcao' => 'rota_relatorio_gestao'],
+    'GET  /api/v1/interno/campanhas/{id}/qualidade'         => ['arquivo' => 'interno/relatorios_gestao.php', 'funcao' => 'rota_qualidade_campanha'],
     'GET  /api/v1/interno/pacientes/{cpf}/carteira'         => ['arquivo' => 'interno/relatorios.php', 'funcao' => 'rota_carteira_paciente'],
     'GET  /api/v1/interno/clientes/{id}/campanhas-resumo'   => ['arquivo' => 'interno/relatorios.php', 'funcao' => 'rota_resumo_campanhas_cliente'],
 

@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Relatórios — S&amp;A Imunizações</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+  <link rel="stylesheet" href="/assets/marca.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Inter', system-ui, Segoe UI, Roboto, sans-serif; background: var(--bg); color: var(--txt); font-size: 14px; display: flex; height: 100vh; overflow: hidden; }
+    .material-symbols-outlined { font-family: 'Material Symbols Outlined'; font-size: 22px; line-height: 1; }
+    .hide { display: none !important; }
+
+    .side { width: 256px; flex: 0 0 256px; background: var(--card); border-right: 1px solid var(--line); box-shadow: var(--sombra); display: flex; flex-direction: column; padding: 16px 0; }
+    .side .brand { padding: 6px 20px 20px; display: flex; flex-direction: column; gap: 8px; }
+    .side .brand .logo { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, var(--acc) 0%, var(--pri) 100%); display: grid; place-items: center; box-shadow: 0 4px 12px rgba(22,102,196,.28); }
+    .side .brand .nome { font-size: 20px; font-weight: 800; letter-spacing: -.01em; color: var(--pri); line-height: 1.15; }
+    .side .brand .tag { font-size: 12px; color: var(--muted); }
+    .side nav { flex: 1; padding: 0 12px; display: flex; flex-direction: column; gap: 4px; }
+    .side .foot { padding: 12px 12px 0; margin-top: auto; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
+    .navlink { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; color: var(--muted); text-decoration: none; font-weight: 500; background: none; border: 0; font: inherit; cursor: pointer; text-align: left; width: 100%; transition: background .15s, color .15s; }
+    .navlink:hover { background: var(--surface-2); color: var(--txt); }
+    .navlink.active { background: var(--surface-2); color: var(--pri); font-weight: 600; }
+    .navlink .material-symbols-outlined { font-variation-settings: 'FILL' 0; }
+    .navlink.active .material-symbols-outlined { font-variation-settings: 'FILL' 1; }
+
+    .main { flex: 1; overflow-y: auto; }
+    .content { max-width: 1440px; margin: 0 auto; padding: 24px 32px; display: flex; flex-direction: column; gap: 20px; }
+    .pagehead { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+    .pagehead h1 { font-size: 32px; font-weight: 700; letter-spacing: -.02em; margin: 0; }
+    .pagehead p { margin: 6px 0 0; color: var(--muted); }
+    .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .who { color: var(--muted); font-size: 13px; margin-right: 4px; } .who b { color: var(--txt); }
+    .btn { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; padding: 10px 16px; border-radius: 8px; font: inherit; font-weight: 600; border: 0; }
+    .btn .material-symbols-outlined { font-size: 18px; }
+    .btn.primary { background: var(--pri); color: #fff; box-shadow: 0 2px 6px rgba(22,102,196,.25); }
+    .btn.primary:hover { background: var(--pri2); }
+    .btn.sec { background: var(--card); color: var(--txt); border: 1px solid var(--line); }
+    .btn.sec:hover { background: var(--surface-2); }
+
+    .bento { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--sombra); padding: 16px 18px; }
+    .card .top { display: flex; justify-content: space-between; align-items: center; }
+    .card .lbl { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+    .card .big { font-size: 32px; font-weight: 700; letter-spacing: -.02em; margin-top: 6px; }
+    .ic { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; }
+    .ic.blue { background: rgba(22,102,196,.12); color: var(--pri); } .ic.red { background: rgba(198,57,74,.12); color: var(--err); }
+    .ic.amber { background: rgba(199,122,10,.14); color: var(--warn, #c77a0a); } .ic.gray { background: var(--surface-2); color: var(--muted); }
+    .card.red .big { color: var(--err); } .card.amber .big { color: var(--warn, #c77a0a); }
+
+    .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--sombra); overflow: hidden; }
+    .panel .phead { padding: 12px 20px; border-bottom: 1px solid var(--line); background: var(--surface-2); display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
+    .panel .phead h3 { margin: 0; font-size: 14px; font-weight: 600; }
+    .filters { display: flex; gap: 8px; flex-wrap: nowrap; align-items: center; overflow-x: auto; padding-bottom: 2px; }
+    .filters > * { flex: 0 0 auto; }
+    .filters .box { position: relative; }
+    .filters .box .material-symbols-outlined { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--outline, #707880); font-size: 18px; }
+    .filters input, .filters select { padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--txt); font: inherit; }
+    .filters .box input { padding-left: 32px; width: 240px; }
+    .filters .btn { padding: 8px 10px; }
+    .filters input:focus, .filters select:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
+
+    table { width: 100%; border-collapse: collapse; white-space: nowrap; }
+    thead th { text-align: left; padding: 10px 14px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: var(--surface-2); border-bottom: 1px solid var(--line); }
+    thead th.r { text-align: right; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+    tbody td.r { text-align: right; font-variant-numeric: tabular-nums; }
+    tbody tr:hover { background: var(--surface-2); }
+    tr.crit { background: rgba(198,57,74,.045); } tr.warn { background: rgba(199,122,10,.05); }
+    td .nm { font-weight: 600; } td .cod { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; color: var(--pri); }
+    td .sub { font-size: 12px; color: var(--muted); }
+    .bar { width: 90px; height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; display: inline-block; vertical-align: middle; margin-left: 8px; }
+    .bar > span { display: block; height: 100%; border-radius: 99px; }
+    .bar > span.ok { background: var(--acc); } .bar > span.warn { background: var(--warn, #c77a0a); } .bar > span.err { background: var(--err); } .bar > span.blue { background: var(--pri); }
+    .sit { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 99px; white-space: nowrap; }
+    .sit.ok { background: rgba(20,160,90,.14); color: var(--acc2); }
+    .sit.warn { background: rgba(199,122,10,.14); color: var(--warn, #c77a0a); }
+    .sit.err { background: rgba(198,57,74,.12); color: var(--err); }
+    .sit.muted { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+    .qbtn { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 99px; border: 1px solid var(--line); background: var(--card); cursor: pointer; }
+    .qbtn.bad { background: rgba(198,57,74,.10); color: var(--err); border-color: transparent; }
+    .qbtn.zero { color: var(--acc2); }
+    .iconbtn { background: none; border: 0; cursor: pointer; color: var(--pri); padding: 6px; border-radius: 6px; }
+    .iconbtn:hover { background: var(--surface-2); }
+    .empty { padding: 28px 20px; text-align: center; color: var(--muted); }
+    .pfoot { padding: 12px 20px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+    .pfoot .cnt { font-size: 12px; color: var(--muted); }
+
+    .drawer { position: fixed; inset: 0; z-index: 60; }
+    .drawer .backdrop { position: absolute; inset: 0; background: rgba(18,35,59,.45); }
+    .drawer .box { position: absolute; right: 0; top: 0; bottom: 0; width: 100%; max-width: 560px; background: var(--card); box-shadow: var(--sombra); display: flex; flex-direction: column; animation: slideIn .25s ease-out; }
+    @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    .drawer .dhead { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+    .drawer .dhead h3 { margin: 0; font-size: 18px; }
+    .drawer .x { background: none; border: 0; cursor: pointer; color: var(--muted); padding: 4px; border-radius: 6px; }
+    .drawer .dbody { padding: 16px 20px; overflow-y: auto; flex: 1; }
+    .drawer .qsum { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .drawer .dfoot { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--line); background: var(--surface-2); }
+    .badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px; }
+    .badge.err { background: rgba(198,57,74,.12); color: var(--err); }
+    .badge.warn { background: rgba(199,122,10,.14); color: var(--warn, #c77a0a); }
+    .muted { color: var(--muted); }
+
+    .loading { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; z-index: 80; }
+    .loading .spin { width: 38px; height: 38px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--pri); animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .login { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; z-index: 70; }
+    .login .lbox { background: var(--card); border: 1px solid var(--line); border-radius: var(--raio); box-shadow: var(--sombra); padding: 28px; width: 340px; }
+    .login label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+    .login input { width: 100%; padding: 11px 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; color: var(--txt); font: inherit; }
+    .login .m { font-size: 12px; color: var(--err); min-height: 16px; margin-top: 8px; }
+
+    @media (max-width: 1100px) { .bento { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 720px) { .side { display: none; } .content { padding: 20px 16px; } .pagehead h1 { font-size: 24px; } .bento { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="loading" id="loading"><div class="spin"></div></div>
+
+  <div class="login hide" id="login">
+    <div class="lbox">
+      <div style="font-weight:800;color:var(--pri);margin-bottom:12px">S&amp;A <b>Imunizações</b> · Console</div>
+      <label>E-mail</label><input id="email" autocomplete="username" />
+      <label>Senha</label><input id="senha" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')entrar()" />
+      <div class="m" id="loginMsg"></div>
+      <button class="btn primary" style="width:100%;justify-content:center;margin-top:12px" onclick="entrar()">Entrar</button>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="side">
+    <div class="brand">
+      <div class="logo"><svg width="24" height="24" viewBox="0 0 32 32"><path d="M13.5 7h5v6.5H25v5h-6.5V25h-5v-6.5H7v-5h6.5z" fill="#fff"/></svg></div>
+      <div><div class="nome">Gestão de Vacinas</div><div class="tag">Administrador Central</div></div>
+    </div>
+    <nav>
+      <a class="navlink" href="/admin/"><span class="material-symbols-outlined">dashboard</span> Dashboard</a>
+      <a class="navlink" href="/admin/campanhas.html"><span class="material-symbols-outlined">campaign</span> Campanhas</a>
+      <a class="navlink" href="/admin/vacinas.html"><span class="material-symbols-outlined">vaccines</span> Vacinas</a>
+      <a class="navlink" href="/admin/elegiveis.html"><span class="material-symbols-outlined">group</span> Pacientes</a>
+      <a class="navlink" href="/admin/vacinados.html"><span class="material-symbols-outlined">verified</span> Vacinados</a>
+      <button class="navlink active"><span class="material-symbols-outlined">monitoring</span> Relatórios</button>
+      <a class="navlink" href="/admin/usuarios.html"><span class="material-symbols-outlined">manage_accounts</span> Usuários</a>
+      <a class="navlink" href="/admin/integracoes.html"><span class="material-symbols-outlined">sync</span> Integrações</a>
+      <a class="navlink" href="/admin/auditoria.html"><span class="material-symbols-outlined">history</span> Auditoria</a>
+    </nav>
+    <div class="foot">
+      <a class="navlink" href="/admin/console.html"><span class="material-symbols-outlined">terminal</span> Console interno</a>
+      <a class="navlink" href="/portal/"><span class="material-symbols-outlined">settings</span> Portal do cliente</a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="content">
+      <div class="pagehead">
+        <div>
+          <h1>Relatórios</h1>
+          <p>Visão gerencial de clientes e campanhas: meta, elegíveis, vacinados, cobertura e qualidade da base.</p>
+        </div>
+        <div class="actions">
+          <span class="who">Olá, <b id="quem">—</b></span>
+          <button class="btn sec" onclick="carregar()"><span class="material-symbols-outlined">refresh</span> Atualizar</button>
+          <button class="btn sec" onclick="exportar()"><span class="material-symbols-outlined">download</span> Exportar</button>
+          <button class="btn sec" onclick="sair()"><span class="material-symbols-outlined">logout</span> Sair</button>
+        </div>
+      </div>
+
+      <div class="bento">
+        <div class="card"><div class="top"><span class="lbl">Campanhas</span><span class="ic blue material-symbols-outlined">campaign</span></div><div class="big" id="cCamp">—</div></div>
+        <div class="card red"><div class="top"><span class="lbl">Críticos</span><span class="ic red material-symbols-outlined">priority_high</span></div><div class="big" id="cCrit">—</div></div>
+        <div class="card amber"><div class="top"><span class="lbl">Alertas</span><span class="ic amber material-symbols-outlined">warning</span></div><div class="big" id="cAlert">—</div></div>
+        <div class="card"><div class="top"><span class="lbl">Registros c/ problema</span><span class="ic gray material-symbols-outlined">rule</span></div><div class="big" id="cProb">—</div></div>
+      </div>
+
+      <div class="panel">
+        <div class="phead">
+          <h3>Monitoramento por cliente / campanha</h3>
+          <div class="filters">
+            <div class="box"><span class="material-symbols-outlined">search</span>
+              <input id="busca" placeholder="Código, campanha ou cliente..." onkeydown="if(event.key==='Enter')carregar()" />
+            </div>
+            <select id="fCliente" onchange="carregar()"><option value="">Todos os clientes</option></select>
+            <select id="fStatus" onchange="carregar()">
+              <option value="">Todos os status</option>
+              <option value="ativa">Ativa</option>
+              <option value="rascunho">Rascunho</option>
+              <option value="encerrada">Encerrada</option>
+            </select>
+            <select id="fSit" onchange="renderTabela()">
+              <option value="">Todas as situações</option>
+              <option value="critico">Só críticos</option>
+              <option value="alerta">Só alertas</option>
+              <option value="problema">Com problema de base</option>
+            </select>
+            <button class="btn sec" onclick="limparFiltros()" title="Limpar"><span class="material-symbols-outlined">filter_alt_off</span></button>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Cliente / Campanha</th>
+                <th class="r">Doses previstas</th>
+                <th class="r">Elegíveis</th>
+                <th class="r">Disponíveis</th>
+                <th class="r">Vacinados</th>
+                <th class="r">% Cobertura</th>
+                <th>Situação</th>
+                <th>Qualidade</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+          <div class="empty hide" id="vazio">Nenhuma campanha no seu escopo.</div>
+        </div>
+        <div class="pfoot"><span class="cnt" id="contagem">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drawer qualidade -->
+  <div class="drawer hide" id="drawer">
+    <div class="backdrop" onclick="fecharDrawer()"></div>
+    <div class="box">
+      <div class="dhead"><h3 id="dTitulo">Qualidade da base</h3><button class="x" onclick="fecharDrawer()"><span class="material-symbols-outlined">close</span></button></div>
+      <div class="dbody" id="dBody"></div>
+      <div class="dfoot"><button class="btn sec" onclick="fecharDrawer()">Fechar</button></div>
+    </div>
+  </div>
+
+  <script>
+  // ---------------------------------------------------------------------------
+  // Relatórios gerenciais — visão por cliente/campanha (sessão + CSRF).
+  // ---------------------------------------------------------------------------
+  let CSRF = null, ITENS = [], CLIENTES = null;
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fmt = n => (n ?? 0).toLocaleString('pt-BR');
+  const ocultarLoading = () => $('loading').classList.add('hide');
+
+  async function api(path, metodo = 'GET', corpo = null) {
+    const opts = { method: metodo, headers: {}, credentials: 'same-origin' };
+    if (corpo) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(corpo); }
+    if (metodo !== 'GET' && CSRF) opts.headers['X-CSRF-Token'] = CSRF;
+    const r = await fetch('/api/v1' + path, opts);
+    let d; try { d = await r.json(); } catch (e) { d = { success: false }; }
+    return { http: r.status, ...d };
+  }
+
+  const SIT = { ok: ['Em dia', 'ok'], alerta: ['Alerta', 'warn'], critico: ['Crítico', 'err'], sem_meta: ['Sem meta', 'muted'] };
+  const ddmm = s => s ? s.substring(8, 10) + '/' + s.substring(5, 7) + '/' + s.substring(0, 4) : '—';
+
+  async function entrar() {
+    $('loginMsg').textContent = '...';
+    const d = await api('/interno/auth/login', 'POST', { email: $('email').value, senha: $('senha').value });
+    if (!d.success) { $('loginMsg').textContent = 'E-mail ou senha inválidos.'; return; }
+    CSRF = d.data.csrf_token; $('loginMsg').textContent = ''; $('senha').value = '';
+    await carregar();
+  }
+  async function sair() { await api('/interno/auth/logout', 'POST', {}); CSRF = null; $('login').classList.remove('hide'); }
+
+  async function carregar() {
+    const p = new URLSearchParams();
+    const q = $('busca').value.trim(); if (q) p.set('q', q);
+    const cli = $('fCliente').value; if (cli) p.set('cliente_b2b_id', cli);
+    const st = $('fStatus').value; if (st) p.set('status', st);
+    const d = await api('/interno/relatorios/gestao?' + p.toString());
+    if (d.http === 401) { $('login').classList.remove('hide'); ocultarLoading(); return; }
+    $('login').classList.add('hide'); ocultarLoading();
+    if (!d.success) return;
+    ITENS = d.data.itens || [];
+    const r = d.data.resumo || {};
+    $('cCamp').textContent = fmt(r.campanhas || 0);
+    $('cCrit').textContent = fmt(r.criticos || 0);
+    $('cAlert').textContent = fmt(r.alertas || 0);
+    $('cProb').textContent = fmt(r.com_problema || 0);
+    renderTabela();
+    if (!CLIENTES) {
+      const c = await api('/interno/clientes');
+      if (c.success) {
+        CLIENTES = c.data.itens || [];
+        const atual = $('fCliente').value;
+        $('fCliente').innerHTML = '<option value="">Todos os clientes</option>' + CLIENTES.map(x => '<option value="' + x.id + '">' + esc(x.razao_social) + '</option>').join('');
+        $('fCliente').value = atual;
+      }
+    }
+    const eu = await api('/interno/auth/eu');
+    if (eu.success) { $('quem').textContent = eu.data.usuario.nome || '—'; if (!CSRF && eu.data.csrf_token) CSRF = eu.data.csrf_token; }
+  }
+
+  function filtrados() {
+    const s = $('fSit').value;
+    if (!s) return ITENS;
+    if (s === 'problema') return ITENS.filter(i => i.com_problema > 0);
+    return ITENS.filter(i => i.situacao === s);
+  }
+
+  function renderTabela() {
+    const lista = filtrados();
+    $('vazio').classList.toggle('hide', lista.length > 0);
+    $('contagem').textContent = lista.length + ' de ' + ITENS.length + ' campanha(s)';
+    $('tbody').innerHTML = lista.map(i => {
+      const [srot, scls] = SIT[i.situacao] || [i.situacao, 'muted'];
+      const rowc = i.situacao === 'critico' ? ' class="crit"' : (i.situacao === 'alerta' ? ' class="warn"' : '');
+      const covCls = i.cobertura >= 90 ? 'ok' : (i.cobertura >= 60 ? 'blue' : 'err');
+      const meta = i.doses_previstas != null ? fmt(i.doses_previstas) : '<span class="sub">—</span>';
+      const metaSub = i.pct_meta != null ? ('<div class="sub">' + i.pct_meta.toLocaleString('pt-BR') + '% da meta</div>') : '';
+      const qual = i.com_problema > 0
+        ? '<button class="qbtn bad" onclick="verQualidade(' + i.campanha_id + ')"><span class="material-symbols-outlined" style="font-size:15px">error</span>' + fmt(i.com_problema) + '</button>'
+        : '<span class="qbtn zero"><span class="material-symbols-outlined" style="font-size:15px">check_circle</span>ok</span>';
+      return '<tr' + rowc + '>'
+        + '<td><span class="cod">' + esc(i.codigo || ('#' + i.campanha_id)) + '</span>'
+          + (i.nome ? ('<div class="sub">' + esc(i.nome) + '</div>') : '')
+          + '<div class="sub">' + esc(i.cliente || '') + '</div></td>'
+        + '<td class="r">' + meta + metaSub + '</td>'
+        + '<td class="r">' + fmt(i.elegiveis) + '</td>'
+        + '<td class="r">' + fmt(i.disponiveis) + '</td>'
+        + '<td class="r">' + fmt(i.vacinados) + '</td>'
+        + '<td class="r">' + i.cobertura.toLocaleString('pt-BR') + '%<span class="bar"><span class="' + covCls + '" style="width:' + Math.min(100, i.cobertura) + '%"></span></span></td>'
+        + '<td><span class="sit ' + scls + '">' + esc(srot) + '</span></td>'
+        + '<td>' + qual + '</td>'
+        + '<td style="text-align:right"><button class="iconbtn" title="Detalhes de qualidade" onclick="verQualidade(' + i.campanha_id + ')"><span class="material-symbols-outlined" style="font-size:20px">visibility</span></button></td>'
+        + '</tr>';
+    }).join('');
+  }
+
+  async function verQualidade(id) {
+    const it = ITENS.find(x => x.campanha_id === id); if (!it) return;
+    $('dTitulo').textContent = 'Qualidade — ' + (it.codigo || ('#' + id));
+    $('dBody').innerHTML = '<div class="qsum">'
+      + '<span class="badge ' + (it.sem_documento ? 'err' : 'warn') + '">Sem CPF/voucher: ' + fmt(it.sem_documento) + '</span>'
+      + '<span class="badge warn">Sem CPF: ' + fmt(it.sem_cpf) + '</span>'
+      + '<span class="badge err">Sem nome: ' + fmt(it.sem_nome) + '</span>'
+      + '<span class="badge err">Nascimento inválido: ' + fmt(it.nascimento_invalido) + '</span>'
+      + '</div><div class="muted" id="qMsg">carregando registros…</div>';
+    $('drawer').classList.remove('hide');
+    const d = await api('/interno/campanhas/' + id + '/qualidade');
+    if (!d.success) { $('qMsg').textContent = 'Não foi possível carregar.'; return; }
+    const itens = d.data.itens || [];
+    if (!itens.length) { document.getElementById('qMsg').textContent = 'Nenhum registro com problema — base íntegra. 🎉'; return; }
+    $('dBody').querySelector('#qMsg').outerHTML =
+      '<table><thead><tr><th>Paciente / CPF</th><th>Nascimento</th><th>RH</th><th>Problemas</th></tr></thead><tbody>'
+      + itens.map(e => {
+        const probs = [];
+        if (Number(e.sem_documento)) probs.push('<span class="badge err">sem CPF/voucher</span>');
+        else if (Number(e.sem_cpf)) probs.push('<span class="badge warn">sem CPF</span>');
+        if (Number(e.sem_nome)) probs.push('<span class="badge err">sem nome</span>');
+        if (Number(e.nasc_invalido)) probs.push('<span class="badge err">nascimento</span>');
+        return '<tr><td><div class="nm">' + esc(e.nome || '—') + '</div><div class="sub">' + esc(e.cpf || (e.identificador ? ('voucher: ' + e.identificador) : '')) + '</div></td>'
+          + '<td>' + (e.data_nascimento ? ddmm(e.data_nascimento) : '<span class="badge err">ausente</span>') + '</td>'
+          + '<td class="sub">' + esc(e.codigo_rh || '—') + '</td>'
+          + '<td>' + (probs.join(' ') || '—') + '</td></tr>';
+      }).join('') + '</tbody></table>'
+      + (itens.length >= 500 ? '<div class="muted" style="margin-top:8px">Mostrando os primeiros 500.</div>' : '');
+  }
+  function fecharDrawer() { $('drawer').classList.add('hide'); }
+
+  function limparFiltros() {
+    $('busca').value = ''; $('fCliente').value = ''; $('fStatus').value = ''; $('fSit').value = '';
+    carregar();
+  }
+
+  function exportar() {
+    const lista = filtrados();
+    if (!lista.length) { alert('Nada para exportar.'); return; }
+    const cab = ['codigo', 'campanha', 'cliente', 'status', 'doses_previstas', 'elegiveis', 'disponiveis', 'vacinados', 'cobertura_%', 'situacao', 'sem_cpf', 'sem_nome', 'nascimento_invalido'];
+    const linhas = lista.map(i => [i.codigo || ('#' + i.campanha_id), i.nome || '', i.cliente || '', i.status, i.doses_previstas ?? '', i.elegiveis, i.disponiveis, i.vacinados, i.cobertura, i.situacao, i.sem_cpf, i.sem_nome, i.nascimento_invalido]);
+    const csv = '﻿' + [cab, ...linhas].map(r => r.map(v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"').join(';')).join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'relatorio-gestao.csv';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
+  carregar();
+  </script>
+</body>
+</html>

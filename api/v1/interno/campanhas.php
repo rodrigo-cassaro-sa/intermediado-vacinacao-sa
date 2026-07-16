@@ -70,13 +70,14 @@ function rota_criar_campanha(array $params): void
         try {
             pdo()->beginTransaction();
             db_executar(
-                "INSERT INTO campanha (tenant_id, nome, codigo, temporada, seq, modalidade, periodo_inicio, periodo_fim, status, criado_por)
-                 VALUES (:tenant_id, :nome, :codigo, :temporada, :seq, :modalidade, :inicio, :fim, :status, :criado_por)",
+                "INSERT INTO campanha (tenant_id, nome, codigo, temporada, doses_previstas, seq, modalidade, periodo_inicio, periodo_fim, status, criado_por)
+                 VALUES (:tenant_id, :nome, :codigo, :temporada, :doses, :seq, :modalidade, :inicio, :fim, :status, :criado_por)",
                 [
                     ':tenant_id'  => $clienteId,
                     ':nome'       => $nome,
                     ':codigo'     => $codigo,
                     ':temporada'  => $temporada,
+                    ':doses'      => (isset($dados['doses_previstas']) && is_numeric($dados['doses_previstas'])) ? max(0, (int) $dados['doses_previstas']) : null,
                     ':seq'        => $seq,
                     ':modalidade' => $dados['modalidade'],
                     ':inicio'     => $dados['periodo_inicio'],
@@ -180,7 +181,7 @@ function rota_listar_campanhas(array $params): void
 
     $itens = db_todos(
         "SELECT c.id, c.tenant_id AS cliente_b2b_id, cb.razao_social AS cliente,
-                c.codigo, c.temporada, c.nome, c.modalidade, c.periodo_inicio, c.periodo_fim, c.status, c.criado_em
+                c.codigo, c.temporada, c.doses_previstas, c.nome, c.modalidade, c.periodo_inicio, c.periodo_fim, c.status, c.criado_em
            FROM campanha c
            JOIN cliente_b2b cb ON cb.id = c.tenant_id
           WHERE $where
@@ -246,6 +247,10 @@ function rota_editar_campanha(array $params): void
     if (isset($dados['nome']) && trim($dados['nome']) !== '') {
         $campos[] = 'nome = :nome';
         $bind[':nome'] = trim($dados['nome']);
+    }
+    if (array_key_exists('doses_previstas', $dados)) {
+        $campos[] = 'doses_previstas = :doses';
+        $bind[':doses'] = is_numeric($dados['doses_previstas']) ? max(0, (int) $dados['doses_previstas']) : null;
     }
     if (isset($dados['modalidade'])) {
         if (!in_array($dados['modalidade'], CAMPANHA_MODALIDADES, true)) {

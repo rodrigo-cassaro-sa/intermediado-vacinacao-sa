@@ -140,6 +140,7 @@
       <a class="navlink" href="/admin/vacinas.html"><span class="material-symbols-outlined">vaccines</span> Vacinas</a>
       <a class="navlink" href="/admin/elegiveis.html"><span class="material-symbols-outlined">group</span> Pacientes</a>
       <a class="navlink" href="/admin/vacinados.html"><span class="material-symbols-outlined">verified</span> Vacinados</a>
+      <a class="navlink" href="/admin/relatorios.html"><span class="material-symbols-outlined">monitoring</span> Relatórios</a>
       <a class="navlink" href="/admin/usuarios.html"><span class="material-symbols-outlined">manage_accounts</span> Usuários</a>
       <a class="navlink" href="/admin/integracoes.html"><span class="material-symbols-outlined">sync</span> Integrações</a>
       <a class="navlink" href="/admin/auditoria.html"><span class="material-symbols-outlined">history</span> Auditoria</a>
@@ -252,6 +253,8 @@
           </div>
           <div><label>Rótulo (opcional)</label><input id="fNome" placeholder="nome amigável" /></div>
         </div>
+        <label>Doses previstas (meta — opcional)</label>
+        <input type="number" id="fDoses" min="0" placeholder="ex.: 2500 — usada no alerta do relatório" />
         <div class="msg" id="drawerMsg"></div>
       </div>
       <div class="dfoot">
@@ -363,6 +366,7 @@
     document.getElementById('fInicio').value = '';
     document.getElementById('fFim').value = '';
     document.getElementById('fNome').value = '';
+    document.getElementById('fDoses').value = '';
     onFormChange();
     document.getElementById('drawer').classList.remove('hide');
   }
@@ -381,6 +385,7 @@
       + (c.status === 'encerrada' ? '<option value="encerrada">Encerrada</option>' : '');
     document.getElementById('fStatus').value = c.status;
     document.getElementById('fNome').value = c.nome || '';
+    document.getElementById('fDoses').value = (c.doses_previstas != null ? c.doses_previstas : '');
     const msg = document.getElementById('drawerMsg'); msg.className = 'msg'; msg.textContent = '';
     document.getElementById('drawer').classList.remove('hide');
   }
@@ -425,8 +430,10 @@
     if (!inicio || !fim) { msg.className = 'msg err'; msg.textContent = 'Informe o período (início e fim).'; return; }
     if (fim < inicio) { msg.className = 'msg err'; msg.textContent = 'A data fim não pode ser anterior ao início.'; return; }
 
+    const dosesVal = document.getElementById('fDoses').value;
+    const doses = dosesVal === '' ? null : Number(dosesVal);
     if (EDIT_ID) {
-      const body = { nome: document.getElementById('fNome').value.trim(), periodo_inicio: inicio, periodo_fim: fim, status: document.getElementById('fStatus').value };
+      const body = { nome: document.getElementById('fNome').value.trim(), periodo_inicio: inicio, periodo_fim: fim, status: document.getElementById('fStatus').value, doses_previstas: doses };
       msg.className = 'msg'; msg.textContent = 'Salvando...';
       const d = await api('/interno/campanhas/' + EDIT_ID, 'PUT', body);
       if (!d.success) { msg.className = 'msg err'; msg.textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Erro ao salvar.')); return; }
@@ -444,6 +451,7 @@
       periodo_inicio: inicio, periodo_fim: fim,
       status:         document.getElementById('fStatus').value,
       nome:           document.getElementById('fNome').value.trim(),
+      doses_previstas: doses,
     };
     if (!body.cliente_b2b_id || !body.vacina_id || !body.temporada) {
       msg.className = 'msg err'; msg.textContent = 'Preencha cliente, vacina e temporada.'; return;
