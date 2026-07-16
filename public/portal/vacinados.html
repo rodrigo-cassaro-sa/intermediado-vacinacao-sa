@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vacinados — Portal do Cliente</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+  <link rel="stylesheet" href="/assets/marca.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Inter', system-ui, Segoe UI, Roboto, sans-serif; background: var(--bg); color: var(--txt); font-size: 14px; display: flex; height: 100vh; overflow: hidden; }
+    .material-symbols-outlined { font-family: 'Material Symbols Outlined'; font-size: 22px; line-height: 1; }
+    .hide { display: none !important; }
+
+    .side { width: 256px; flex: 0 0 256px; background: var(--card); border-right: 1px solid var(--line); box-shadow: var(--sombra); display: flex; flex-direction: column; padding: 16px 0; }
+    .side .brand { padding: 6px 20px 20px; display: flex; flex-direction: column; gap: 8px; }
+    .side .brand .logo { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, var(--acc) 0%, var(--pri) 100%); display: grid; place-items: center; box-shadow: 0 4px 12px rgba(22,102,196,.28); }
+    .side .brand .nome { font-size: 20px; font-weight: 800; letter-spacing: -.01em; color: var(--pri); line-height: 1.15; }
+    .side .brand .tag { font-size: 12px; color: var(--muted); }
+    .side nav { flex: 1; padding: 0 12px; display: flex; flex-direction: column; gap: 4px; }
+    .side .foot { padding: 12px 12px 0; margin-top: auto; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
+    .navlink { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; color: var(--muted); text-decoration: none; font-weight: 500; background: none; border: 0; font: inherit; cursor: pointer; text-align: left; width: 100%; transition: background .15s, color .15s; }
+    .navlink:hover { background: var(--surface-2); color: var(--txt); }
+    .navlink.active { background: var(--surface-2); color: var(--pri); font-weight: 600; }
+    .navlink .material-symbols-outlined { font-variation-settings: 'FILL' 0; }
+    .navlink.active .material-symbols-outlined { font-variation-settings: 'FILL' 1; }
+
+    .main { flex: 1; overflow-y: auto; }
+    .content { max-width: 1440px; margin: 0 auto; padding: 24px 32px; display: flex; flex-direction: column; gap: 20px; }
+    .pagehead { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+    .pagehead h1 { font-size: 32px; font-weight: 700; letter-spacing: -.02em; margin: 0; }
+    .pagehead p { margin: 6px 0 0; color: var(--muted); }
+    .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .who { color: var(--muted); font-size: 13px; margin-right: 4px; } .who b { color: var(--txt); }
+    .sel { padding: 9px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--txt); font: inherit; font-weight: 500; cursor: pointer; max-width: 320px; }
+    .sel:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
+    .btn { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; padding: 10px 16px; border-radius: 8px; font: inherit; font-weight: 600; border: 0; }
+    .btn .material-symbols-outlined { font-size: 18px; }
+    .btn.primary { background: var(--pri); color: #fff; box-shadow: 0 2px 6px rgba(22,102,196,.25); }
+    .btn.primary:hover { background: var(--pri2); }
+    .btn.sec { background: var(--card); color: var(--txt); border: 1px solid var(--line); }
+    .btn.sec:hover { background: var(--surface-2); }
+
+    .bento { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--sombra); padding: 18px 20px; }
+    .card .top { display: flex; justify-content: space-between; align-items: start; gap: 8px; }
+    .card .cod { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; color: var(--pri); }
+    .infogrid { margin-top: 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .infogrid .k { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+    .infogrid .v { font-weight: 600; margin-top: 2px; }
+    .fila .lbl { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+    .fila .big { font-size: 40px; font-weight: 700; letter-spacing: -.02em; margin: 6px 0 2px; color: var(--acc2); }
+    .fila .sub { font-size: 12px; color: var(--muted); }
+    .ico { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: rgba(20,160,90,.14); color: var(--acc2); }
+
+    .chip { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 99px; white-space: nowrap; }
+    .chip.ok { background: rgba(20,160,90,.14); color: var(--acc2); }
+    .chip.plan { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+    .chip.done { background: rgba(18,35,59,.08); color: var(--muted); }
+
+    .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--sombra); overflow: hidden; }
+    .panel .phead { padding: 12px 20px; border-bottom: 1px solid var(--line); background: var(--surface-2); display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
+    .panel .phead h3 { margin: 0; font-size: 14px; font-weight: 600; }
+    .filters { display: flex; gap: 8px; flex-wrap: nowrap; align-items: center; overflow-x: auto; padding-bottom: 2px; }
+    .filters > * { flex: 0 0 auto; }
+    .filters .box { position: relative; }
+    .filters .box .material-symbols-outlined { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--outline, #707880); font-size: 18px; }
+    .filters input, .filters select { padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--txt); font: inherit; }
+    .filters .box input { padding-left: 32px; width: 200px; }
+    .filters .btn { padding: 8px 10px; }
+    .filters input:focus, .filters select:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
+
+    table { width: 100%; border-collapse: collapse; white-space: nowrap; }
+    thead th { text-align: left; padding: 10px 16px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: var(--surface-2); border-bottom: 1px solid var(--line); }
+    tbody td { padding: 10px 16px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+    tbody tr:hover { background: var(--surface-2); }
+    td .nm { font-weight: 600; }
+    td .sub { font-size: 12px; color: var(--muted); }
+    .tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px; }
+    .tag.colab { background: rgba(22,102,196,.14); color: var(--pri); }
+    .tag.dep { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+    .tag.terc { background: rgba(39,93,131,.14); color: var(--tertiary, #275d83); }
+    .st { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 99px; }
+    .st.pendente { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+    .st.aplicado { background: rgba(20,160,90,.14); color: var(--acc2); }
+    .st.recusado, .st.inelegivel { background: rgba(198,57,74,.12); color: var(--err); }
+    .st.ausente, .st.expirado, .st.removido { background: rgba(199,122,10,.14); color: var(--warn, #c77a0a); }
+    .iconbtn { background: none; border: 0; cursor: pointer; color: var(--pri); padding: 6px; border-radius: 6px; }
+    .iconbtn:hover { background: var(--surface-2); }
+    .iconbtn.ok { color: var(--acc2); } .iconbtn.danger { color: var(--err); }
+    .empty { padding: 28px 20px; text-align: center; color: var(--muted); }
+    .pfoot { padding: 12px 20px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+    .pfoot .cnt { font-size: 12px; color: var(--muted); }
+    th.chkcol, td.chkcol { width: 40px; text-align: center; padding-left: 12px; padding-right: 4px; }
+    input.rowchk, #chkAll { width: 16px; height: 16px; cursor: pointer; accent-color: var(--pri); vertical-align: middle; }
+    .bulkbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 20px; background: rgba(20,160,90,.06); border-bottom: 1px solid var(--line); }
+    .bulkbar .cnt { font-weight: 700; color: var(--acc2); }
+    .bulkbar label { font-size: 13px; color: var(--muted); }
+    .bulkbar select, .bulkbar input { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--txt); font: inherit; }
+    .bulkbar .btn { padding: 8px 12px; }
+
+    .drawer { position: fixed; inset: 0; z-index: 60; }
+    .drawer .backdrop { position: absolute; inset: 0; background: rgba(18,35,59,.45); }
+    .drawer .box { position: absolute; right: 0; top: 0; bottom: 0; width: 100%; max-width: 440px; background: var(--card); box-shadow: var(--sombra); display: flex; flex-direction: column; animation: slideIn .25s ease-out; }
+    @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    .drawer .dhead { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+    .drawer .dhead h3 { margin: 0; font-size: 18px; }
+    .drawer .x { background: none; border: 0; cursor: pointer; color: var(--muted); padding: 4px; border-radius: 6px; }
+    .drawer .dbody { padding: 16px 20px; overflow-y: auto; flex: 1; }
+    .drawer .kv { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+    .drawer .kv .k { color: var(--muted); font-size: 13px; }
+    .drawer .kv .v { font-weight: 600; text-align: right; }
+    .drawer label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 4px; }
+    .drawer select, .drawer input, .drawer textarea { width: 100%; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; color: var(--txt); font: inherit; }
+    .drawer select:focus, .drawer input:focus, .drawer textarea:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
+    .drawer .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .drawer .msg { font-size: 12px; min-height: 16px; margin-top: 10px; }
+    .drawer .msg.err { color: var(--err); } .drawer .msg.ok { color: var(--acc2); font-weight: 600; }
+    .drawer .dfoot { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--line); background: var(--surface-2); }
+
+    .login { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; z-index: 70; }
+    .login .lbox { background: var(--card); border: 1px solid var(--line); border-radius: var(--raio); box-shadow: var(--sombra); padding: 28px; width: 340px; }
+    .login .lbox .marca { margin-bottom: 18px; }
+    .login label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+    .login input { width: 100%; padding: 11px 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; color: var(--txt); font: inherit; }
+    .login input:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
+    .login .msg { font-size: 12px; color: var(--err); min-height: 16px; margin-top: 8px; }
+
+    @media (max-width: 900px) { .bento { grid-template-columns: 1fr; } }
+    @media (max-width: 720px) { .side { display: none; } .content { padding: 20px 16px; } .pagehead h1 { font-size: 24px; } }
+      .loading { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; z-index: 80; }
+    .loading .spin { width: 38px; height: 38px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--pri); animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+  <!-- Overlay de carregamento (evita flash da tela de login) -->
+  <div class="loading" id="loading"><div class="spin"></div></div>
+
+  <!-- Login gate -->
+  <div class="login hide" id="login">
+    <div class="lbox">
+      <div class="marca">
+        <div class="logo"><svg width="22" height="22" viewBox="0 0 32 32"><path d="M13.5 7h5v6.5H25v5h-6.5V25h-5v-6.5H7v-5h6.5z" fill="#fff"/></svg></div>
+        <div><div class="nome">S&amp;A <b>Imunizações</b></div><div class="tag">Portal do cliente</div></div>
+      </div>
+      <label>E-mail</label>
+      <input id="email" autocomplete="username" />
+      <label>Senha</label>
+      <input id="senha" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')entrar()" />
+      <div class="msg" id="loginMsg"></div>
+      <button class="btn primary" style="width:100%;justify-content:center;margin-top:12px" onclick="entrar()">Entrar</button>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="side">
+    <div class="brand">
+      <div class="logo"><svg width="24" height="24" viewBox="0 0 32 32"><path d="M13.5 7h5v6.5H25v5h-6.5V25h-5v-6.5H7v-5h6.5z" fill="#fff"/></svg></div>
+      <div><div class="nome">Portal do Cliente</div><div class="tag">S&amp;A Imunizações</div></div>
+    </div>
+    <nav>
+      <a class="navlink" href="/portal/"><span class="material-symbols-outlined">dashboard</span> Dashboard</a>
+      <a class="navlink" href="/portal/campanhas.html"><span class="material-symbols-outlined">campaign</span> Campanhas</a>
+      <a class="navlink" href="/portal/elegiveis.html"><span class="material-symbols-outlined">group</span> Elegíveis</a>
+      <button class="navlink active"><span class="material-symbols-outlined">verified</span> Vacinados</button>
+      <a class="navlink" href="/portal/relatorios.html"><span class="material-symbols-outlined">monitoring</span> Relatórios</a>
+      <a class="navlink" href="/portal/usuarios.html"><span class="material-symbols-outlined">manage_accounts</span> Usuários</a>
+      <a class="navlink" href="/portal/auditoria.html"><span class="material-symbols-outlined">history</span> Auditoria</a>
+    </nav>
+    <div class="foot">
+      <a class="navlink" href="/portal/legado.html"><span class="material-symbols-outlined">hub</span> Integrações &amp; API</a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="content">
+      <div class="pagehead">
+        <div>
+          <h1>Vacinados</h1>
+          <p>Pessoas vacinadas da campanha — onde e quem aplicou.</p>
+        </div>
+        <div class="actions">
+          <span class="who">Olá, <b id="quem">—</b></span>
+          <select class="sel" id="campSel" onchange="trocarCampanha()"><option value="">— selecione a campanha —</option></select>
+          <button class="btn sec" onclick="exportar()"><span class="material-symbols-outlined">download</span> Exportar</button>
+          <button class="btn sec" onclick="sair()"><span class="material-symbols-outlined">logout</span> Sair</button>
+        </div>
+      </div>
+
+      <div class="bento">
+        <div class="card">
+          <div class="top">
+            <div><span class="cod" id="cCodigo">—</span><div class="sub" id="cRotulo" style="font-size:12px;color:var(--muted)"></div></div>
+            <span class="chip plan" id="cStatus">—</span>
+          </div>
+          <div class="infogrid">
+            <div><div class="k">Cliente</div><div class="v" id="cCliente">—</div></div>
+            <div><div class="k">Cobertura</div><div class="v" id="cCobertura">—</div></div>
+          </div>
+        </div>
+        <div class="card fila">
+          <div class="top"><span class="lbl">Vacinados</span><span class="ico material-symbols-outlined">verified</span></div>
+          <div class="big" id="cVac">—</div>
+          <div class="sub" id="cResumo">—</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="phead">
+          <h3>Lista de vacinação</h3>
+          <div class="filters">
+            <div class="box"><span class="material-symbols-outlined">search</span>
+              <input id="busca" placeholder="Nome, CPF ou RH..." onkeydown="if(event.key==='Enter')recarregar()" />
+            </div>
+            <select id="fTipo" onchange="recarregar()">
+              <option value="">Todos os tipos</option>
+              <option value="colaborador">Colaborador</option>
+              <option value="dependente">Dependente</option>
+              <option value="terceiro">Terceiro</option>
+            </select>
+            <select id="fStatus" onchange="recarregar()">
+              <option value="aplicado" selected>Vacinados</option>
+              <option value="">Todos os status</option>
+              <option value="pendente">Pendentes (registrar)</option>
+              <option value="recusado">Recusado</option>
+              <option value="ausente">Ausente</option>
+            </select>
+            <select id="fVacina" onchange="recarregar()"><option value="">Todas as vacinas</option></select>
+            <select id="fClinica" onchange="recarregar()"><option value="">Todas as clínicas</option></select>
+            <input id="fDe" type="date" title="Aplicado de" onchange="recarregar()" />
+            <input id="fAte" type="date" title="Aplicado até" onchange="recarregar()" />
+            <button class="btn sec" onclick="limparFiltros()" title="Limpar filtros"><span class="material-symbols-outlined">filter_alt_off</span></button>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr><th>Paciente / CPF</th><th>Vacina / Dose</th><th>Lote</th><th>Aplicado em</th><th>Onde</th><th>Quem aplicou</th><th>Status</th><th style="text-align:right">Ações</th></tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+          <div class="empty hide" id="vazio">Nenhum registro encontrado.</div>
+        </div>
+        <div class="pfoot">
+          <span class="cnt" id="contagem">—</span>
+          <button class="btn sec hide" id="btnMais" onclick="carregarMais()">Carregar mais</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drawer detalhes -->
+  <div class="drawer hide" id="drawer">
+    <div class="backdrop" onclick="fecharDrawer()"></div>
+    <div class="box">
+      <div class="dhead"><h3 id="dNome">Detalhes</h3><button class="x" onclick="fecharDrawer()"><span class="material-symbols-outlined">close</span></button></div>
+      <div class="dbody" id="dBody"></div>
+      <div class="dfoot"><button class="btn sec" onclick="fecharDrawer()">Fechar</button></div>
+    </div>
+  </div>
+
+  <!-- Drawer registrar vacinação -->
+  <div class="drawer hide" id="drawerReg">
+    <div class="backdrop" onclick="fecharReg()"></div>
+    <div class="box">
+      <div class="dhead"><h3 id="regTitulo">Registrar vacinação</h3><button class="x" onclick="fecharReg()"><span class="material-symbols-outlined">close</span></button></div>
+      <div class="dbody">
+        <div class="kv"><span class="k" id="regAlvoLbl">Paciente</span><span class="v" id="regNome">—</span></div>
+        <label>Vacina</label>
+        <select id="regVacina"></select>
+        <div class="g2">
+          <div><label>Dose</label><input id="regDose" type="number" min="1" value="1" /></div>
+          <div><label>Aplicado em *</label><input id="regData" type="date" /></div>
+        </div>
+        <label>Lote *</label>
+        <input id="regLote" placeholder="ex.: ABC123" />
+        <label>Clínica que aplicou</label>
+        <select id="regClinica"><option value="">— In company / sem clínica —</option></select>
+        <div class="g2">
+          <div><label>Profissional — nome *</label><input id="regProfNome" placeholder="quem aplicou" /></div>
+          <div><label>Profissional — CPF *</label><input id="regProfCpf" placeholder="000.000.000-00" /></div>
+        </div>
+        <div class="g2">
+          <div><label>Cidade *</label><input id="regCidade" placeholder="cidade" /></div>
+          <div><label>UF *</label><input id="regUf" maxlength="2" placeholder="SP" style="text-transform:uppercase" /></div>
+        </div>
+        <label>Unidade / local (opcional)</label>
+        <input id="regUnid" placeholder="local de aplicação" />
+        <div class="msg" id="regMsg"></div>
+      </div>
+      <div class="dfoot">
+        <button class="btn sec" onclick="fecharReg()">Cancelar</button>
+        <button class="btn primary" onclick="salvarReg()"><span class="material-symbols-outlined">vaccines</span> Confirmar vacinação</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // ---------------------------------------------------------------------------
+  // Vacinados — registro de aplicação por campanha (sessão + CSRF, keyset).
+  // ---------------------------------------------------------------------------
+  let CSRF = null, CAMPANHAS = [], CAMP_VACINAS = [], CLINICAS = [], ITENS = [], CURSOR = null, CARREGADOS = 0, TOTAL = 0, REG_ELEG = null, REG_BULK = false;
+  let SELECIONADOS = new Set();
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const hoje = () => new Date().toISOString().substring(0, 10);
+
+  async function api(path, metodo = 'GET', corpo = null) {
+    const opts = { method: metodo, headers: {}, credentials: 'same-origin' };
+    if (corpo) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(corpo); }
+    if (metodo !== 'GET' && CSRF) opts.headers['X-CSRF-Token'] = CSRF;
+    const r = await fetch('/api/v1' + path, opts);
+    let d; try { d = await r.json(); } catch (e) { d = { success: false }; }
+    return { http: r.status, ...d };
+  }
+
+  const MOD = { in_company: 'In company', rede_credenciada: 'Rede credenciada', historico: 'Histórico' };
+  const TIPO = { colaborador: ['Colaborador', 'colab'], dependente: ['Dependente', 'dep'], terceiro: ['Terceiro', 'terc'] };
+  const CHIP = { ativa: ['Ativa', 'ok'], rascunho: ['Rascunho', 'plan'], encerrada: ['Encerrada', 'done'] };
+  const fmt = n => (n ?? 0).toLocaleString('pt-BR');
+  const ddmm = s => s ? s.substring(8, 10) + '/' + s.substring(5, 7) + '/' + s.substring(0, 4) : '—';
+  const campSelObj = () => CAMPANHAS.find(c => String(c.id) === document.getElementById('campSel').value) || null;
+
+  async function entrar() {
+    document.getElementById('loginMsg').textContent = '...';
+    const d = await api('/interno/auth/login', 'POST', { email: document.getElementById('email').value, senha: document.getElementById('senha').value });
+    if (!d.success) { document.getElementById('loginMsg').textContent = 'E-mail ou senha inválidos.'; return; }
+    CSRF = d.data.csrf_token;
+    document.getElementById('loginMsg').textContent = ''; document.getElementById('senha').value = '';
+    await iniciar();
+  }
+  async function sair() { await api('/interno/auth/logout', 'POST', {}); CSRF = null; document.getElementById('login').classList.remove('hide'); }
+
+  async function iniciar() {
+    const d = await api('/interno/campanhas?por_pagina=100');
+    if (d.http === 401) { document.getElementById('login').classList.remove('hide'); document.getElementById('loading').classList.add('hide'); return; }
+    document.getElementById('login').classList.add('hide'); document.getElementById('loading').classList.add('hide');
+    if (!d.success) return;
+    CAMPANHAS = d.data.itens || [];
+    document.getElementById('campSel').innerHTML = '<option value="">— selecione a campanha —</option>'
+      + CAMPANHAS.map(c => '<option value="' + c.id + '">' + (c.codigo || c.nome || ('#' + c.id)) + ' — ' + (c.cliente || '') + '</option>').join('');
+    const eu = await api('/interno/auth/eu');
+    if (eu.success) { document.getElementById('quem').textContent = eu.data.usuario.nome || '—'; if (!CSRF && eu.data.csrf_token) CSRF = eu.data.csrf_token; }
+    if (CAMPANHAS.length) { document.getElementById('campSel').value = String(CAMPANHAS[0].id); trocarCampanha(); }
+  }
+
+  async function trocarCampanha() {
+    const c = campSelObj();
+    document.getElementById('cCodigo').textContent = c ? (c.codigo || c.nome || ('#' + c.id)) : '—';
+    document.getElementById('cRotulo').textContent = c && c.codigo && c.nome ? c.nome : '';
+    document.getElementById('cCliente').textContent = c ? (c.cliente || '—') : '—';
+    const [rot, cls] = c ? (CHIP[c.status] || [c.status, 'plan']) : ['—', 'plan'];
+    const st = document.getElementById('cStatus'); st.textContent = rot; st.className = 'chip ' + cls;
+    // Carrega as vacinas da campanha (para os selects de registro).
+    CAMP_VACINAS = [];
+    if (c) {
+      const det = await api('/interno/campanhas/' + c.id);
+      if (det.success) CAMP_VACINAS = det.data.vacinas || [];
+    }
+    document.getElementById('regVacina').innerHTML = CAMP_VACINAS.length
+      ? CAMP_VACINAS.map(v => '<option value="' + v.vacina_id + '">' + esc(v.nome) + '</option>').join('')
+      : '<option value="">(campanha sem vacina)</option>';
+    // Filtro de vacina (as vacinas da campanha).
+    document.getElementById('fVacina').innerHTML = '<option value="">Todas as vacinas</option>'
+      + CAMP_VACINAS.map(v => '<option value="' + v.vacina_id + '">' + esc(v.nome) + '</option>').join('');
+    // Clínicas credenciadas (uma vez) para o registro e o filtro.
+    if (!CLINICAS.length) {
+      const cl = await api('/interno/clinicas');
+      if (cl.success) CLINICAS = cl.data.itens || [];
+    }
+    const optClin = CLINICAS.map(x => '<option value="' + x.id + '">' + esc(x.nome) + '</option>').join('');
+    document.getElementById('regClinica').innerHTML = '<option value="">— In company / sem clínica —</option>' + optClin;
+    document.getElementById('fClinica').innerHTML = '<option value="">Todas as clínicas</option>' + optClin;
+    recarregar();
+  }
+
+  function recarregar() {
+    CURSOR = null; CARREGADOS = 0; ITENS = [];
+    SELECIONADOS.clear();
+    document.getElementById('tbody').innerHTML = '';
+    atualizarBulk();
+    carregarVacinados();
+  }
+
+  async function carregarVacinados() {
+    const c = campSelObj();
+    if (!c) { document.getElementById('vazio').classList.remove('hide'); document.getElementById('contagem').textContent = 'Selecione uma campanha.'; return; }
+    const p = filtrosQuery();
+    p.set('por_pagina', '25');
+    if (CURSOR) p.set('apos', CURSOR);
+    const d = await api('/interno/campanhas/' + c.id + '/vacinados?' + p.toString());
+    if (d.http === 401) { document.getElementById('login').classList.remove('hide'); document.getElementById('loading').classList.add('hide'); return; }
+    if (!d.success) return;
+
+    const r = d.data.resumo || {};
+    TOTAL = (d.meta && d.meta.total) || 0;
+    const aplic = r.aplicado || 0;
+    document.getElementById('cVac').textContent = fmt(aplic);
+    document.getElementById('cResumo').textContent = 'Pendentes ' + fmt(r.pendente || 0) + ' · Total ' + fmt(TOTAL);
+    document.getElementById('cCobertura').textContent = TOTAL > 0 ? ((aplic * 100 / TOTAL).toFixed(1) + '%') : '—';
+
+    const itens = d.data.itens || [];
+    ITENS = ITENS.concat(itens);
+    CARREGADOS += itens.length;
+    document.getElementById('tbody').insertAdjacentHTML('beforeend', itens.map(e => linha(e)).join(''));
+    document.getElementById('vazio').classList.toggle('hide', CARREGADOS > 0);
+    document.getElementById('contagem').textContent = CARREGADOS + ' de ' + fmt(TOTAL) + ' registro(s)';
+    CURSOR = (d.meta && d.meta.proximo_cursor) || null;
+    document.getElementById('btnMais').classList.toggle('hide', !CURSOR);
+    atualizarBulk();
+  }
+  function carregarMais() { carregarVacinados(); }
+
+  function linha(e) {
+    const aplicado = e.status === 'aplicado' && e.aplicacao_id;
+    const vac = aplicado ? (esc(e.vacina || '—') + (e.dose ? '<div class="sub">Dose ' + esc(e.dose) + '</div>' : '')) : '<span class="sub">—</span>';
+    const lote = aplicado ? esc(e.lote || '—') : '<span class="sub">—</span>';
+    const quando = aplicado ? ddmm(e.aplicado_em) : '<span class="sub">—</span>';
+
+    // Onde: clínica (ou unidade), com cidade/UF na sublinha.
+    let onde = '<span class="sub">—</span>', quem = '<span class="sub">—</span>';
+    if (aplicado) {
+      const cidadeUf = [e.cidade, e.uf].filter(Boolean).join('/');
+      const ondeTop = e.clinica ? esc(e.clinica) : (e.unidade ? esc(e.unidade) : (cidadeUf ? esc(cidadeUf) : '—'));
+      const ondeSub = (e.clinica || e.unidade) && cidadeUf ? ('<div class="sub">' + esc(cidadeUf) + '</div>') : '';
+      onde = ondeTop + ondeSub;
+      quem = (e.profissional_nome ? esc(e.profissional_nome) : '—')
+        + (e.profissional_cpf ? ('<div class="sub">' + esc(e.profissional_cpf) + '</div>') : '');
+    }
+
+    let acoes = '<button class="iconbtn" title="Detalhes" onclick="verDetalhe(' + e.id + ')"><span class="material-symbols-outlined" style="font-size:20px">visibility</span></button>';
+    return '<tr>'
+      + '<td><div class="nm">' + esc(e.nome || '—') + '</div><div class="sub">' + esc(e.cpf || '') + '</div></td>'
+      + '<td>' + vac + '</td>'
+      + '<td>' + lote + '</td>'
+      + '<td>' + quando + '</td>'
+      + '<td>' + onde + '</td>'
+      + '<td>' + quem + '</td>'
+      + '<td><span class="st ' + esc(e.status) + '">' + esc(e.status) + '</span></td>'
+      + '<td style="text-align:right;white-space:nowrap">' + acoes + '</td>'
+      + '</tr>';
+  }
+
+  function verDetalhe(id) {
+    const e = ITENS.find(x => x.id === id); if (!e) return;
+    document.getElementById('dNome').textContent = e.nome || 'Detalhes';
+    const kv = (k, v) => '<div class="kv"><span class="k">' + k + '</span><span class="v">' + esc(v || '—') + '</span></div>';
+    const local = [e.cidade, e.uf].filter(Boolean).join('/');
+    document.getElementById('dBody').innerHTML =
+        kv('CPF', e.cpf)
+      + kv('Tipo de vínculo', e.tipo_vinculo)
+      + kv('Situação', e.status)
+      + kv('Vacina', e.vacina)
+      + kv('Dose', e.dose)
+      + kv('Lote', e.lote)
+      + kv('Aplicado em', e.aplicado_em ? ddmm(e.aplicado_em) : '')
+      + kv('Clínica', e.clinica)
+      + kv('Profissional', e.profissional_nome)
+      + kv('CPF do profissional', e.profissional_cpf)
+      + kv('Cidade/UF', local)
+      + kv('Unidade / local', e.unidade);
+    document.getElementById('drawer').classList.remove('hide');
+  }
+  function fecharDrawer() { document.getElementById('drawer').classList.add('hide'); }
+
+  // ---- Registrar (individual ou em massa) ----------------------------------
+  function fecharReg() { document.getElementById('drawerReg').classList.add('hide'); }
+  function falhaReg(t) { const m = document.getElementById('regMsg'); m.className = 'msg err'; m.textContent = t; }
+  function prepReg() {
+    ['regLote', 'regProfNome', 'regProfCpf', 'regCidade', 'regUf', 'regUnid'].forEach(i => document.getElementById(i).value = '');
+    document.getElementById('regDose').value = 1;
+    document.getElementById('regData').value = hoje();
+    document.getElementById('regClinica').value = '';
+    const msg = document.getElementById('regMsg'); msg.className = 'msg'; msg.textContent = '';
+    document.getElementById('drawerReg').classList.remove('hide');
+  }
+  function abrirReg(id) {
+    const e = ITENS.find(x => x.id === id); if (!e) return;
+    if (!CAMP_VACINAS.length) { alert('A campanha não tem vacina cadastrada.'); return; }
+    REG_BULK = false; REG_ELEG = id;
+    document.getElementById('regTitulo').textContent = 'Registrar vacinação';
+    document.getElementById('regAlvoLbl').textContent = 'Paciente';
+    document.getElementById('regNome').textContent = e.nome || ('#' + id);
+    prepReg();
+  }
+  function abrirRegBulk() {
+    if (!CAMP_VACINAS.length) { alert('A campanha não tem vacina cadastrada.'); return; }
+    const alvos = ITENS.filter(e => SELECIONADOS.has(e.id) && e.status !== 'aplicado');
+    if (!alvos.length) { alert('Nenhum selecionado pendente de vacinação.'); return; }
+    REG_BULK = true; REG_ELEG = null;
+    document.getElementById('regTitulo').textContent = 'Registrar em massa';
+    document.getElementById('regAlvoLbl').textContent = 'Selecionados (pendentes)';
+    document.getElementById('regNome').textContent = alvos.length;
+    prepReg();
+  }
+
+  async function salvarReg() {
+    const msg = document.getElementById('regMsg');
+    const vacina_id = Number(document.getElementById('regVacina').value || 0);
+    const base = {
+      vacina_id,
+      dose: Number(document.getElementById('regDose').value || 1),
+      lote: document.getElementById('regLote').value.trim(),
+      aplicado_em: document.getElementById('regData').value,
+      profissional_nome: document.getElementById('regProfNome').value.trim(),
+      profissional_cpf: document.getElementById('regProfCpf').value.trim(),
+      cidade: document.getElementById('regCidade').value.trim(),
+      uf: document.getElementById('regUf').value.trim().toUpperCase(),
+      clinica_id: document.getElementById('regClinica').value ? Number(document.getElementById('regClinica').value) : null,
+      unidade: document.getElementById('regUnid').value.trim() || null,
+    };
+    if (!vacina_id) return falhaReg('Selecione a vacina.');
+    if (!base.lote) return falhaReg('Informe o lote.');
+    if (!base.aplicado_em) return falhaReg('Informe a data de aplicação.');
+    if (!base.profissional_nome) return falhaReg('Informe o nome do profissional.');
+    if (!base.profissional_cpf) return falhaReg('Informe o CPF do profissional.');
+    if (!base.cidade) return falhaReg('Informe a cidade.');
+    if (base.uf.length !== 2) return falhaReg('Informe a UF (2 letras).');
+    msg.className = 'msg'; msg.textContent = 'Salvando...';
+
+    if (REG_BULK) {
+      const alvos = ITENS.filter(e => SELECIONADOS.has(e.id) && e.status !== 'aplicado');
+      const aplicacoes = alvos.map(e => ({ elegivel_id: e.id, ...base }));
+      const d = await api('/interno/aplicacoes-lote', 'POST', { aplicacoes });
+      if (!d.success) return falhaReg(d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Erro.'));
+      msg.className = 'msg ok'; msg.textContent = d.data.confirmados + ' registrado(s)' + (d.data.rejeitados ? ' · ' + d.data.rejeitados + ' rejeitado(s)' : '') + '.';
+      setTimeout(() => { fecharReg(); limparSelecao(); recarregar(); }, 900);
+      return;
+    }
+    const d = await api('/interno/aplicacoes', 'POST', { elegivel_id: REG_ELEG, ...base });
+    if (!d.success) return falhaReg(d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Erro.'));
+    msg.className = 'msg ok'; msg.textContent = 'Vacinação registrada!';
+    setTimeout(() => { fecharReg(); recarregar(); }, 600);
+  }
+
+  // ---- Estornar (desvacinar) -----------------------------------------------
+  async function estornar(aplicacaoId, elegId) {
+    const motivo = prompt('Motivo do estorno (desvacinar):');
+    if (motivo === null) return;
+    if (!motivo.trim()) { alert('O motivo é obrigatório.'); return; }
+    const d = await api('/interno/aplicacoes/' + aplicacaoId + '/estornar', 'POST', { motivo: motivo.trim() });
+    if (!d.success) { alert('Erro: ' + (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'falhou'))); return; }
+    recarregar();
+  }
+
+  // ---- Seleção em massa (registrar) ----------------------------------------
+  function toggleRow(id, checked) { if (checked) SELECIONADOS.add(id); else SELECIONADOS.delete(id); atualizarBulk(); }
+  function toggleTodos(checked) {
+    document.querySelectorAll('#tbody .rowchk').forEach(cb => { cb.checked = checked; });
+    ITENS.forEach(e => { if (checked) SELECIONADOS.add(e.id); else SELECIONADOS.delete(e.id); });
+    atualizarBulk();
+  }
+  function limparSelecao() {
+    SELECIONADOS.clear();
+    document.querySelectorAll('#tbody .rowchk').forEach(cb => cb.checked = false);
+    atualizarBulk();
+  }
+  function atualizarBulk() { /* seleção desativada no portal (registro é interno) */ }
+  // Monta os parâmetros de filtro comuns à listagem e ao export.
+  function filtrosQuery() {
+    const p = new URLSearchParams();
+    const q = document.getElementById('busca').value.trim(); if (q) p.set('q', q);
+    const t = document.getElementById('fTipo').value; if (t) p.set('tipo', t);
+    const s = document.getElementById('fStatus').value; if (s) p.set('status', s);
+    const v = document.getElementById('fVacina').value; if (v) p.set('vacina_id', v);
+    const cl = document.getElementById('fClinica').value; if (cl) p.set('clinica_id', cl);
+    const de = document.getElementById('fDe').value; if (de) p.set('de', de);
+    const ate = document.getElementById('fAte').value; if (ate) p.set('ate', ate);
+    return p;
+  }
+  function limparFiltros() {
+    document.getElementById('busca').value = '';
+    document.getElementById('fTipo').value = '';
+    document.getElementById('fStatus').value = 'aplicado';
+    document.getElementById('fVacina').value = '';
+    document.getElementById('fClinica').value = '';
+    document.getElementById('fDe').value = '';
+    document.getElementById('fAte').value = '';
+    recarregar();
+  }
+  function exportar() {
+    const c = campSelObj(); if (!c) return;
+    const qs = filtrosQuery().toString();
+    window.open('/api/v1/interno/campanhas/' + c.id + '/vacinados/exportar' + (qs ? ('?' + qs) : ''), '_blank');
+  }
+
+  iniciar();
+  </script>
+</body>
+</html>

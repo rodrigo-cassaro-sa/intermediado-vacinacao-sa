@@ -23,6 +23,10 @@ function rota_relatorio_gestao(array $params): void
 
     $geridos = clientes_geridos_pelo_usuario($usuario);
     if ($geridos !== ['*'] && !$geridos) {
+        // Nível local/unidade: cai nos clientes acessíveis (senão a tela fica vazia).
+        $geridos = clientes_acessiveis_pelo_usuario($usuario);
+    }
+    if ($geridos !== ['*'] && !$geridos) {
         responder_sucesso(['itens' => [], 'resumo' => []], 'OK.');
     }
     $where = 'c.excluido_em IS NULL';

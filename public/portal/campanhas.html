@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestão de Campanhas — Portal do Cliente</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+  <link rel="stylesheet" href="/assets/marca.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Inter', system-ui, Segoe UI, Roboto, sans-serif; background: var(--bg); color: var(--txt); font-size: 14px; display: flex; height: 100vh; overflow: hidden; }
+    .material-symbols-outlined { font-family: 'Material Symbols Outlined'; font-size: 22px; line-height: 1; }
+    .hide { display: none !important; }
+
+    .side { width: 256px; flex: 0 0 256px; background: var(--card); border-right: 1px solid var(--line); box-shadow: var(--sombra); display: flex; flex-direction: column; padding: 16px 0; }
+    .side .brand { padding: 6px 20px 20px; display: flex; flex-direction: column; gap: 8px; }
+    .side .brand .logo { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, var(--acc) 0%, var(--pri) 100%); display: grid; place-items: center; box-shadow: 0 4px 12px rgba(22,102,196,.28); }
+    .side .brand .nome { font-size: 20px; font-weight: 800; letter-spacing: -.01em; color: var(--pri); line-height: 1.15; }
+    .side .brand .tag { font-size: 12px; color: var(--muted); }
+    .side nav { flex: 1; padding: 0 12px; display: flex; flex-direction: column; gap: 4px; }
+    .side .foot { padding: 12px 12px 0; margin-top: auto; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
+    .navlink { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; color: var(--muted); text-decoration: none; font-weight: 500; background: none; border: 0; font: inherit; cursor: pointer; text-align: left; width: 100%; transition: background .15s, color .15s; }
+    .navlink:hover { background: var(--surface-2); color: var(--txt); }
+    .navlink.active { background: var(--surface-2); color: var(--pri); font-weight: 600; }
+    .navlink .material-symbols-outlined { font-variation-settings: 'FILL' 0; }
+    .navlink.active .material-symbols-outlined { font-variation-settings: 'FILL' 1; }
+
+    .main { flex: 1; overflow-y: auto; }
+    .content { max-width: 1440px; margin: 0 auto; padding: 24px 32px; display: flex; flex-direction: column; gap: 24px; }
+    .pagehead { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+    .pagehead h1 { font-size: 32px; font-weight: 700; letter-spacing: -.02em; margin: 0; }
+    .pagehead p { margin: 6px 0 0; color: var(--muted); }
+    .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .who { color: var(--muted); font-size: 13px; margin-right: 4px; } .who b { color: var(--txt); }
+    .btn { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; padding: 10px 16px; border-radius: 8px; font: inherit; font-weight: 600; border: 0; }
+    .btn .material-symbols-outlined { font-size: 18px; }
+    .btn.primary { background: var(--pri); color: #fff; box-shadow: 0 2px 6px rgba(22,102,196,.25); }
+    .btn.primary:hover { background: var(--pri2); }
+    .btn.sec { background: var(--card); color: var(--txt); border: 1px solid var(--line); }
+    .btn.sec:hover { background: var(--surface-2); }
+
+    .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--sombra); overflow: hidden; }
+    .panel .phead { padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--surface-2); display: flex; justify-content: space-between; align-items: center; }
+    .panel .phead h3 { margin: 0; font-size: 14px; font-weight: 600; }
+    .panel .phead .upd { font-size: 12px; color: var(--muted); }
+    .search { padding: 16px 20px; display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
+    .search .field { display: flex; flex-direction: column; }
+    .search label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+    .search .box { position: relative; width: 340px; max-width: 100%; }
+    .search .box .material-symbols-outlined { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--outline, #707880); font-size: 18px; }
+    .search input, .search select { padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--txt); font: inherit; }
+    .search .box input { width: 100%; padding-left: 34px; }
+    .search select { min-width: 170px; cursor: pointer; }
+    .search input:focus, .search select:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
+
+    table { width: 100%; border-collapse: collapse; }
+    thead th { text-align: left; padding: 12px 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: var(--surface-2); border-bottom: 1px solid var(--line); }
+    tbody td { padding: 14px 20px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+    tbody tr:hover { background: var(--surface-2); }
+    .cod { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; color: var(--pri); letter-spacing: .02em; }
+    .sub { font-size: 12px; color: var(--muted); }
+    .chip { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 99px; white-space: nowrap; }
+    .chip.ok { background: rgba(20,160,90,.14); color: var(--acc2); }
+    .chip.plan { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+    .chip.done { background: rgba(18,35,59,.08); color: var(--muted); }
+    .iconbtn { background: none; border: 0; cursor: pointer; color: var(--pri); padding: 6px; border-radius: 6px; }
+    .iconbtn:hover { background: var(--surface-2); }
+    .iconbtn.danger { color: var(--err); }
+    .empty { padding: 28px 20px; text-align: center; color: var(--muted); }
+
+    .drawer { position: fixed; inset: 0; z-index: 60; }
+    .drawer .backdrop { position: absolute; inset: 0; background: rgba(18,35,59,.45); }
+    .drawer .box { position: absolute; right: 0; top: 0; bottom: 0; width: 100%; max-width: 480px; background: var(--card); box-shadow: var(--sombra); display: flex; flex-direction: column; animation: slideIn .25s ease-out; }
+    @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    .drawer .dhead { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+    .drawer .dhead h3 { margin: 0; font-size: 18px; }
+    .drawer .x { background: none; border: 0; cursor: pointer; color: var(--muted); padding: 4px; border-radius: 6px; }
+    .drawer .x:hover { background: var(--card); color: var(--txt); }
+    .drawer .dbody { padding: 16px 20px; overflow-y: auto; flex: 1; }
+    .drawer label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+    .drawer input, .drawer select { width: 100%; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; color: var(--txt); font: inherit; }
+    .drawer input:focus, .drawer select:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
+    .drawer .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .drawer .msg { font-size: 12px; min-height: 16px; margin-top: 10px; }
+    .drawer .msg.err { color: var(--err); } .drawer .msg.ok { color: var(--acc2); font-weight: 600; }
+    .drawer .dfoot { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--line); background: var(--surface-2); }
+    .siglawarn { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--warn, #c77a0a); background: #fff7ec; border: 1px solid var(--warn, #c77a0a); border-radius: 8px; padding: 8px 10px; margin-top: 8px; }
+    .siglawarn .sinp { width: 72px; text-transform: uppercase; padding: 6px 8px; }
+    .mini { padding: 6px 10px; border-radius: 6px; border: 0; background: var(--pri); color: #fff; font: inherit; font-weight: 600; font-size: 12px; cursor: pointer; }
+    .mini:hover { background: var(--pri2); }
+    .preview { margin-top: 14px; padding: 12px; background: var(--surface-2); border: 1px dashed var(--line); border-radius: 8px; font-size: 14px; }
+    .preview b { color: var(--pri); font-weight: 700; letter-spacing: .02em; }
+    .codbox { margin-top: 4px; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; color: var(--pri); }
+
+    .login { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; z-index: 70; }
+    .login .lbox { background: var(--card); border: 1px solid var(--line); border-radius: var(--raio); box-shadow: var(--sombra); padding: 28px; width: 340px; }
+    .login .lbox .marca { margin-bottom: 18px; }
+    .login label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+    .login input { width: 100%; padding: 11px 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; color: var(--txt); font: inherit; }
+    .login input:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
+    .login .msg { font-size: 12px; color: var(--err); min-height: 16px; margin-top: 8px; }
+
+    @media (max-width: 720px) { .side { display: none; } .content { padding: 20px 16px; } .pagehead h1 { font-size: 24px; } }
+      .loading { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; z-index: 80; }
+    .loading .spin { width: 38px; height: 38px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--pri); animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+  <!-- Overlay de carregamento (evita flash da tela de login) -->
+  <div class="loading" id="loading"><div class="spin"></div></div>
+
+  <!-- Login gate -->
+  <div class="login hide" id="login">
+    <div class="lbox">
+      <div class="marca">
+        <div class="logo"><svg width="22" height="22" viewBox="0 0 32 32"><path d="M13.5 7h5v6.5H25v5h-6.5V25h-5v-6.5H7v-5h6.5z" fill="#fff"/></svg></div>
+        <div><div class="nome">S&amp;A <b>Imunizações</b></div><div class="tag">Portal do cliente</div></div>
+      </div>
+      <label>E-mail</label>
+      <input id="email" autocomplete="username" />
+      <label>Senha</label>
+      <input id="senha" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')entrar()" />
+      <div class="msg" id="loginMsg"></div>
+      <button class="btn primary" style="width:100%;justify-content:center;margin-top:12px" onclick="entrar()">Entrar</button>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="side">
+    <div class="brand">
+      <div class="logo"><svg width="24" height="24" viewBox="0 0 32 32"><path d="M13.5 7h5v6.5H25v5h-6.5V25h-5v-6.5H7v-5h6.5z" fill="#fff"/></svg></div>
+      <div><div class="nome">Portal do Cliente</div><div class="tag">S&amp;A Imunizações</div></div>
+    </div>
+    <nav>
+      <a class="navlink" href="/portal/"><span class="material-symbols-outlined">dashboard</span> Dashboard</a>
+      <button class="navlink active"><span class="material-symbols-outlined">campaign</span> Campanhas</button>
+      <a class="navlink" href="/portal/elegiveis.html"><span class="material-symbols-outlined">group</span> Elegíveis</a>
+      <a class="navlink" href="/portal/vacinados.html"><span class="material-symbols-outlined">verified</span> Vacinados</a>
+      <a class="navlink" href="/portal/relatorios.html"><span class="material-symbols-outlined">monitoring</span> Relatórios</a>
+      <a class="navlink" href="/portal/usuarios.html"><span class="material-symbols-outlined">manage_accounts</span> Usuários</a>
+      <a class="navlink" href="/portal/auditoria.html"><span class="material-symbols-outlined">history</span> Auditoria</a>
+    </nav>
+    <div class="foot">
+      <a class="navlink" href="/portal/legado.html"><span class="material-symbols-outlined">hub</span> Integrações &amp; API</a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="content">
+      <div class="pagehead">
+        <div>
+          <h1>Gestão de Campanhas</h1>
+          <p>Campanhas do seu escopo (somente leitura). Para criar ou alterar, fale com a S&amp;A.</p>
+        </div>
+        <div class="actions">
+          <span class="who">Olá, <b id="quem">—</b></span>
+          <button class="btn sec" onclick="carregar()"><span class="material-symbols-outlined">refresh</span> Atualizar</button>
+          <button class="btn sec" onclick="sair()"><span class="material-symbols-outlined">logout</span> Sair</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="search">
+          <div class="field">
+            <label>Buscar por código, cliente ou rótulo</label>
+            <div class="box"><span class="material-symbols-outlined">search</span>
+              <input id="busca" placeholder="Ex.: IF3.2026, cliente, rótulo..." oninput="renderTabela()" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <select id="fFiltroStatus" onchange="renderTabela()">
+              <option value="todas">Todas</option>
+              <option value="rascunho">Rascunho</option>
+              <option value="ativa" selected>Ativa</option>
+              <option value="encerrada">Encerrada</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="phead"><h3>Campanhas</h3><span class="upd" id="contagem">—</span></div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr><th>Código</th><th>Cliente</th><th>Modalidade</th><th>Temporada</th><th>Período</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+          <div class="empty hide" id="vazio">Nenhuma campanha encontrada.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drawer -->
+  <div class="drawer hide" id="drawer">
+    <div class="backdrop" onclick="fecharDrawer()"></div>
+    <div class="box">
+      <div class="dhead">
+        <h3 id="drawerTitulo">Nova Campanha</h3>
+        <button class="x" onclick="fecharDrawer()"><span class="material-symbols-outlined">close</span></button>
+      </div>
+      <div class="dbody">
+        <!-- Bloco só de criação -->
+        <div id="blocoNovo">
+          <label>Cliente</label>
+          <select id="fCliente" onchange="onFormChange()"></select>
+          <div id="avisoCli" class="siglawarn hide">Cliente sem sigla — <input id="siglaCli" maxlength="3" placeholder="ABC" class="sinp" /> <button class="mini" onclick="salvarSiglaCliente()">definir</button></div>
+          <div id="avisoGrp" class="siglawarn hide">Grupo sem sigla — <input id="siglaGrp" maxlength="3" placeholder="ABC" class="sinp" /> <button class="mini" onclick="salvarSiglaGrupo()">definir</button></div>
+
+          <label>Vacina</label>
+          <select id="fVacina" onchange="onFormChange()"></select>
+          <div id="avisoVac" class="siglawarn hide">Vacina sem sigla — <input id="siglaVac" maxlength="3" placeholder="ABC" class="sinp" /> <button class="mini" onclick="salvarSiglaVacina()">definir</button></div>
+
+          <div class="g2">
+            <div><label>Temporada (ano)</label><input type="number" id="fTemporada" min="2000" max="2100" oninput="onFormChange()" /></div>
+            <div><label>Modalidade</label>
+              <select id="fModalidade" onchange="onFormChange()">
+                <option value="in_company">In company (IC)</option>
+                <option value="rede_credenciada">Rede credenciada (RC)</option>
+              </select>
+            </div>
+          </div>
+          <div class="preview">Código gerado: <b id="codPreview">—</b> <span class="sub">(a sequência é definida ao salvar)</span></div>
+        </div>
+
+        <!-- Bloco só de edição -->
+        <div id="blocoEdit" class="hide">
+          <label>Código</label>
+          <div class="codbox" id="codEdit">—</div>
+        </div>
+
+        <div class="g2">
+          <div><label>Início</label><input type="date" id="fInicio" /></div>
+          <div><label>Fim</label><input type="date" id="fFim" /></div>
+        </div>
+        <div class="g2">
+          <div><label>Status</label>
+            <select id="fStatus">
+              <option value="rascunho">Rascunho</option>
+              <option value="ativa">Ativa</option>
+            </select>
+          </div>
+          <div><label>Rótulo (opcional)</label><input id="fNome" placeholder="nome amigável" /></div>
+        </div>
+        <label>Doses previstas (meta — opcional)</label>
+        <input type="number" id="fDoses" min="0" placeholder="ex.: 2500 — usada no alerta do relatório" />
+        <div class="msg" id="drawerMsg"></div>
+      </div>
+      <div class="dfoot">
+        <button class="btn sec" onclick="fecharDrawer()">Cancelar</button>
+        <button class="btn primary" onclick="salvar()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // ---------------------------------------------------------------------------
+  // Gestão de campanhas — lista/cria/edita/encerra (sessão + CSRF). Código
+  // automático reaproveita as siglas dos cadastros (igual à dashboard).
+  // ---------------------------------------------------------------------------
+  let CSRF = null, CAMPANHAS = [], CLIENTES = [], VACINAS = [], EDIT_ID = null;
+
+  async function api(path, metodo = 'GET', corpo = null) {
+    const opts = { method: metodo, headers: {}, credentials: 'same-origin' };
+    if (corpo) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(corpo); }
+    if (metodo !== 'GET' && CSRF) opts.headers['X-CSRF-Token'] = CSRF;
+    const r = await fetch('/api/v1' + path, opts);
+    let d; try { d = await r.json(); } catch (e) { d = { success: false }; }
+    return { http: r.status, ...d };
+  }
+
+  const MOD = { in_company: 'In company', rede_credenciada: 'Rede credenciada', historico: 'Histórico' };
+  const CHIP = { ativa: ['Ativa', 'ok'], rascunho: ['Rascunho', 'plan'], encerrada: ['Encerrada', 'done'] };
+  const ddmm = s => s ? s.substring(8, 10) + '/' + s.substring(5, 7) + '/' + s.substring(0, 4) : '—';
+
+  async function entrar() {
+    document.getElementById('loginMsg').textContent = '...';
+    const d = await api('/interno/auth/login', 'POST', { email: document.getElementById('email').value, senha: document.getElementById('senha').value });
+    if (!d.success) { document.getElementById('loginMsg').textContent = 'E-mail ou senha inválidos.'; return; }
+    CSRF = d.data.csrf_token;
+    document.getElementById('loginMsg').textContent = ''; document.getElementById('senha').value = '';
+    await carregar();
+  }
+  async function sair() { await api('/interno/auth/logout', 'POST', {}); CSRF = null; document.getElementById('login').classList.remove('hide'); }
+
+  async function carregar() {
+    const d = await api('/interno/campanhas?por_pagina=100');
+    if (d.http === 401) { document.getElementById('login').classList.remove('hide'); document.getElementById('loading').classList.add('hide'); return; }
+    document.getElementById('login').classList.add('hide'); document.getElementById('loading').classList.add('hide');
+    if (!d.success) return;
+    CAMPANHAS = d.data.itens || [];
+    renderTabela();
+    const eu = await api('/interno/auth/eu');
+    if (eu.success) {
+      document.getElementById('quem').textContent = eu.data.usuario.nome || '—';
+      if (!CSRF && eu.data.csrf_token) CSRF = eu.data.csrf_token;
+    }
+  }
+
+  function renderTabela() {
+    const q = (document.getElementById('busca').value || '').trim().toLowerCase();
+    const st = document.getElementById('fFiltroStatus').value;
+    const lista = CAMPANHAS.filter(c => {
+      if (st !== 'todas' && c.status !== st) return false;
+      return !q
+        || (c.codigo || '').toLowerCase().includes(q)
+        || (c.cliente || '').toLowerCase().includes(q)
+        || (c.nome || '').toLowerCase().includes(q);
+    });
+    document.getElementById('contagem').textContent = lista.length + ' de ' + CAMPANHAS.length + ' campanha(s)';
+    document.getElementById('vazio').classList.toggle('hide', lista.length > 0);
+    document.getElementById('tbody').innerHTML = lista.map(c => {
+      const [rot, cls] = CHIP[c.status] || [c.status, 'plan'];
+      const encerrarBtn = '';
+      const cod = c.codigo ? '<span class="cod">' + c.codigo + '</span>' : '<span class="sub">sem código</span>';
+      const rotulo = c.nome ? '<div class="sub">' + c.nome + '</div>' : '';
+      return '<tr>'
+        + '<td>' + cod + rotulo + '</td>'
+        + '<td>' + (c.cliente || '') + '</td>'
+        + '<td>' + (MOD[c.modalidade] || c.modalidade) + '</td>'
+        + '<td>' + (c.temporada || '—') + '</td>'
+        + '<td class="sub">' + ddmm(c.periodo_inicio) + ' → ' + ddmm(c.periodo_fim) + '</td>'
+        + '<td><span class="chip ' + cls + '">' + rot + '</span></td>'
+        + '<td style="text-align:right;white-space:nowrap"><span class="sub">—</span></td>'
+        + '</tr>';
+    }).join('');
+  }
+
+  // ---- Criar --------------------------------------------------------------
+  const clienteSel = () => CLIENTES.find(c => String(c.id) === document.getElementById('fCliente').value) || null;
+  const vacinaSel  = () => VACINAS.find(v => String(v.id) === document.getElementById('fVacina').value) || null;
+
+  async function abrirNova() {
+    EDIT_ID = null;
+    document.getElementById('drawerTitulo').textContent = 'Nova Campanha';
+    document.getElementById('blocoNovo').classList.remove('hide');
+    document.getElementById('blocoEdit').classList.add('hide');
+    const msg = document.getElementById('drawerMsg'); msg.className = 'msg'; msg.textContent = '';
+    const [cli, vac] = await Promise.all([api('/interno/clientes'), api('/interno/vacinas')]);
+    CLIENTES = (cli.success && cli.data.itens) ? cli.data.itens : [];
+    VACINAS  = (vac.success && vac.data.itens) ? vac.data.itens : [];
+    document.getElementById('fCliente').innerHTML = CLIENTES.length
+      ? CLIENTES.map(c => '<option value="' + c.id + '">' + c.razao_social + (c.sigla ? ' [' + c.sigla + ']' : '') + '</option>').join('')
+      : '<option value="">(nenhum cliente)</option>';
+    document.getElementById('fVacina').innerHTML = VACINAS.length
+      ? VACINAS.map(v => '<option value="' + v.id + '">' + v.nome + (v.sigla ? ' [' + v.sigla + ']' : '') + '</option>').join('')
+      : '<option value="">(nenhuma vacina)</option>';
+    document.getElementById('fTemporada').value = new Date().getFullYear();
+    document.getElementById('fModalidade').value = 'in_company';
+    document.getElementById('fStatus').innerHTML = '<option value="rascunho">Rascunho</option><option value="ativa">Ativa</option>';
+    document.getElementById('fStatus').value = 'rascunho';
+    document.getElementById('fInicio').value = '';
+    document.getElementById('fFim').value = '';
+    document.getElementById('fNome').value = '';
+    document.getElementById('fDoses').value = '';
+    onFormChange();
+    document.getElementById('drawer').classList.remove('hide');
+  }
+
+  function abrirEdit(id) {
+    const c = CAMPANHAS.find(x => x.id === id); if (!c) return;
+    EDIT_ID = id;
+    document.getElementById('drawerTitulo').textContent = 'Editar Campanha';
+    document.getElementById('blocoNovo').classList.add('hide');
+    document.getElementById('blocoEdit').classList.remove('hide');
+    document.getElementById('codEdit').textContent = c.codigo || ('#' + c.id);
+    document.getElementById('fInicio').value = (c.periodo_inicio || '').substring(0, 10);
+    document.getElementById('fFim').value = (c.periodo_fim || '').substring(0, 10);
+    // Preserva 'encerrada' como opção (evita reabrir sem intenção); reabrir = escolher Ativa.
+    document.getElementById('fStatus').innerHTML = '<option value="rascunho">Rascunho</option><option value="ativa">Ativa</option>'
+      + (c.status === 'encerrada' ? '<option value="encerrada">Encerrada</option>' : '');
+    document.getElementById('fStatus').value = c.status;
+    document.getElementById('fNome').value = c.nome || '';
+    document.getElementById('fDoses').value = (c.doses_previstas != null ? c.doses_previstas : '');
+    const msg = document.getElementById('drawerMsg'); msg.className = 'msg'; msg.textContent = '';
+    document.getElementById('drawer').classList.remove('hide');
+  }
+  function fecharDrawer() { document.getElementById('drawer').classList.add('hide'); }
+
+  function onFormChange() {
+    const c = clienteSel(), v = vacinaSel();
+    const temp = document.getElementById('fTemporada').value || '????';
+    const mod = document.getElementById('fModalidade').value === 'in_company' ? 'IC' : 'RC';
+    const vSig = v && v.sigla ? v.sigla : '???';
+    const cSig = c && c.sigla ? c.sigla : '???';
+    const gSig = c ? (c.grupo_sigla || c.sigla || '???') : '???';
+    document.getElementById('codPreview').textContent = vSig + '.' + temp + '.' + mod + '.' + gSig + '.' + cSig + '.?';
+    document.getElementById('avisoCli').classList.toggle('hide', !(c && !c.sigla));
+    document.getElementById('avisoVac').classList.toggle('hide', !(v && !v.sigla));
+    document.getElementById('avisoGrp').classList.toggle('hide', !(c && c.grupo_empresarial_id && !c.grupo_sigla));
+  }
+
+  function siglaErro(d) { const m = document.getElementById('drawerMsg'); m.className = 'msg err'; m.textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Não foi possível salvar a sigla.')); }
+  async function salvarSiglaCliente() {
+    const c = clienteSel(); if (!c) return;
+    const d = await api('/interno/clientes/' + c.id + '/sigla', 'POST', { sigla: document.getElementById('siglaCli').value });
+    if (!d.success) return siglaErro(d);
+    c.sigla = d.data.sigla; document.getElementById('drawerMsg').textContent = ''; onFormChange();
+  }
+  async function salvarSiglaVacina() {
+    const v = vacinaSel(); if (!v) return;
+    const d = await api('/interno/vacinas/' + v.id + '/sigla', 'POST', { sigla: document.getElementById('siglaVac').value });
+    if (!d.success) return siglaErro(d);
+    v.sigla = d.data.sigla; document.getElementById('drawerMsg').textContent = ''; onFormChange();
+  }
+  async function salvarSiglaGrupo() {
+    const c = clienteSel(); if (!c || !c.grupo_empresarial_id) return;
+    const d = await api('/interno/grupos/' + c.grupo_empresarial_id + '/sigla', 'POST', { sigla: document.getElementById('siglaGrp').value });
+    if (!d.success) return siglaErro(d);
+    c.grupo_sigla = d.data.sigla; document.getElementById('drawerMsg').textContent = ''; onFormChange();
+  }
+
+  async function salvar() {
+    const msg = document.getElementById('drawerMsg');
+    const inicio = document.getElementById('fInicio').value, fim = document.getElementById('fFim').value;
+    if (!inicio || !fim) { msg.className = 'msg err'; msg.textContent = 'Informe o período (início e fim).'; return; }
+    if (fim < inicio) { msg.className = 'msg err'; msg.textContent = 'A data fim não pode ser anterior ao início.'; return; }
+
+    const dosesVal = document.getElementById('fDoses').value;
+    const doses = dosesVal === '' ? null : Number(dosesVal);
+    if (EDIT_ID) {
+      const body = { nome: document.getElementById('fNome').value.trim(), periodo_inicio: inicio, periodo_fim: fim, status: document.getElementById('fStatus').value, doses_previstas: doses };
+      msg.className = 'msg'; msg.textContent = 'Salvando...';
+      const d = await api('/interno/campanhas/' + EDIT_ID, 'PUT', body);
+      if (!d.success) { msg.className = 'msg err'; msg.textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Erro ao salvar.')); return; }
+      msg.className = 'msg ok'; msg.textContent = 'Campanha atualizada!';
+      setTimeout(async () => { fecharDrawer(); await carregar(); }, 600);
+      return;
+    }
+
+    const c = clienteSel(), v = vacinaSel();
+    const body = {
+      cliente_b2b_id: c ? Number(c.id) : 0,
+      vacina_id:      v ? Number(v.id) : 0,
+      temporada:      Number(document.getElementById('fTemporada').value || 0),
+      modalidade:     document.getElementById('fModalidade').value,
+      periodo_inicio: inicio, periodo_fim: fim,
+      status:         document.getElementById('fStatus').value,
+      nome:           document.getElementById('fNome').value.trim(),
+      doses_previstas: doses,
+    };
+    if (!body.cliente_b2b_id || !body.vacina_id || !body.temporada) {
+      msg.className = 'msg err'; msg.textContent = 'Preencha cliente, vacina e temporada.'; return;
+    }
+    msg.className = 'msg'; msg.textContent = 'Salvando...';
+    const d = await api('/interno/campanhas', 'POST', body);
+    if (!d.success) { msg.className = 'msg err'; msg.textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Erro ao criar.')); return; }
+    msg.className = 'msg ok'; msg.textContent = 'Campanha criada: ' + d.data.codigo;
+    setTimeout(async () => { fecharDrawer(); await carregar(); }, 900);
+  }
+
+  async function encerrar(id) {
+    const c = CAMPANHAS.find(x => x.id === id);
+    if (!confirm('Encerrar a campanha ' + (c ? (c.codigo || '#' + id) : '#' + id) + '? Os elegíveis pendentes serão expirados.')) return;
+    const d = await api('/interno/campanhas/' + id + '/encerrar', 'POST', {});
+    if (!d.success) { alert('Erro: ' + (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'falhou'))); return; }
+    await carregar();
+  }
+
+  carregar();
+  </script>
+</body>
+</html>

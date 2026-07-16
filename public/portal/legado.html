@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>S&amp;A Imunizações — Portal</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+  <link rel="stylesheet" href="/assets/marca.css" />
+  <style>
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:system-ui,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--txt); }
+    .wrap { max-width:960px; margin:0 auto; padding:24px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:var(--raio); padding:24px; margin-bottom:16px; box-shadow:var(--sombra); }
+    h1 { font-size:20px; margin:0 0 4px; } h2 { font-size:16px; margin:0 0 12px; color:var(--txt); }
+    p { color:var(--muted); line-height:1.5; }
+    b { color:var(--txt); }
+    code { background:var(--surface-2); border:1px solid var(--line); border-radius:6px; padding:1px 6px; font-size:13px; color:var(--pri2); }
+    label { display:block; font-size:13px; color:var(--muted); margin:10px 0 4px; }
+    input,select,textarea { width:100%; padding:11px 12px; background:var(--surface-2); border:1px solid var(--line); border-radius:8px; color:var(--txt); font:inherit; }
+    input:focus,select:focus,textarea:focus { outline:none; border-color:var(--pri); box-shadow:0 0 0 3px rgba(22,102,196,.15); }
+    button { cursor:pointer; padding:11px 18px; border:0; border-radius:8px; background:var(--pri); color:#fff; font-weight:600; font:inherit; }
+    button:hover { background:var(--pri2); }
+    button.sec { background:var(--surface-2); color:var(--txt); border:1px solid var(--line); }
+    button.sec:hover { background:#e7eef7; }
+    button.ghost { background:transparent; color:var(--muted); }
+    button.ghost:hover { background:var(--surface-2); }
+    .row { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+    .hide { display:none; }
+    .brand { margin-bottom:18px; }
+    .steps { display:flex; gap:8px; margin:0 0 16px; }
+    .steps .dot { flex:1; height:6px; border-radius:99px; background:var(--line); }
+    .steps .dot.on { background:var(--pri); }
+    .tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .tile { background:linear-gradient(180deg,var(--surface-2),#fff); border:1px solid var(--line); border-radius:12px; padding:16px; }
+    .tile .n { font-size:26px; font-weight:700; color:var(--pri); }
+    .tile .l { color:var(--muted); font-size:13px; }
+    table { width:100%; border-collapse:collapse; margin-top:10px; font-size:14px; }
+    th,td { text-align:left; padding:8px; border-bottom:1px solid var(--line); }
+    th { color:var(--muted); }
+    .top { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+    .pill { font-size:12px; color:var(--muted); }
+    a { color:var(--pri); }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand marca">
+    <div class="logo"><svg width="22" height="22" viewBox="0 0 32 32"><path d="M13.5 7h5v6.5H25v5h-6.5V25h-5v-6.5H7v-5h6.5z" fill="#fff"/></svg></div>
+    <div><div class="nome">S&amp;A <b>Imunizações</b></div><div class="tag">Gestão de campanhas · elegíveis · vacinados</div></div>
+  </div>
+
+  <!-- LOGIN -->
+  <div id="scLogin" class="card">
+    <h2>Entrar</h2>
+    <label>E-mail</label><input id="email" autocomplete="username" />
+    <label>Senha</label><input id="senha" type="password" autocomplete="current-password" />
+    <div class="row" style="margin-top:16px"><button onclick="entrar()">Entrar</button><span id="loginMsg" class="pill"></span></div>
+  </div>
+
+  <!-- CONSENTIMENTO LGPD -->
+  <div id="scLgpd" class="card hide">
+    <h2>Consentimento e LGPD</h2>
+    <p>Você vai tratar <b>dados de saúde</b> de colaboradores (dado sensível). Ao continuar, você declara
+      que tem base legal para o tratamento e concorda com os termos de uso e a política de privacidade
+      (minimização, finalidade de imunização, segurança e auditoria de acesso).</p>
+    <p class="pill">Versão do termo: <span id="termoVersao"></span></p>
+    <div class="row" style="margin-top:12px">
+      <button onclick="consentir()">Li e aceito</button>
+      <button class="ghost" onclick="sair()">Sair</button>
+    </div>
+  </div>
+
+  <!-- ONBOARDING / ASSISTENTE -->
+  <div id="scOnb" class="card hide">
+    <div class="steps"><div class="dot on" id="d0"></div><div class="dot" id="d1"></div><div class="dot" id="d2"></div></div>
+    <div id="ob0"><h2>Bem-vindo(a) 👋</h2>
+      <p>Este portal centraliza suas campanhas de imunização: você <b>indica os elegíveis</b>, acompanha a
+        <b>cobertura</b> e <b>extrai os vacinados</b> — com segurança e sem depender de planilhas soltas.</p>
+    </div>
+    <div id="ob1" class="hide"><h2>Como funciona</h2>
+      <p>1) A campanha é criada para a sua empresa. &nbsp; 2) Você <b>importa/atualiza</b> a lista de elegíveis
+        (CSV ou API). &nbsp; 3) A vacinação acontece (in company ou rede credenciada). &nbsp;
+        4) Você acompanha a <b>tabela verdade</b> e <b>exporta</b> o resultado.</p>
+    </div>
+    <div id="ob2" class="hide"><h2>Pronto para começar</h2>
+      <p>No painel você vê suas campanhas e a cobertura. Depois é só <b>Atualizar elegíveis</b> e,
+        ao fim, <b>Extrair vacinados</b>. Precisa integrar (Power BI, automações)? Há um modo avançado.</p>
+    </div>
+    <div class="row" style="margin-top:16px">
+      <button class="sec" onclick="obPrev()" id="obPrev">Voltar</button>
+      <button onclick="obNext()" id="obNext">Avançar</button>
+    </div>
+  </div>
+
+  <!-- APP (pós-login) -->
+  <div id="scDash" class="hide">
+    <div class="top">
+      <div>Olá, <b id="dashNome"></b> <span class="pill" id="dashPapel"></span></div>
+      <button class="ghost" onclick="sair()">Sair</button>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div class="row" id="nav">
+          <button class="sec navb" data-v="dash" onclick="showView('dash')">Dashboard</button>
+          <button class="sec navb" data-v="eleg" onclick="showView('eleg')">Elegíveis</button>
+          <button class="sec navb" data-v="vac" onclick="showView('vac')">Vacinados</button>
+          <button class="sec navb hide" id="navUsr" data-v="usr" onclick="showView('usr')">Usuários</button>
+          <button class="sec navb hide" id="navInt" data-v="int" onclick="showView('int')">Integrações</button>
+          <button class="sec navb hide" id="navAud" data-v="aud" onclick="showView('aud')">Auditoria</button>
+        </div>
+        <div class="row">
+          <label style="margin:0">Campanha</label>
+          <select id="campSel" onchange="onCampanha()"><option value="">— selecione —</option></select>
+          <button class="sec" onclick="listar()">↻</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW DASHBOARD -->
+    <div id="vDash" class="card">
+      <h2>Cobertura da campanha</h2>
+      <div class="tiles" id="tiles"></div>
+      <table id="tblPorVacina" style="margin-top:12px"></table>
+      <p class="pill" id="dashMsg">Selecione uma campanha.</p>
+    </div>
+
+    <!-- VIEW ELEGÍVEIS -->
+    <div id="vEleg" class="card hide">
+      <h2>Atualizar elegíveis</h2>
+      <p class="pill">Formato por linha: <b>cpf,nome,data_nascimento,tipo_vinculo,cpf_titular,codigo_lotacao,codigo_rh,identificador</b>
+        (tipo = colaborador|dependente|terceiro; sem CPF? use identificador/voucher no fim).</p>
+      <textarea id="elegTxt" rows="5"
+        placeholder="52998224725,Maria Silva,1990-05-10,colaborador,,LOT-01,RH-1001,"></textarea>
+      <div class="row" style="margin-top:10px">
+        <button onclick="importarEleg(false)">Importar (adicionar/atualizar)</button>
+        <button class="sec" onclick="importarEleg(true)">Sincronizar (remove ausentes)</button>
+        <input type="file" id="elegFile" accept=".csv,.txt" style="max-width:220px" />
+        <button class="sec" onclick="enviarArquivo()">Enviar arquivo</button>
+      </div>
+      <p class="pill" id="elegMsg"></p>
+      <div class="row" style="margin-top:8px">
+        <button class="sec" onclick="listarEleg()">Ver lista</button>
+        <input id="remCpfs" placeholder="CPFs para remover (vírgula)" style="max-width:360px" />
+        <button class="sec" onclick="removerEleg()">Remover</button>
+      </div>
+      <p class="pill" id="elegResumo"></p>
+      <table id="tblEleg"></table>
+    </div>
+
+    <!-- VIEW VACINADOS -->
+    <div id="vVac" class="card hide">
+      <h2>Vacinados — tabela verdade</h2>
+      <div class="row"><button onclick="verVerdade()">Atualizar</button><button class="sec" onclick="extrair()">Extrair CSV</button></div>
+      <p class="pill" id="vacResumo"></p>
+      <table id="tblVac"></table>
+    </div>
+
+    <!-- VIEW USUÁRIOS -->
+    <div id="vUsr" class="card hide">
+      <h2>Usuários do seu escopo</h2>
+      <div class="row">
+        <input id="uNome" placeholder="Nome" />
+        <input id="uEmail" placeholder="email@empresa.com" />
+        <input id="uSenha" placeholder="senha (min 8)" />
+        <select id="uNivel"><option value="negocio">negócio (empresa)</option><option value="local">local (unidade)</option></select>
+        <input id="uEscopo" placeholder="cliente id ou unidade id" style="max-width:150px" />
+        <button onclick="criarUsuario()">Criar</button>
+        <button class="sec" onclick="listarUsuarios()">Listar</button>
+      </div>
+      <table id="tblUsr"></table>
+
+      <h2 style="margin-top:22px">Permissão de ver CPF (por cliente)</h2>
+      <p class="pill">Conceda a um usuário o direito de ver o <b>CPF completo</b> dos dados de um cliente específico.
+        Sem concessão, o CPF aparece <b>mascarado</b> (LGPD). A coluna "Ver CPF" acima é a liberação <b>global</b> (só super_admin).</p>
+      <div class="row">
+        <select id="pcUsuario" onchange="carregarPermCpf()"></select>
+        <select id="pcCliente"></select>
+        <button onclick="concederCpf(1)">Conceder</button>
+        <button class="sec" onclick="concederCpf(0)">Revogar</button>
+      </div>
+      <p class="pill" id="pcMsg"></p>
+      <table id="tblPcCpf"></table>
+    </div>
+
+    <!-- VIEW INTEGRAÇÕES (avançado) -->
+    <div id="vInt" class="card hide">
+      <h2>Integrações (avançado)</h2>
+      <p class="pill">Painel técnico: gere tokens de API, registre webhooks e conecte o Power BI.
+        Tudo no escopo dos seus clientes. Selecione a <b>campanha</b> acima antes de gerar tokens/webhooks.</p>
+
+      <h2 style="margin-top:20px">1 · Tokens de API</h2>
+      <p>O token aparece <b>uma única vez</b>. Guarde-o com segurança (ex.: cofre de segredos).</p>
+      <div class="row">
+        <select id="tkTipo">
+          <option value="consulta">consulta — leitura (carteira/tabela verdade) · Power BI</option>
+          <option value="ingestao_b2b">ingestao_b2b — enviar elegíveis por API</option>
+          <option value="app_in_company">app_in_company — app/PWA/terceiro (registrar aplicação)</option>
+        </select>
+        <button onclick="gerarToken()">Gerar token</button>
+        <button class="sec" onclick="listarTokens()">Listar</button>
+      </div>
+      <p class="pill" id="tkMsg"></p>
+      <div id="tkBox" class="hide" style="margin-top:8px;padding:10px;background:#fff7ec;border:1px solid var(--warn);border-radius:8px">
+        <div class="pill">Token (copie agora — não será exibido de novo):</div>
+        <code id="tkVal" style="word-break:break-all;color:var(--ok)"></code>
+      </div>
+      <table id="tblTk"></table>
+
+      <h2 style="margin-top:24px">2 · Webhooks</h2>
+      <p>Receba notificações de eventos (ex.: aplicação registrada). Cada entrega leva o header
+        <code>X-Assinatura</code> = HMAC-SHA256 do corpo, usando o segredo mostrado na criação.</p>
+      <div class="row">
+        <select id="whEvento" style="max-width:280px"></select>
+        <input id="whUrl" placeholder="https://seu-sistema/webhook" style="max-width:320px" />
+        <button onclick="criarWebhook()">Registrar</button>
+        <button class="sec" onclick="listarWebhooks()">Listar</button>
+      </div>
+      <p class="pill" id="whMsg"></p>
+      <table id="tblWh"></table>
+      <table id="tblWhEnt"></table>
+
+      <h2 style="margin-top:24px">3 · Documentação da API</h2>
+      <p>Base: <code id="apiBase"></code> · Autenticação: header <code>Authorization: Bearer &lt;token&gt;</code>.</p>
+      <table>
+        <tr><th>Método/Rota</th><th>Uso</th><th>Token</th></tr>
+        <tr><td><code>GET /parceiro/carteira?cpf=...</code></td><td>Consultar carteira/histórico de um CPF</td><td>consulta</td></tr>
+        <tr><td><code>GET /parceiro/campanhas/{id}/tabela-verdade</code></td><td>Elegível × aplicado × pendente (analítico)</td><td>consulta</td></tr>
+        <tr><td><code>POST /parceiro/campanhas/{id}/elegiveis</code></td><td>Enviar/atualizar elegíveis (lote)</td><td>ingestao_b2b</td></tr>
+        <tr><td><code>POST /parceiro/aplicacoes</code></td><td>Registrar aplicação (in company/app)</td><td>app_in_company</td></tr>
+      </table>
+      <p class="pill">Paginação por keyset (<code>?apos=&lt;cursor&gt;</code>), idempotência via header <code>Idempotency-Key</code>.
+        Contrato completo: doc 11.</p>
+
+      <h2 style="margin-top:24px">4 · Conectar o Power BI</h2>
+      <p>1) Gere um token do tipo <b>consulta</b> (acima). &nbsp; 2) No Power BI: <b>Obter dados → Web → Avançado</b>. &nbsp;
+        3) URL: <code id="pbiUrl"></code> &nbsp; 4) Cabeçalho HTTP: <code>Authorization</code> = <code>Bearer SEU_TOKEN</code>. &nbsp;
+        5) Atualize periodicamente (agendamento do Power BI). Para grandes volumes, pagine com <code>?apos=</code>.</p>
+    </div>
+
+    <!-- VIEW AUDITORIA -->
+    <div id="vAud" class="card hide">
+      <h2>Auditoria — o que aconteceu, quem fez e quando</h2>
+      <p class="pill">Registro das ações nos seus clientes (importações, aplicações, correções, estornos,
+        tokens, webhooks e usuários). Somente leitura — restrito ao seu escopo.</p>
+      <div class="row">
+        <select id="audEvento">
+          <option value="">Todos os eventos</option>
+          <option value="elegiveis.importados">Elegíveis importados</option>
+          <option value="importacao.concluida">Importação concluída</option>
+          <option value="elegivel.situacao_definida">Situação de elegível</option>
+          <option value="elegivel.editado">Elegível editado</option>
+          <option value="aplicacao.registrada">Aplicação registrada</option>
+          <option value="aplicacao.estornada">Aplicação estornada (desvacinado)</option>
+          <option value="campanha.encerrada">Campanha encerrada</option>
+          <option value="credencial.emitida">Token emitido</option>
+          <option value="credencial.revogada">Token revogado</option>
+          <option value="webhook.criado">Webhook criado</option>
+          <option value="usuario.criado">Usuário criado</option>
+        </select>
+        <button onclick="verAuditoria()">Filtrar</button>
+        <button class="sec" onclick="document.getElementById('audEvento').value='';verAuditoria()">Limpar</button>
+      </div>
+      <p class="pill" id="audResumo"></p>
+      <table id="tblAud"></table>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Portal — jornada guiada. Mesma origem: cookie de sessão automático; CSRF no login.
+// ---------------------------------------------------------------------------
+let CSRF = null, ESTADO = null, OB = 0;
+
+function tela(id){ ['scLogin','scLgpd','scOnb','scDash'].forEach(s=>document.getElementById(s).classList.toggle('hide', s!==id)); }
+
+async function api(path, metodo='GET', corpo=null){
+  const opts={method:metodo,headers:{},credentials:'same-origin'};
+  if(corpo){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(corpo);}
+  if(metodo!=='GET'&&CSRF)opts.headers['X-CSRF-Token']=CSRF;
+  const r=await fetch('/api/v1'+path,opts); let d; try{d=await r.json();}catch(e){d={success:false};}
+  return d;
+}
+
+async function entrar(){
+  document.getElementById('loginMsg').textContent='...';
+  const d=await api('/interno/auth/login','POST',{email:document.getElementById('email').value,senha:document.getElementById('senha').value});
+  if(!d.success){document.getElementById('loginMsg').textContent='E-mail ou senha inválidos.';return;}
+  CSRF=d.data.csrf_token;
+  await rotearJornada();
+}
+
+async function rotearJornada(){
+  const d=await api('/interno/portal/estado');
+  if(!d.success){tela('scLogin');return;}
+  ESTADO=d.data;
+  document.getElementById('termoVersao').textContent=ESTADO.termo_versao;
+  document.getElementById('dashNome').textContent=ESTADO.usuario.nome;
+  document.getElementById('dashPapel').textContent=ESTADO.interno?'(gestão interna)':'';
+  if(!ESTADO.consentido){ tela('scLgpd'); return; }
+  if(!ESTADO.onboarding_concluido){ OB=0; renderOb(); tela('scOnb'); return; }
+  tela('scDash');
+  document.getElementById('navUsr').classList.toggle('hide', !podeGerirUsuarios());
+  document.getElementById('navInt').classList.toggle('hide', !podeGerirUsuarios());
+  document.getElementById('navAud').classList.toggle('hide', !podeGerirUsuarios());
+  document.getElementById('apiBase').textContent = location.origin + '/api/v1';
+  document.getElementById('pbiUrl').textContent = location.origin + '/api/v1/parceiro/campanhas/{id}/tabela-verdade';
+  await listar();
+  showView('dash');
+}
+
+async function consentir(){ const d=await api('/interno/consentimento','POST',{}); if(d.success) rotearJornada(); }
+
+function renderOb(){
+  ['ob0','ob1','ob2'].forEach((s,i)=>document.getElementById(s).classList.toggle('hide',i!==OB));
+  ['d0','d1','d2'].forEach((s,i)=>document.getElementById(s).classList.toggle('on',i<=OB));
+  document.getElementById('obPrev').classList.toggle('hide',OB===0);
+  document.getElementById('obNext').textContent = OB===2 ? 'Começar' : 'Avançar';
+}
+function obPrev(){ if(OB>0){OB--;renderOb();} }
+async function obNext(){ if(OB<2){OB++;renderOb();return;} const d=await api('/interno/onboarding/concluir','POST',{}); if(d.success) rotearJornada(); }
+
+let VIEW='dash', ULTIMA_IMP=null, CAMPANHAS=[];
+function podeGerirUsuarios(){ return ESTADO && (ESTADO.interno || (ESTADO.atribuicoes||[]).some(a=>['gestao_interna','grupo','negocio'].includes(a.nivel))); }
+function campId(){ return document.getElementById('campSel').value; }
+
+function showView(v){
+  VIEW=v;
+  ['dash','eleg','vac','usr','int','aud'].forEach(x=>document.getElementById('v'+x[0].toUpperCase()+x.slice(1)).classList.toggle('hide',x!==v));
+  document.querySelectorAll('.navb').forEach(b=>{const on=b.dataset.v===v;b.style.background=on?'var(--pri)':'';b.style.color=on?'#fff':'';});
+  if(v==='dash') carregarDash();
+  if(v==='eleg') listarEleg();
+  if(v==='vac') verVerdade();
+  if(v==='usr') listarUsuarios();
+  if(v==='int'){ listarTokens(); listarWebhooks(); }
+  if(v==='aud') verAuditoria();
+}
+function onCampanha(){ showView(VIEW); }
+
+async function listar(){
+  const d=await api('/interno/campanhas');
+  if(!d.success)return;
+  CAMPANHAS=d.data.itens||[];
+  document.getElementById('campSel').innerHTML='<option value="">— selecione —</option>'+
+    CAMPANHAS.map(c=>`<option value="${c.id}">${c.nome} — ${c.cliente} (${c.status})</option>`).join('');
+}
+function campSelecionada(){ const id=campId(); return CAMPANHAS.find(c=>String(c.id)===String(id))||null; }
+
+async function carregarDash(){
+  const id=campId(); if(!id){document.getElementById('tiles').innerHTML='';document.getElementById('dashMsg').textContent='Selecione uma campanha.';return;}
+  document.getElementById('dashMsg').textContent='';
+  const d=await api(`/interno/campanhas/${id}/dashboard`);
+  if(!d.success)return;
+  const x=d.data;
+  document.getElementById('tiles').innerHTML=[
+    ['Cobertura',x.cobertura_percentual+'%'],['Elegíveis',x.total_elegiveis],
+    ['Aplicados',x.aplicados],['Pendentes',x.pendentes],['Recusados',x.recusados],
+  ].map(t=>`<div class="tile"><div class="n">${t[1]}</div><div class="l">${t[0]}</div></div>`).join('');
+  document.getElementById('tblPorVacina').innerHTML = (x.aplicacoes_por_vacina||[]).length
+    ? '<tr><th>Vacina</th><th>Aplicações</th></tr>'+x.aplicacoes_por_vacina.map(v=>`<tr><td>${v.nome}</td><td>${v.aplicacoes}</td></tr>`).join('') : '';
+}
+
+// ---- Elegíveis ----
+function parseElegiveis(t){
+  const limpa=s=>(s||'').trim().replace(/^"(.*)"$/,'$1').trim();
+  return t.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(l=>{
+    const p=l.split(/[;,]/).map(limpa);
+    return {cpf:p[0]||'',nome:p[1]||'',data_nascimento:p[2]||null,tipo_vinculo:p[3]||null,cpf_titular:p[4]||null,codigo_lotacao:p[5]||null,codigo_rh:p[6]||null,identificador:p[7]||null};
+  });
+}
+function msgImport(d){
+  if(!d.success){document.getElementById('elegMsg').textContent='Erro: '+(d.errors&&d.errors[0]?d.errors[0].message:d.message);return;}
+  ULTIMA_IMP=d.data.importacao_id; const t=d.data.totais;
+  document.getElementById('elegMsg').innerHTML = (t
+    ? `Importação #${d.data.importacao_id} — válidos: ${t.validos}, rejeitados: ${t.rejeitados}${t.removidos!==undefined?', removidos: '+t.removidos:''}. `
+    : `Importação #${d.data.importacao_id} (${d.data.status}) — processando em segundo plano. `)
+    + `<a href="#" onclick="baixarErros();return false;">Baixar relatório de erros</a>`;
+  listarEleg();
+}
+async function importarEleg(sync){
+  const id=campId(); if(!id)return alert('Selecione uma campanha.');
+  const elegiveis=parseElegiveis(document.getElementById('elegTxt').value);
+  const rota=sync?'sincronizar':'importar';
+  msgImport(await api(`/interno/campanhas/${id}/elegiveis/${rota}`,'POST',{elegiveis}));
+}
+async function enviarArquivo(){
+  const id=campId(); if(!id)return alert('Selecione uma campanha.');
+  const f=document.getElementById('elegFile').files[0]; if(!f)return alert('Escolha um arquivo CSV.');
+  const fd=new FormData(); fd.append('arquivo',f);
+  const r=await fetch(`/api/v1/interno/campanhas/${id}/elegiveis/importar`,{method:'POST',headers:{'X-CSRF-Token':CSRF},credentials:'same-origin',body:fd});
+  msgImport(await r.json());
+}
+function baixarErros(){ if(ULTIMA_IMP) window.open(`/api/v1/interno/importacoes/${ULTIMA_IMP}/erros/exportar`,'_blank'); }
+async function listarEleg(){
+  const id=campId(); if(!id)return;
+  const d=await api(`/interno/campanhas/${id}/elegiveis`); if(!d.success)return;
+  const r=d.data.resumo||{};
+  document.getElementById('elegResumo').textContent=`Pendentes ${r.pendente||0} · Aplicados ${r.aplicado||0} · Recusados ${r.recusado||0} · Removidos ${r.removido||0} · Total ${d.meta?.total||0}`;
+  document.getElementById('tblEleg').innerHTML='<tr><th>ID</th><th>CPF</th><th>Nome</th><th>Tipo</th><th>Status</th></tr>'+
+    (d.data.itens||[]).map(e=>`<tr><td>${e.id}</td><td>${e.cpf}</td><td>${e.nome}</td><td>${e.tipo_vinculo||'—'}</td><td>${e.status}</td></tr>`).join('');
+}
+async function removerEleg(){
+  const id=campId(); if(!id)return alert('Selecione uma campanha.');
+  const cpfs=document.getElementById('remCpfs').value.split(/[;,\n]/).map(s=>s.trim()).filter(Boolean);
+  if(!cpfs.length)return alert('Informe CPFs.');
+  const d=await api(`/interno/campanhas/${id}/elegiveis/remover`,'POST',{cpfs});
+  if(d.success)document.getElementById('elegMsg').textContent=`Removidos: ${d.data.removidos} · bloqueados (vacinados): ${(d.data.bloqueados_vacinados||[]).length}`;
+  listarEleg();
+}
+
+// ---- Vacinados ----
+async function verVerdade(){
+  const id=campId(); if(!id)return;
+  const d=await api(`/interno/campanhas/${id}/tabela-verdade`); if(!d.success)return;
+  const r=d.data.resumo||{};
+  document.getElementById('vacResumo').textContent=`Aplicados ${r.aplicado||0} · Pendentes ${r.pendente||0} · Total ${d.meta?.total||0}`;
+  document.getElementById('tblVac').innerHTML='<tr><th>CPF</th><th>Nome</th><th>Situação</th><th>Doses</th><th>Última</th></tr>'+
+    (d.data.itens||[]).map(i=>`<tr><td>${i.cpf}</td><td>${i.nome}</td><td>${i.situacao_elegivel}</td><td>${i.total_aplicacoes}</td><td>${(i.ultima_aplicacao_em||'').substring(0,10)||'—'}</td></tr>`).join('');
+}
+function extrair(){ const id=campId(); if(!id)return alert('Selecione uma campanha.'); window.open(`/api/v1/interno/campanhas/${id}/exportar`,'_blank'); }
+
+// ---- Usuários ----
+let CLIENTES_CPF=null;
+async function listarUsuarios(){
+  const d=await api('/interno/usuarios'); if(!d.success)return;
+  const usrs=d.data.itens||[];
+  document.getElementById('tblUsr').innerHTML='<tr><th>ID</th><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Ver CPF (global)</th><th>Status</th></tr>'+
+    usrs.map(u=>{
+      const pode=Number(u.pode_ver_cpf);
+      const btn=`<button class="ghost" onclick="toggleCpf(${u.id},${pode?0:1})" title="Só super_admin altera">${pode?'✓ completo':'mascarado'}</button>`;
+      return `<tr><td>${u.id}</td><td>${u.nome}</td><td>${u.email}</td><td>${u.perfil}</td><td>${btn}</td><td>${u.status}</td></tr>`;
+    }).join('');
+  // Seletor de usuário (permissão por cliente) + clientes.
+  document.getElementById('pcUsuario').innerHTML=usrs.map(u=>`<option value="${u.id}">${u.nome} (${u.email})</option>`).join('');
+  await carregarClientesCpf();
+  carregarPermCpf();
+}
+async function toggleCpf(id,novo){
+  const d=await api(`/interno/usuarios/${id}/permissao-cpf`,'POST',{pode_ver_cpf:novo});
+  if(!d.success){ alert('Erro: '+((d.errors&&d.errors[0]&&d.errors[0].message)||d.message||'falhou')); return; }
+  listarUsuarios();
+}
+async function carregarClientesCpf(){
+  if(CLIENTES_CPF) return;
+  const d=await api('/interno/clientes'); if(!d.success)return;
+  CLIENTES_CPF=d.data.itens||[];
+  document.getElementById('pcCliente').innerHTML=CLIENTES_CPF.length
+    ? CLIENTES_CPF.map(c=>`<option value="${c.id}">${c.razao_social}</option>`).join('')
+    : '<option value="">(sem clientes)</option>';
+}
+async function carregarPermCpf(){
+  const uid=document.getElementById('pcUsuario').value;
+  if(!uid){ document.getElementById('tblPcCpf').innerHTML=''; return; }
+  const d=await api(`/interno/usuarios/${uid}/permissoes-cpf`); if(!d.success)return;
+  const itens=d.data.itens||[];
+  document.getElementById('tblPcCpf').innerHTML=itens.length
+    ? '<tr><th>Clientes com CPF liberado</th><th></th></tr>'+itens.map(i=>`<tr><td>${i.cliente}</td><td><button class="ghost" onclick="concederCpfId(${uid},${i.cliente_b2b_id},0)">revogar</button></td></tr>`).join('')
+    : '<tr><td class="pill">Nenhum cliente liberado — CPF mascarado para este usuário.</td></tr>';
+}
+async function concederCpf(conceder){
+  const uid=document.getElementById('pcUsuario').value, cid=document.getElementById('pcCliente').value;
+  if(!uid||!cid){ document.getElementById('pcMsg').textContent='Selecione usuário e cliente.'; return; }
+  concederCpfId(uid, Number(cid), conceder);
+}
+async function concederCpfId(uid,cid,conceder){
+  const d=await api(`/interno/usuarios/${uid}/permissao-cpf-cliente`,'POST',{cliente_b2b_id:cid,conceder});
+  if(!d.success){ document.getElementById('pcMsg').textContent='Erro: '+((d.errors&&d.errors[0]&&d.errors[0].message)||d.message||'falhou'); return; }
+  document.getElementById('pcMsg').textContent=conceder?'CPF liberado para o cliente.':'Acesso revogado.';
+  carregarPermCpf();
+}
+async function criarUsuario(){
+  const body={nome:document.getElementById('uNome').value,email:document.getElementById('uEmail').value,senha:document.getElementById('uSenha').value,nivel:document.getElementById('uNivel').value,escopo_id:Number(document.getElementById('uEscopo').value||0)};
+  const d=await api('/interno/usuarios','POST',body);
+  document.getElementById('tblUsr').insertAdjacentHTML('beforebegin','');
+  if(!d.success)alert('Erro: '+(d.errors&&d.errors[0]?d.errors[0].message:d.message)); else listarUsuarios();
+}
+
+// ---- Integrações (D3) ----
+async function gerarToken(){
+  const tipo=document.getElementById('tkTipo').value;
+  const camp=campSelecionada();
+  if(!camp)return alert('Selecione uma campanha acima.');
+  const body={tipo};
+  if(tipo==='consulta') body.cliente_b2b_id=camp.cliente_b2b_id; else body.campanha_id=camp.id;
+  document.getElementById('tkMsg').textContent='...';
+  const d=await api('/interno/credenciais','POST',body);
+  if(!d.success){document.getElementById('tkMsg').textContent='Erro: '+(d.errors&&d.errors[0]?d.errors[0].message:d.message);return;}
+  document.getElementById('tkMsg').textContent=`Token #${d.data.credencial_id} (${d.data.tipo}) emitido.`;
+  document.getElementById('tkBox').classList.remove('hide');
+  document.getElementById('tkVal').textContent=d.data.token;
+  listarTokens();
+}
+async function listarTokens(){
+  const d=await api('/interno/credenciais'); if(!d.success)return;
+  document.getElementById('tblTk').innerHTML='<tr><th>ID</th><th>Tipo</th><th>Campanha</th><th>Status</th><th></th></tr>'+
+    (d.data.itens||[]).map(c=>`<tr><td>${c.id}</td><td>${c.tipo}</td><td>${c.escopo_campanha_id||'—'}</td><td>${Number(c.ativo)?'ativo':'revogado'}</td>`+
+      `<td>${Number(c.ativo)?`<button class="ghost" onclick="revogarToken(${c.id})">revogar</button>`:''}</td></tr>`).join('');
+}
+async function revogarToken(id){
+  if(!confirm('Revogar este token? Integrações que o usam vão parar de funcionar.'))return;
+  const d=await api(`/interno/credenciais/${id}/revogar`,'POST',{});
+  if(!d.success)alert('Erro: '+(d.errors&&d.errors[0]?d.errors[0].message:d.message)); listarTokens();
+}
+async function criarWebhook(){
+  const camp=campSelecionada();
+  if(!camp)return alert('Selecione uma campanha acima (define o cliente do webhook).');
+  const evento=document.getElementById('whEvento').value, url=document.getElementById('whUrl').value.trim();
+  if(!url)return alert('Informe a URL de destino.');
+  const d=await api('/interno/webhooks','POST',{evento,url,tenant_id:camp.cliente_b2b_id});
+  if(!d.success){document.getElementById('whMsg').textContent='Erro: '+(d.errors&&d.errors[0]?d.errors[0].message:d.message);return;}
+  document.getElementById('whMsg').innerHTML=`Webhook #${d.data.webhook_id} criado. <b>Segredo (guarde agora):</b> <code style="color:var(--ok)">${d.data.segredo}</code>`;
+  listarWebhooks();
+}
+async function listarWebhooks(){
+  const d=await api('/interno/webhooks'); if(!d.success)return;
+  const evs=d.data.eventos_disponiveis||[];
+  const sel=document.getElementById('whEvento');
+  if(sel.options.length!==evs.length) sel.innerHTML=evs.map(e=>`<option value="${e}">${e}</option>`).join('');
+  document.getElementById('tblWh').innerHTML='<tr><th>ID</th><th>Evento</th><th>URL</th><th>Status</th><th></th></tr>'+
+    (d.data.itens||[]).map(w=>`<tr><td>${w.id}</td><td>${w.evento}</td><td style="max-width:280px;word-break:break-all">${w.url}</td><td>${Number(w.ativo)?'ativo':'inativo'}</td>`+
+      `<td class="row"><button class="ghost" onclick="testarWebhook(${w.id})">testar</button>`+
+      `<button class="ghost" onclick="entregasWebhook(${w.id})">entregas</button>`+
+      `${Number(w.ativo)?`<button class="ghost" onclick="desativarWebhook(${w.id})">desativar</button>`:''}</td></tr>`).join('');
+}
+async function testarWebhook(id){
+  const d=await api(`/interno/webhooks/${id}/testar`,'POST',{});
+  document.getElementById('whMsg').textContent=d.success?`Teste enfileirado (entrega #${d.data.entrega_id}).`:'Erro: '+(d.errors&&d.errors[0]?d.errors[0].message:d.message);
+  entregasWebhook(id);
+}
+async function desativarWebhook(id){
+  if(!confirm('Desativar este webhook?'))return;
+  const d=await api(`/interno/webhooks/${id}/desativar`,'POST',{}); if(d.success)listarWebhooks();
+}
+async function entregasWebhook(id){
+  const d=await api(`/interno/webhooks/${id}/entregas`); if(!d.success)return;
+  document.getElementById('tblWhEnt').innerHTML='<tr><th colspan="5">Entregas do webhook #'+id+'</th></tr>'+
+    '<tr><th>ID</th><th>Evento</th><th>Status</th><th>HTTP</th><th>Quando</th></tr>'+
+    (d.data.itens||[]).map(e=>`<tr><td>${e.id}</td><td>${e.evento}</td><td>${e.status}</td><td>${e.ultimo_status_code||'—'}</td><td>${(e.entregue_em||e.criado_em||'').substring(0,19).replace('T',' ')}</td></tr>`).join('');
+}
+
+// ---- Auditoria ----
+const AUD_LABEL={
+  'elegiveis.importados':'Elegíveis importados','importacao.concluida':'Importação concluída',
+  'elegivel.situacao_definida':'Situação de elegível definida','elegivel.editado':'Elegível editado',
+  'aplicacao.registrada':'Aplicação registrada','aplicacao.estornada':'Aplicação estornada (desvacinado)',
+  'campanha.encerrada':'Campanha encerrada','credencial.emitida':'Token emitido','credencial.revogada':'Token revogado',
+  'webhook.criado':'Webhook criado','webhook.desativado':'Webhook desativado','usuario.criado':'Usuário criado',
+  'vacinados.importados_historico':'Vacinados históricos importados',
+  'login.sucesso':'Login','consentimento.aceito':'Consentimento LGPD aceito'};
+function audEventoLabel(e){ return AUD_LABEL[e]||e; }
+function audAtor(a){
+  if(a.ator_tipo==='usuario') return a.ator_nome?a.ator_nome:('usuário #'+(a.ator_id||'?'));
+  if(a.ator_tipo==='credencial_api') return 'integração/API (token #'+(a.ator_id||'?')+')';
+  return a.ator_tipo||'—';
+}
+function audDetalhe(a){
+  const partes=[];
+  if(a.entidade_tipo) partes.push(a.entidade_tipo+(a.entidade_id?(' #'+a.entidade_id):''));
+  if(a.metadata){ try{ const m=typeof a.metadata==='string'?JSON.parse(a.metadata):a.metadata;
+    Object.keys(m||{}).slice(0,4).forEach(k=>{ const v=m[k]; if(v!==null&&typeof v!=='object') partes.push(k+': '+v); });
+  }catch(e){} }
+  return partes.join(' · ')||'—';
+}
+async function verAuditoria(){
+  const ev=document.getElementById('audEvento').value;
+  const d=await api('/interno/portal/auditoria'+(ev?('?evento='+encodeURIComponent(ev)):''));
+  if(!d.success){document.getElementById('audResumo').textContent='Não foi possível carregar.';return;}
+  const itens=d.data.itens||[];
+  document.getElementById('audResumo').textContent=itens.length?`${itens.length} evento(s)`:'Nenhum evento no seu escopo ainda.';
+  document.getElementById('tblAud').innerHTML=itens.length
+    ? '<tr><th>Quando</th><th>O que aconteceu</th><th>Quem fez</th><th>Origem</th><th>Detalhes</th></tr>'+
+      itens.map(a=>`<tr><td>${(a.data_hora||'').substring(0,19).replace('T',' ')}</td><td>${audEventoLabel(a.evento)}</td><td>${audAtor(a)}</td><td>${a.origem||'—'}</td><td class="pill">${audDetalhe(a)}</td></tr>`).join('')
+    : '';
+}
+
+async function sair(){ await api('/interno/auth/logout','POST'); CSRF=null; tela('scLogin'); }
+</script>
+</body>
+</html>

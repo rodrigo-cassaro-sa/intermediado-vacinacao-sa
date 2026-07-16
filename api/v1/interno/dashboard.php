@@ -16,6 +16,12 @@ function rota_dashboard_visao_geral(array $params): void
     // --- Escopo de clientes (tenants) que o usuário pode ver ----------------
     $geridos = clientes_geridos_pelo_usuario($usuario);
     if ($geridos !== ['*'] && !$geridos) {
+        // Usuário sem gestão (ex.: nível LOCAL/unidade) enxerga os clientes a
+        // que tem acesso; as LISTAS detalhadas (elegíveis/vacinados) continuam
+        // restritas à unidade via filtro_unidade_sql.
+        $geridos = clientes_acessiveis_pelo_usuario($usuario);
+    }
+    if ($geridos !== ['*'] && !$geridos) {
         responder_erro('Sem clientes no seu escopo de gestão.', 403, [
             ['field' => null, 'code' => 'SEM_ESCOPO', 'message' => 'Seu usuário não gere nenhum cliente.'],
         ]);
