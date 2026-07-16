@@ -29,6 +29,8 @@ return [
     'POST /api/v1/interno/grupos'                   => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_criar_grupo'],
     'GET  /api/v1/interno/grupos'                   => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_listar_grupos'],
     'POST /api/v1/interno/grupos/{id}/sigla'        => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_definir_sigla_grupo'],
+    'POST /api/v1/interno/grupos/importar'          => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_importar_grupos'],
+    'PUT  /api/v1/interno/grupos/{id}'              => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_editar_grupo'],
     'POST /api/v1/interno/clientes/{id}/grupo'      => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_vincular_cliente_grupo'],
     'POST /api/v1/interno/clientes/{id}/unidades'   => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_criar_unidade'],
     'GET  /api/v1/interno/clientes/{id}/unidades'   => ['arquivo' => 'interno/acesso.php', 'funcao' => 'rota_listar_unidades'],
@@ -44,6 +46,8 @@ return [
     'POST /api/v1/interno/clientes' => ['arquivo' => 'interno/clientes.php', 'funcao' => 'rota_criar_cliente'],
     'GET  /api/v1/interno/clientes' => ['arquivo' => 'interno/clientes.php', 'funcao' => 'rota_listar_clientes'],
     'POST /api/v1/interno/clientes/{id}/sigla' => ['arquivo' => 'interno/clientes.php', 'funcao' => 'rota_definir_sigla_cliente'],
+    'POST /api/v1/interno/clientes/importar' => ['arquivo' => 'interno/clientes.php', 'funcao' => 'rota_importar_clientes'],
+    'PUT  /api/v1/interno/clientes/{id}' => ['arquivo' => 'interno/clientes.php', 'funcao' => 'rota_editar_cliente'],
 
     // --- Clínicas da rede credenciada + atribuição (RN-012) ---
     'POST /api/v1/interno/clinicas' => ['arquivo' => 'interno/clinicas.php', 'funcao' => 'rota_criar_clinica'],

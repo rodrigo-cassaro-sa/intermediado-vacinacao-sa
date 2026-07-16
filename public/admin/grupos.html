@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gestão de Vacinas — S&amp;A Imunizações</title>
+  <title>Grupos empresariais — S&amp;A Imunizações</title>
   <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
   <link rel="stylesheet" href="/assets/marca.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -14,7 +14,6 @@
     .material-symbols-outlined { font-family: 'Material Symbols Outlined'; font-size: 22px; line-height: 1; }
     .hide { display: none !important; }
 
-    /* Sidebar (igual à dashboard) */
     .side { width: 256px; flex: 0 0 256px; background: var(--card); border-right: 1px solid var(--line); box-shadow: var(--sombra); display: flex; flex-direction: column; padding: 16px 0; }
     .side .brand { padding: 6px 20px 20px; display: flex; flex-direction: column; gap: 8px; }
     .side .brand .logo { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, var(--acc) 0%, var(--pri) 100%); display: grid; place-items: center; box-shadow: 0 4px 12px rgba(22,102,196,.28); }
@@ -33,7 +32,7 @@
     .pagehead { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
     .pagehead h1 { font-size: 32px; font-weight: 700; letter-spacing: -.02em; margin: 0; }
     .pagehead p { margin: 6px 0 0; color: var(--muted); }
-    .actions { display: flex; gap: 8px; align-items: center; }
+    .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .who { color: var(--muted); font-size: 13px; margin-right: 4px; } .who b { color: var(--txt); }
     .btn { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; padding: 10px 16px; border-radius: 8px; font: inherit; font-weight: 600; border: 0; }
     .btn .material-symbols-outlined { font-size: 18px; }
@@ -53,7 +52,7 @@
     .search .box .material-symbols-outlined { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--outline, #707880); font-size: 18px; }
     .search input, .search select { padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--txt); font: inherit; }
     .search .box input { width: 100%; padding-left: 34px; }
-    .search select { min-width: 160px; cursor: pointer; }
+    .search select { min-width: 170px; cursor: pointer; }
     .search input:focus, .search select:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
 
     table { width: 100%; border-collapse: collapse; }
@@ -61,6 +60,7 @@
     tbody td { padding: 14px 20px; border-bottom: 1px solid var(--line); }
     tbody tr:hover { background: var(--surface-2); }
     td .nm { font-weight: 600; }
+    td .sub { font-size: 12px; color: var(--muted); }
     .sig { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; color: var(--pri); letter-spacing: .04em; }
     .chip { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 99px; }
     .chip.on { background: rgba(20,160,90,.14); color: var(--acc2); }
@@ -69,7 +69,6 @@
     .iconbtn:hover { background: var(--surface-2); }
     .empty { padding: 28px 20px; text-align: center; color: var(--muted); }
 
-    /* Drawer (slide-in à direita) */
     .drawer { position: fixed; inset: 0; z-index: 60; }
     .drawer .backdrop { position: absolute; inset: 0; background: rgba(18,35,59,.45); }
     .drawer .box { position: absolute; right: 0; top: 0; bottom: 0; width: 100%; max-width: 460px; background: var(--card); box-shadow: var(--sombra); display: flex; flex-direction: column; animation: slideIn .25s ease-out; }
@@ -80,16 +79,19 @@
     .drawer .x:hover { background: var(--card); color: var(--txt); }
     .drawer .dbody { padding: 16px 20px; overflow-y: auto; flex: 1; }
     .drawer label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
-    .drawer input, .drawer select { width: 100%; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; color: var(--txt); font: inherit; }
-    .drawer input:focus, .drawer select:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
-    .drawer .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .drawer .hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .drawer input, .drawer select, .drawer textarea { width: 100%; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; color: var(--txt); font: inherit; }
+    .drawer input:focus, .drawer select:focus, .drawer textarea:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
+    .drawer .hint { font-size: 12px; color: var(--muted); background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 4px 0; }
     .drawer .msg { font-size: 12px; min-height: 16px; margin-top: 10px; }
     .drawer .msg.err { color: var(--err); } .drawer .msg.ok { color: var(--acc2); font-weight: 600; }
     .drawer .dfoot { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--line); background: var(--surface-2); }
+    .relat { margin-top: 12px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+    .relat .rrow { display: flex; justify-content: space-between; padding: 8px 12px; font-size: 13px; border-bottom: 1px solid var(--line); }
+    .relat .rrow:last-child { border-bottom: 0; }
+    .relat .erros { max-height: 180px; overflow-y: auto; background: #fff6f6; }
+    .relat .erros div { padding: 6px 12px; font-size: 12px; color: var(--err); border-bottom: 1px solid #f4dede; }
     #sigla { text-transform: uppercase; }
 
-    /* Login */
     .login { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; z-index: 70; }
     .login .lbox { background: var(--card); border: 1px solid var(--line); border-radius: var(--raio); box-shadow: var(--sombra); padding: 28px; width: 340px; }
     .login .lbox .marca { margin-bottom: 18px; }
@@ -99,16 +101,14 @@
     .login .msg { font-size: 12px; color: var(--err); min-height: 16px; margin-top: 8px; }
 
     @media (max-width: 720px) { .side { display: none; } .content { padding: 20px 16px; } .pagehead h1 { font-size: 24px; } }
-      .loading { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; z-index: 80; }
+    .loading { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; z-index: 80; }
     .loading .spin { width: 38px; height: 38px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--pri); animation: spin .7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
-  <!-- Overlay de carregamento (evita flash da tela de login) -->
   <div class="loading" id="loading"><div class="spin"></div></div>
 
-  <!-- Login gate -->
   <div class="login hide" id="login">
     <div class="lbox">
       <div class="marca">
@@ -134,8 +134,8 @@
       <a class="navlink" href="/admin/"><span class="material-symbols-outlined">dashboard</span> Dashboard</a>
       <a class="navlink" href="/admin/campanhas.html"><span class="material-symbols-outlined">campaign</span> Campanhas</a>
       <a class="navlink" href="/admin/clientes.html"><span class="material-symbols-outlined">apartment</span> Clientes</a>
-      <a class="navlink" href="/admin/grupos.html"><span class="material-symbols-outlined">account_tree</span> Grupos</a>
-      <button class="navlink active"><span class="material-symbols-outlined">vaccines</span> Vacinas</button>
+      <button class="navlink active"><span class="material-symbols-outlined">account_tree</span> Grupos</button>
+      <a class="navlink" href="/admin/vacinas.html"><span class="material-symbols-outlined">vaccines</span> Vacinas</a>
       <a class="navlink" href="/admin/elegiveis.html"><span class="material-symbols-outlined">group</span> Pacientes</a>
       <a class="navlink" href="/admin/vacinados.html"><span class="material-symbols-outlined">verified</span> Vacinados</a>
       <a class="navlink" href="/admin/relatorios.html"><span class="material-symbols-outlined">monitoring</span> Relatórios</a>
@@ -149,18 +149,18 @@
     </div>
   </aside>
 
-  <!-- Main -->
   <div class="main">
     <div class="content">
       <div class="pagehead">
         <div>
-          <h1>Gestão de Vacinas</h1>
-          <p>Cadastre e gerencie os produtos (vacinas) do catálogo. A sigla alimenta o código das campanhas.</p>
+          <h1>Grupos empresariais</h1>
+          <p>Carteiras de clientes (holding, franqueadora, corretora). A sigla entra no código da campanha.</p>
         </div>
         <div class="actions">
           <span class="who">Olá, <b id="quem">—</b></span>
           <button class="btn sec" onclick="carregar()"><span class="material-symbols-outlined">refresh</span> Atualizar</button>
-          <button class="btn primary" onclick="abrirCadastro()"><span class="material-symbols-outlined">add</span> Cadastrar Nova Vacina</button>
+          <button class="btn sec" onclick="abrirImport()"><span class="material-symbols-outlined">upload_file</span> Importar CSV</button>
+          <button class="btn primary" onclick="abrirCadastro()"><span class="material-symbols-outlined">add</span> Novo Grupo</button>
           <button class="btn sec" onclick="sair()"><span class="material-symbols-outlined">logout</span> Sair</button>
         </div>
       </div>
@@ -168,32 +168,32 @@
       <div class="panel">
         <div class="search">
           <div class="field">
-            <label>Buscar por nome, fabricante ou sigla</label>
+            <label>Buscar por nome ou sigla</label>
             <div class="box"><span class="material-symbols-outlined">search</span>
-              <input id="busca" placeholder="Ex.: Influenza, Pfizer, IF3..." oninput="renderTabela()" />
+              <input id="busca" placeholder="Ex.: Holding X, GRP..." oninput="renderTabela()" />
             </div>
           </div>
           <div class="field">
             <label>Status</label>
-            <select id="fFiltroStatus" onchange="renderTabela()">
-              <option value="ativa" selected>Somente ativas</option>
-              <option value="todas">Todas</option>
-              <option value="inativa">Somente inativas (desativadas)</option>
+            <select id="fStatus" onchange="renderTabela()">
+              <option value="">Todos</option>
+              <option value="ativo" selected>Ativos</option>
+              <option value="inativo">Inativos</option>
             </select>
           </div>
         </div>
       </div>
 
       <div class="panel">
-        <div class="phead"><h3>Catálogo de vacinas</h3><span class="upd" id="contagem">—</span></div>
+        <div class="phead"><h3>Lista de grupos</h3><span class="upd" id="contagem">—</span></div>
         <div style="overflow-x:auto">
           <table>
             <thead>
-              <tr><th>Nome da Vacina</th><th>Fabricante</th><th>Sigla</th><th>Nº Doses</th><th>Status</th><th style="text-align:right">Ações</th></tr>
+              <tr><th>Nome do grupo</th><th>Sigla</th><th>Status</th><th style="text-align:right">Ações</th></tr>
             </thead>
             <tbody id="tbody"></tbody>
           </table>
-          <div class="empty hide" id="vazio">Nenhuma vacina encontrada.</div>
+          <div class="empty hide" id="vazio">Nenhum grupo encontrado.</div>
         </div>
       </div>
     </div>
@@ -203,45 +203,54 @@
   <div class="drawer hide" id="drawer">
     <div class="backdrop" onclick="fecharDrawer()"></div>
     <div class="box">
-      <div class="dhead">
-        <h3 id="drawerTitulo">Cadastrar Nova Vacina</h3>
-        <button class="x" onclick="fecharDrawer()"><span class="material-symbols-outlined">close</span></button>
-      </div>
+      <div class="dhead"><h3 id="drawerTitulo">Novo Grupo</h3><button class="x" onclick="fecharDrawer()"><span class="material-symbols-outlined">close</span></button></div>
       <div class="dbody">
-        <label>Nome da Vacina *</label>
-        <input id="fNome" placeholder="Ex.: Influenza (Gripe)" />
-        <label>Fabricante</label>
-        <input id="fFabricante" placeholder="Ex.: Butantan" />
-        <div class="g2">
-          <div>
-            <label>Sigla (3 caracteres)</label>
-            <input id="sigla" maxlength="3" placeholder="IF3" />
-            <div class="hint">A–Z e 0–9. Entra no código da campanha.</div>
-          </div>
-          <div>
-            <label>Nº de doses do esquema</label>
-            <input id="fDoses" type="number" min="1" value="1" />
-          </div>
+        <label>Nome do grupo *</label>
+        <input id="fNome" placeholder="Ex.: Holding Alfa" />
+        <label>Sigla (3 caracteres)</label>
+        <input id="sigla" maxlength="3" placeholder="ALF" />
+        <div id="statusWrap"><label>Status</label>
+          <select id="fStatusEdit"><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select>
         </div>
-        <label>Status</label>
-        <select id="fStatus">
-          <option value="ativa">Ativa</option>
-          <option value="inativa">Inativa</option>
-        </select>
         <div class="msg" id="drawerMsg"></div>
       </div>
       <div class="dfoot">
         <button class="btn sec" onclick="fecharDrawer()">Cancelar</button>
-        <button class="btn primary" onclick="salvar()">Salvar Cadastro</button>
+        <button class="btn primary" onclick="salvar()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drawer importar CSV -->
+  <div class="drawer hide" id="drawerImp">
+    <div class="backdrop" onclick="fecharImport()"></div>
+    <div class="box">
+      <div class="dhead"><h3>Importar grupos (CSV)</h3><button class="x" onclick="fecharImport()"><span class="material-symbols-outlined">close</span></button></div>
+      <div class="dbody">
+        <div class="hint">Uma linha por grupo (separador <b>;</b> ou vírgula):<br>
+          <b>nome;sigla</b><br>
+          Atualiza pela sigla (ou pelo nome, se a sigla estiver vazia).</div>
+        <button class="btn sec" style="margin:4px 0 8px" onclick="baixarModelo()"><span class="material-symbols-outlined">download</span> Baixar modelo (CSV)</button>
+        <label>Colar linhas (CSV)</label>
+        <textarea id="impTexto" rows="7" placeholder="Holding Alfa;ALF"></textarea>
+        <label>…ou enviar um arquivo (.csv)</label>
+        <input type="file" id="impArquivo" accept=".csv,.txt" onchange="lerArquivo()" />
+        <div class="msg" id="impMsg"></div>
+        <div id="impRelat"></div>
+      </div>
+      <div class="dfoot">
+        <button class="btn sec" onclick="fecharImport()">Fechar</button>
+        <button class="btn primary" onclick="enviarImport()"><span class="material-symbols-outlined">upload</span> Importar</button>
       </div>
     </div>
   </div>
 
   <script>
   // ---------------------------------------------------------------------------
-  // Gestão de vacinas — CRUD do catálogo, ligado ao backend (sessão + CSRF).
+  // Grupos empresariais (admin) — CRUD + importação CSV. Sessão + CSRF.
   // ---------------------------------------------------------------------------
-  let CSRF = null, VACINAS = [], EDIT_ID = null;
+  let CSRF = null, GRUPOS = [], EDIT_ID = null;
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   async function api(path, metodo = 'GET', corpo = null) {
     const opts = { method: metodo, headers: {}, credentials: 'same-origin' };
@@ -260,58 +269,49 @@
     document.getElementById('loginMsg').textContent = ''; document.getElementById('senha').value = '';
     await carregar();
   }
-
   async function sair() { await api('/interno/auth/logout', 'POST', {}); CSRF = null; document.getElementById('login').classList.remove('hide'); }
 
   async function carregar() {
-    const d = await api('/interno/vacinas?todas=1');
+    const d = await api('/interno/grupos');
     if (d.http === 401) { document.getElementById('login').classList.remove('hide'); document.getElementById('loading').classList.add('hide'); return; }
     document.getElementById('login').classList.add('hide'); document.getElementById('loading').classList.add('hide');
+    if (d.http === 403) { document.getElementById('vazio').classList.remove('hide'); document.getElementById('vazio').textContent = 'Apenas a gestão interna acessa grupos.'; return; }
     if (!d.success) return;
-    VACINAS = d.data.itens || [];
+    GRUPOS = d.data.itens || [];
     renderTabela();
     const eu = await api('/interno/auth/eu');
-    if (eu.success) {
-      document.getElementById('quem').textContent = eu.data.usuario.nome || '—';
-      if (!CSRF && eu.data.csrf_token) CSRF = eu.data.csrf_token;
-    }
+    if (eu.success) { document.getElementById('quem').textContent = eu.data.usuario.nome || '—'; if (!CSRF && eu.data.csrf_token) CSRF = eu.data.csrf_token; }
   }
 
   function renderTabela() {
     const q = (document.getElementById('busca').value || '').trim().toLowerCase();
-    const st = document.getElementById('fFiltroStatus').value;
-    const lista = VACINAS.filter(v => {
-      if (st !== 'todas' && (v.status || 'ativa') !== st) return false;
-      return !q
-        || (v.nome || '').toLowerCase().includes(q)
-        || (v.fabricante || '').toLowerCase().includes(q)
-        || (v.sigla || '').toLowerCase().includes(q);
+    const fs = document.getElementById('fStatus').value;
+    const lista = GRUPOS.filter(g => {
+      if (fs && (g.status || 'ativo') !== fs) return false;
+      return !q || (g.nome || '').toLowerCase().includes(q) || (g.sigla || '').toLowerCase().includes(q);
     });
-    document.getElementById('contagem').textContent = lista.length + ' de ' + VACINAS.length + ' vacina(s)';
+    document.getElementById('contagem').textContent = lista.length + ' de ' + GRUPOS.length + ' grupo(s)';
     document.getElementById('vazio').classList.toggle('hide', lista.length > 0);
-    document.getElementById('tbody').innerHTML = lista.map(v => {
-      const chip = v.status === 'ativa' ? '<span class="chip on">Ativa</span>' : '<span class="chip off">Inativa</span>';
-      const sig = v.sigla ? '<span class="sig">' + v.sigla + '</span>' : '<span style="color:var(--muted)">—</span>';
+    document.getElementById('tbody').innerHTML = lista.map(g => {
+      const chip = (g.status || 'ativo') === 'ativo' ? '<span class="chip on">Ativo</span>' : '<span class="chip off">Inativo</span>';
+      const sig = g.sigla ? '<span class="sig">' + esc(g.sigla) + '</span>' : '<span class="sub">—</span>';
       return '<tr>'
-        + '<td><span class="nm">' + (v.nome || '') + '</span></td>'
-        + '<td>' + (v.fabricante || '—') + '</td>'
+        + '<td><span class="nm">' + esc(g.nome || '') + '</span></td>'
         + '<td>' + sig + '</td>'
-        + '<td>' + (v.doses_padrao || 1) + '</td>'
         + '<td>' + chip + '</td>'
-        + '<td style="text-align:right"><button class="iconbtn" title="Editar" onclick="abrirCadastro(' + v.id + ')"><span class="material-symbols-outlined" style="font-size:20px">edit</span></button></td>'
+        + '<td style="text-align:right"><button class="iconbtn" title="Editar" onclick="abrirCadastro(' + g.id + ')"><span class="material-symbols-outlined" style="font-size:20px">edit</span></button></td>'
         + '</tr>';
     }).join('');
   }
 
   function abrirCadastro(id) {
     EDIT_ID = id || null;
-    const v = id ? VACINAS.find(x => x.id === id) : null;
-    document.getElementById('drawerTitulo').textContent = v ? 'Editar Vacina' : 'Cadastrar Nova Vacina';
-    document.getElementById('fNome').value = v ? (v.nome || '') : '';
-    document.getElementById('fFabricante').value = v ? (v.fabricante || '') : '';
-    document.getElementById('sigla').value = v ? (v.sigla || '') : '';
-    document.getElementById('fDoses').value = v ? (v.doses_padrao || 1) : 1;
-    document.getElementById('fStatus').value = v ? (v.status || 'ativa') : 'ativa';
+    const g = id ? GRUPOS.find(x => x.id === id) : null;
+    document.getElementById('drawerTitulo').textContent = g ? 'Editar Grupo' : 'Novo Grupo';
+    document.getElementById('fNome').value = g ? (g.nome || '') : '';
+    document.getElementById('sigla').value = g ? (g.sigla || '') : '';
+    document.getElementById('fStatusEdit').value = g ? (g.status || 'ativo') : 'ativo';
+    document.getElementById('statusWrap').classList.toggle('hide', !g); // status só na edição
     const msg = document.getElementById('drawerMsg'); msg.className = 'msg'; msg.textContent = '';
     document.getElementById('drawer').classList.remove('hide');
   }
@@ -319,25 +319,62 @@
 
   async function salvar() {
     const msg = document.getElementById('drawerMsg');
-    const body = {
-      nome:         document.getElementById('fNome').value.trim(),
-      fabricante:   document.getElementById('fFabricante').value.trim(),
-      sigla:        document.getElementById('sigla').value.trim(),
-      doses_padrao: Number(document.getElementById('fDoses').value || 1),
-      status:       document.getElementById('fStatus').value,
-    };
-    if (!body.nome) { msg.className = 'msg err'; msg.textContent = 'Informe o nome da vacina.'; return; }
+    const nome = document.getElementById('fNome').value.trim();
+    const sigla = document.getElementById('sigla').value.trim();
+    if (!nome) { msg.className = 'msg err'; msg.textContent = 'Informe o nome do grupo.'; return; }
     msg.className = 'msg'; msg.textContent = 'Salvando...';
     const d = EDIT_ID
-      ? await api('/interno/vacinas/' + EDIT_ID, 'PUT', body)
-      : await api('/interno/vacinas', 'POST', body);
-    if (!d.success) {
-      msg.className = 'msg err';
-      msg.textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Não foi possível salvar.'));
-      return;
-    }
-    msg.className = 'msg ok'; msg.textContent = EDIT_ID ? 'Vacina atualizada!' : 'Vacina cadastrada!';
+      ? await api('/interno/grupos/' + EDIT_ID, 'PUT', { nome, sigla, status: document.getElementById('fStatusEdit').value })
+      : await api('/interno/grupos', 'POST', { nome, sigla });
+    if (!d.success) { msg.className = 'msg err'; msg.textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Não foi possível salvar.')); return; }
+    msg.className = 'msg ok'; msg.textContent = EDIT_ID ? 'Grupo atualizado!' : 'Grupo criado!';
     setTimeout(async () => { fecharDrawer(); await carregar(); }, 600);
+  }
+
+  // ---- Importação CSV -------------------------------------------------------
+  function abrirImport() {
+    document.getElementById('impTexto').value = '';
+    document.getElementById('impArquivo').value = '';
+    document.getElementById('impMsg').textContent = '';
+    document.getElementById('impRelat').innerHTML = '';
+    document.getElementById('drawerImp').classList.remove('hide');
+  }
+  function fecharImport() { document.getElementById('drawerImp').classList.add('hide'); }
+  function lerArquivo() {
+    const f = document.getElementById('impArquivo').files[0]; if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => { document.getElementById('impTexto').value = rd.result; };
+    rd.readAsText(f, 'UTF-8');
+  }
+  function baixarModelo() {
+    const conteudo = '﻿nome;sigla\r\nHolding Alfa;ALF\r\nGrupo Beta;\r\n';
+    const blob = new Blob([conteudo], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'modelo-grupos.csv';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+  function parseCsv(t) {
+    const limpa = s => (s || '').trim().replace(/^"(.*)"$/, '$1').trim();
+    return t.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
+      const p = (l.includes(';') ? l.split(';') : l.split(',')).map(limpa);
+      return { nome: p[0] || '', sigla: p[1] || '' };
+    }).filter(o => o.nome && o.nome.toLowerCase() !== 'nome');
+  }
+  async function enviarImport() {
+    const msg = document.getElementById('impMsg');
+    const grupos = parseCsv(document.getElementById('impTexto').value);
+    if (!grupos.length) { msg.className = 'msg err'; msg.textContent = 'Cole ao menos uma linha ou escolha um arquivo.'; return; }
+    msg.className = 'msg'; msg.textContent = 'Importando ' + grupos.length + ' linha(s)...';
+    const d = await api('/interno/grupos/importar', 'POST', { grupos });
+    if (!d.success) { msg.className = 'msg err'; msg.textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Falha na importação.')); return; }
+    const x = d.data;
+    msg.className = 'msg ok'; msg.textContent = 'Concluído: ' + x.inseridos + ' novo(s), ' + x.atualizados + ' atualizado(s), ' + (x.erros || []).length + ' aviso(s).';
+    let html = '<div class="relat"><div class="rrow"><span>Inseridos</span><b>' + x.inseridos + '</b></div>'
+      + '<div class="rrow"><span>Atualizados</span><b>' + x.atualizados + '</b></div>'
+      + '<div class="rrow"><span>Total de linhas</span><b>' + x.total + '</b></div>';
+    if ((x.erros || []).length) html += '<div class="erros">' + x.erros.map(e => '<div>Linha ' + e.linha + ': ' + esc(e.motivo) + '</div>').join('') + '</div>';
+    html += '</div>';
+    document.getElementById('impRelat').innerHTML = html;
+    await carregar();
   }
 
   carregar();
