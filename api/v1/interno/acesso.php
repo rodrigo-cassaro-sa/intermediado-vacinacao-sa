@@ -222,6 +222,79 @@ function rota_listar_unidades(array $params): void
     responder_sucesso(['itens' => db_todos("SELECT id, nome, codigo_lotacao, cidade, uf, status FROM unidade WHERE cliente_b2b_id = :c AND excluido_em IS NULL ORDER BY nome", [':c' => $clienteId])], 'OK.');
 }
 
+/** PUT /api/v1/interno/unidades/{id} — edita nome, código de lotação, cidade, UF e status. */
+function rota_editar_unidade(array $params): void
+{
+    $usuario = exigir_login();
+    exigir_csrf();
+    $id = (int) ($params['id'] ?? 0);
+    $u = db_primeiro("SELECT id, cliente_b2b_id FROM unidade WHERE id = :id AND excluido_em IS NULL LIMIT 1", [':id' => $id]);
+    if ($u === null) {
+        responder_erro('Unidade não encontrada.', 404, [['field' => null, 'code' => 'UNIDADE_NAO_ENCONTRADA', 'message' => 'Unidade inexistente.']]);
+    }
+    if (!usuario_pode_cliente($usuario, (int) $u['cliente_b2b_id'], true)) {
+        responder_erro('Sem acesso a este cliente.', 403, [['field' => null, 'code' => 'FORA_DO_ESCOPO', 'message' => 'Acesso negado.']]);
+    }
+    $dados = corpo_json();
+    $erros = exigir_campos($dados, ['nome']);
+    $status = null;
+    if (isset($dados['status'])) {
+        $status = (string) $dados['status'];
+        if (!in_array($status, ['ativo', 'inativo'], true)) $erros[] = ['field' => 'status', 'code' => 'STATUS_INVALIDO', 'message' => 'Use ativo ou inativo.'];
+    }
+    if ($erros) erro_validacao($erros);
+    $uf = trim((string) ($dados['uf'] ?? '')); $uf = $uf !== '' ? strtoupper(substr($uf, 0, 2)) : null;
+    $cod = trim((string) ($dados['codigo_lotacao'] ?? '')); $cod = $cod !== '' ? $cod : null;
+    $cid = trim((string) ($dados['cidade'] ?? '')); $cid = $cid !== '' ? $cid : null;
+    $sets = ['nome = :n', 'codigo_lotacao = :cod', 'cidade = :cid', 'uf = :uf'];
+    $bind = [':n' => trim($dados['nome']), ':cod' => $cod, ':cid' => $cid, ':uf' => $uf, ':id' => $id];
+    if ($status !== null) { $sets[] = 'status = :st'; $bind[':st'] = $status; }
+    db_executar('UPDATE unidade SET ' . implode(', ', $sets) . ' WHERE id = :id', $bind);
+    registrar_auditoria('unidade.editada', ['tenant_id' => (int) $u['cliente_b2b_id'], 'ator_tipo' => 'usuario', 'ator_id' => (int) $usuario['id'], 'origem' => 'admin', 'entidade_tipo' => 'unidade', 'entidade_id' => $id]);
+    responder_sucesso(['unidade_id' => $id], 'Unidade atualizada.');
+}
+
+/**
+ * POST /api/v1/interno/clientes/{id}/unidades/importar  { unidades: [{nome, codigo_lotacao?, cidade?, uf?}] }
+ * Upsert por código de lotação (ou nome) dentro do cliente. Relatório por linha.
+ */
+function rota_importar_unidades(array $params): void
+{
+    $usuario = exigir_login();
+    exigir_csrf();
+    $clienteId = (int) ($params['id'] ?? 0);
+    if (!usuario_pode_cliente($usuario, $clienteId, true)) {
+        responder_erro('Sem acesso a este cliente.', 403, [['field' => null, 'code' => 'FORA_DO_ESCOPO', 'message' => 'Acesso negado.']]);
+    }
+    $lista = corpo_json()['unidades'] ?? null;
+    if (!is_array($lista) || !$lista) {
+        erro_validacao([['field' => 'unidades', 'code' => 'LISTA_VAZIA', 'message' => 'Envie ao menos uma linha.']]);
+    }
+    $inseridos = 0; $atualizados = 0; $erros = []; $linha = 0;
+    foreach ($lista as $it) {
+        $linha++;
+        $nome = trim((string) ($it['nome'] ?? ''));
+        if ($nome === '') { $erros[] = ['linha' => $linha, 'motivo' => 'Nome é obrigatório.']; continue; }
+        $cod = trim((string) ($it['codigo_lotacao'] ?? '')); $cod = $cod !== '' ? $cod : null;
+        $cid = trim((string) ($it['cidade'] ?? '')); $cid = $cid !== '' ? $cid : null;
+        $uf = trim((string) ($it['uf'] ?? '')); $uf = $uf !== '' ? strtoupper(substr($uf, 0, 2)) : null;
+        $exist = null;
+        if ($cod !== null) $exist = db_primeiro("SELECT id FROM unidade WHERE cliente_b2b_id = :c AND codigo_lotacao = :cod AND excluido_em IS NULL LIMIT 1", [':c' => $clienteId, ':cod' => $cod]);
+        if ($exist === null) $exist = db_primeiro("SELECT id FROM unidade WHERE cliente_b2b_id = :c AND nome = :n AND excluido_em IS NULL LIMIT 1", [':c' => $clienteId, ':n' => $nome]);
+        if ($exist !== null) {
+            db_executar("UPDATE unidade SET nome = :n, codigo_lotacao = :cod, cidade = :cid, uf = :uf WHERE id = :id",
+                [':n' => $nome, ':cod' => $cod, ':cid' => $cid, ':uf' => $uf, ':id' => (int) $exist['id']]);
+            $atualizados++;
+        } else {
+            db_executar("INSERT INTO unidade (cliente_b2b_id, nome, codigo_lotacao, cidade, uf) VALUES (:c, :n, :cod, :cid, :uf)",
+                [':c' => $clienteId, ':n' => $nome, ':cod' => $cod, ':cid' => $cid, ':uf' => $uf]);
+            $inseridos++;
+        }
+    }
+    registrar_auditoria('unidades.importadas', ['tenant_id' => $clienteId, 'ator_tipo' => 'usuario', 'ator_id' => (int) $usuario['id'], 'origem' => 'admin', 'entidade_tipo' => 'unidade', 'metadata' => ['inseridos' => $inseridos, 'atualizados' => $atualizados, 'erros' => count($erros)]]);
+    responder_sucesso(['inseridos' => $inseridos, 'atualizados' => $atualizados, 'erros' => $erros, 'total' => count($lista)], 'Importação concluída.');
+}
+
 /**
  * POST /api/v1/interno/usuarios  {nome, email, senha, nivel, escopo_tipo, escopo_id}
  * Cria usuário do portal + 1 atribuição. Ator precisa poder gerir o nível/escopo.

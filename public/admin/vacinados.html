@@ -165,6 +165,7 @@
       <a class="navlink" href="/admin/"><span class="material-symbols-outlined">dashboard</span> Dashboard</a>
       <a class="navlink" href="/admin/grupos.html"><span class="material-symbols-outlined">account_tree</span> Grupos</a>
       <a class="navlink" href="/admin/clientes.html"><span class="material-symbols-outlined">apartment</span> Clientes</a>
+      <a class="navlink" href="/admin/unidades.html"><span class="material-symbols-outlined">store</span> Unidades</a>
       <a class="navlink" href="/admin/campanhas.html"><span class="material-symbols-outlined">campaign</span> Campanhas</a>
       <a class="navlink" href="/admin/vacinas.html"><span class="material-symbols-outlined">vaccines</span> Vacinas</a>
       <a class="navlink" href="/admin/elegiveis.html"><span class="material-symbols-outlined">group</span> Pacientes</a>
@@ -385,6 +386,10 @@
     const optClin = CLINICAS.map(x => '<option value="' + x.id + '">' + esc(x.nome) + '</option>').join('');
     document.getElementById('regClinica').innerHTML = '<option value="">— In company / sem clínica —</option>' + optClin;
     document.getElementById('fClinica').innerHTML = '<option value="">Todas as clínicas</option>' + optClin;
+    // Clínica só é usada em campanhas de rede credenciada — oculta o filtro nas demais.
+    const ehRede = c && c.modalidade === 'rede_credenciada';
+    document.getElementById('fClinica').classList.toggle('hide', !ehRede);
+    if (!ehRede) document.getElementById('fClinica').value = '';
     recarregar();
   }
 

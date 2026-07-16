@@ -372,6 +372,10 @@
     const optClin = CLINICAS.map(x => '<option value="' + x.id + '">' + esc(x.nome) + '</option>').join('');
     document.getElementById('regClinica').innerHTML = '<option value="">— In company / sem clínica —</option>' + optClin;
     document.getElementById('fClinica').innerHTML = '<option value="">Todas as clínicas</option>' + optClin;
+    // Clínica só é usada em campanhas de rede credenciada — oculta o filtro nas demais.
+    const ehRede = c && c.modalidade === 'rede_credenciada';
+    document.getElementById('fClinica').classList.toggle('hide', !ehRede);
+    if (!ehRede) document.getElementById('fClinica').value = '';
     recarregar();
   }
 

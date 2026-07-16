@@ -229,7 +229,7 @@ function rota_importar_clientes(array $params): void
         if ($gRaw !== '') {
             $key = strtoupper($gRaw);
             if (isset($gruposPorSigla[$key])) $grupoId = $gruposPorSigla[$key];
-            else $erros[] = ['linha' => $linha, 'motivo' => 'Grupo (sigla "' . $gRaw . '") não encontrado — cliente importado sem grupo.'];
+            else $erros[] = ['linha' => $linha, 'motivo' => 'Grupo (sigla "' . $gRaw . '") não encontrado — cliente novo recebe um grupo próprio; cliente existente mantém o grupo atual.'];
         }
         // Sigla não pode colidir com outro cliente (de CNPJ diferente).
         if ($sigla !== null) {
@@ -247,6 +247,16 @@ function rota_importar_clientes(array $params): void
             db_executar('UPDATE cliente_b2b SET ' . implode(', ', $sets) . ' WHERE id = :id', $bind);
             $atualizados++;
         } else {
+            // Todo cliente precisa de grupo: se a linha não trouxe um, cria um
+            // grupo repetindo o cliente (mesmo nome/sigla) e vincula.
+            if ($grupoId === null) {
+                $gSigla = $sigla;
+                if ($gSigla !== null && db_primeiro("SELECT id FROM grupo_empresarial WHERE sigla = :s LIMIT 1", [':s' => $gSigla]) !== null) {
+                    $gSigla = null; // evita conflito de sigla de grupo
+                }
+                db_executar("INSERT INTO grupo_empresarial (nome, sigla) VALUES (:n, :s)", [':n' => $razao, ':s' => $gSigla]);
+                $grupoId = (int) db_ultimo_id();
+            }
             db_executar(
                 "INSERT INTO cliente_b2b (razao_social, sigla, cnpj, status, grupo_empresarial_id) VALUES (:razao, :sigla, :cnpj, 'ativo', :grupo)",
                 [':razao' => $razao, ':sigla' => $sigla, ':cnpj' => $cnpj, ':grupo' => $grupoId]

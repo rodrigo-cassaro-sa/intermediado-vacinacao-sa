@@ -35,6 +35,27 @@ function rota_dashboard_visao_geral(array $params): void
         $tFiltro = ' AND c.tenant_id IN (' . implode(',', $ph) . ')';
     }
 
+    // --- Restrição por UNIDADE (usuário só-local) ---------------------------
+    // Se TODO cliente do escopo restringe por unidade, filtra elegíveis/aplicações
+    // pelas unidades do usuário. Se algum cliente é gerido por inteiro, sem filtro.
+    // IN com inteiros vindos do banco (sem placeholders → sem risco de reuso HY093).
+    $uEleg = '';
+    $uAplic = '';
+    if ($geridos !== ['*']) {
+        $unidades = [];
+        $semRestricao = false;
+        foreach ($geridos as $cid) {
+            $r = unidades_restritas_do_usuario($usuario, (int) $cid);
+            if ($r === null) { $semRestricao = true; break; }
+            foreach ($r as $uid) { $unidades[(int) $uid] = true; }
+        }
+        if (!$semRestricao && $unidades) {
+            $inU = implode(',', array_map('intval', array_keys($unidades)));
+            $uEleg  = " AND e.unidade_id IN ($inU)";
+            $uAplic = " AND a.elegivel_id IN (SELECT id FROM elegivel WHERE unidade_id IN ($inU))";
+        }
+    }
+
     // --- Filtro opcional por campanha ---------------------------------------
     // Sem ?campanha_id => agrega TODAS as campanhas ativas do escopo.
     // Com ?campanha_id => valida o acesso e restringe tudo àquela campanha.
@@ -48,13 +69,13 @@ function rota_dashboard_visao_geral(array $params): void
     // --- 1) Métricas: elegíveis (da campanha, ou de todas as ATIVAS) --------
     $porStatus = ['pendente' => 0, 'aplicado' => 0, 'recusado' => 0, 'inelegivel' => 0, 'ausente' => 0, 'expirado' => 0, 'removido' => 0];
     if ($modoUnico) {
-        $sqlMetrica = "SELECT e.status, COUNT(*) AS c FROM elegivel e WHERE e.campanha_id = :camp GROUP BY e.status";
+        $sqlMetrica = "SELECT e.status, COUNT(*) AS c FROM elegivel e WHERE e.campanha_id = :camp$uEleg GROUP BY e.status";
         $bindMetrica = [':camp' => $campanhaId];
     } else {
         $sqlMetrica = "SELECT e.status, COUNT(*) AS c
                          FROM elegivel e
                          JOIN campanha c ON c.id = e.campanha_id
-                        WHERE c.status = 'ativa' AND c.excluido_em IS NULL$tFiltro
+                        WHERE c.status = 'ativa' AND c.excluido_em IS NULL$tFiltro$uEleg
                         GROUP BY e.status";
         $bindMetrica = $tBind;
     }
@@ -78,14 +99,14 @@ function rota_dashboard_visao_geral(array $params): void
     if ($modoUnico) {
         $sqlEvo = "SELECT DATE_FORMAT(a.aplicado_em, '%Y-%m') AS ym, COUNT(*) AS c
                      FROM aplicacao a
-                    WHERE a.status = 'confirmada' AND a.aplicado_em >= :ini AND a.campanha_id = :camp
+                    WHERE a.status = 'confirmada' AND a.aplicado_em >= :ini AND a.campanha_id = :camp$uAplic
                     GROUP BY ym";
         $bindEvo = [':ini' => $inicioSerie, ':camp' => $campanhaId];
     } else {
         $sqlEvo = "SELECT DATE_FORMAT(a.aplicado_em, '%Y-%m') AS ym, COUNT(*) AS c
                      FROM aplicacao a
                      JOIN campanha c ON c.id = a.campanha_id
-                    WHERE a.status = 'confirmada' AND a.aplicado_em >= :ini$tFiltro
+                    WHERE a.status = 'confirmada' AND a.aplicado_em >= :ini$tFiltro$uAplic
                     GROUP BY ym";
         $bindEvo = array_merge([':ini' => $inicioSerie], $tBind);
     }
@@ -105,16 +126,16 @@ function rota_dashboard_visao_geral(array $params): void
     // --- 3) Lista de campanhas (a selecionada, ou as ativas/planejadas) -----
     if ($modoUnico) {
         $sqlCamp = "SELECT c.id, c.codigo, c.temporada, c.nome, c.status, c.periodo_inicio, c.periodo_fim, cb.razao_social AS cliente,
-                           (SELECT COUNT(*) FROM elegivel e WHERE e.campanha_id = c.id) AS elegiveis,
-                           (SELECT COUNT(*) FROM elegivel e WHERE e.campanha_id = c.id AND e.status = 'aplicado') AS aplicados
+                           (SELECT COUNT(*) FROM elegivel e WHERE e.campanha_id = c.id$uEleg) AS elegiveis,
+                           (SELECT COUNT(*) FROM elegivel e WHERE e.campanha_id = c.id AND e.status = 'aplicado'$uEleg) AS aplicados
                       FROM campanha c
                       JOIN cliente_b2b cb ON cb.id = c.tenant_id
                      WHERE c.id = :camp";
         $bindCamp = [':camp' => $campanhaId];
     } else {
         $sqlCamp = "SELECT c.id, c.codigo, c.temporada, c.nome, c.status, c.periodo_inicio, c.periodo_fim, cb.razao_social AS cliente,
-                           (SELECT COUNT(*) FROM elegivel e WHERE e.campanha_id = c.id) AS elegiveis,
-                           (SELECT COUNT(*) FROM elegivel e WHERE e.campanha_id = c.id AND e.status = 'aplicado') AS aplicados
+                           (SELECT COUNT(*) FROM elegivel e WHERE e.campanha_id = c.id$uEleg) AS elegiveis,
+                           (SELECT COUNT(*) FROM elegivel e WHERE e.campanha_id = c.id AND e.status = 'aplicado'$uEleg) AS aplicados
                       FROM campanha c
                       JOIN cliente_b2b cb ON cb.id = c.tenant_id
                      WHERE c.excluido_em IS NULL AND c.status IN ('ativa', 'rascunho')$tFiltro
