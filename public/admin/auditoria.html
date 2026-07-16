@@ -94,11 +94,17 @@
     .login .msg { font-size: 12px; color: var(--err); min-height: 16px; margin-top: 8px; }
 
     @media (max-width: 720px) { .side { display: none; } .content { padding: 20px 16px; } .pagehead h1 { font-size: 24px; } .det { max-width: 220px; } }
-  </style>
+      .loading { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; z-index: 80; }
+    .loading .spin { width: 38px; height: 38px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--pri); animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+</style>
 </head>
 <body>
+  <!-- Overlay de carregamento (evita flash da tela de login) -->
+  <div class="loading" id="loading"><div class="spin"></div></div>
+
   <!-- Login gate -->
-  <div class="login" id="login">
+  <div class="login hide" id="login">
     <div class="lbox">
       <div class="marca">
         <div class="logo"><svg width="22" height="22" viewBox="0 0 32 32"><path d="M13.5 7h5v6.5H25v5h-6.5V25h-5v-6.5H7v-5h6.5z" fill="#fff"/></svg></div>
@@ -307,8 +313,8 @@
     const de = document.getElementById('fDe').value; if (de) p.set('de', de);
     const ate = document.getElementById('fAte').value; if (ate) p.set('ate', ate);
     const d = await api('/interno/portal/auditoria?' + p.toString());
-    if (d.http === 401) { document.getElementById('login').classList.remove('hide'); return; }
-    document.getElementById('login').classList.add('hide');
+    if (d.http === 401) { document.getElementById('login').classList.remove('hide'); document.getElementById('loading').classList.add('hide'); return; }
+    document.getElementById('login').classList.add('hide'); document.getElementById('loading').classList.add('hide');
     if (!d.success) return;
     ITENS = d.data.itens || [];
     renderTabela();
