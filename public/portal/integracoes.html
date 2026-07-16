@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Integrações — Portal do Cliente</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+  <link rel="stylesheet" href="/assets/marca.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Inter', system-ui, Segoe UI, Roboto, sans-serif; background: var(--bg); color: var(--txt); font-size: 14px; display: flex; height: 100vh; overflow: hidden; }
+    .material-symbols-outlined { font-family: 'Material Symbols Outlined'; font-size: 22px; line-height: 1; }
+    .hide { display: none !important; }
+    code { font-family: ui-monospace, Menlo, Consolas, monospace; }
+
+    .side { width: 256px; flex: 0 0 256px; background: var(--card); border-right: 1px solid var(--line); box-shadow: var(--sombra); display: flex; flex-direction: column; padding: 16px 0; }
+    .side .brand { padding: 6px 20px 20px; display: flex; flex-direction: column; gap: 8px; }
+    .side .brand .logo { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, var(--acc) 0%, var(--pri) 100%); display: grid; place-items: center; box-shadow: 0 4px 12px rgba(22,102,196,.28); }
+    .side .brand .nome { font-size: 20px; font-weight: 800; letter-spacing: -.01em; color: var(--pri); line-height: 1.15; }
+    .side .brand .tag { font-size: 12px; color: var(--muted); }
+    .side nav { flex: 1; padding: 0 12px; display: flex; flex-direction: column; gap: 4px; }
+    .side .foot { padding: 12px 12px 0; margin-top: auto; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
+    .navlink { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; color: var(--muted); text-decoration: none; font-weight: 500; background: none; border: 0; font: inherit; cursor: pointer; text-align: left; width: 100%; transition: background .15s, color .15s; }
+    .navlink:hover { background: var(--surface-2); color: var(--txt); }
+    .navlink.active { background: var(--surface-2); color: var(--pri); font-weight: 600; }
+    .navlink .material-symbols-outlined { font-variation-settings: 'FILL' 0; }
+    .navlink.active .material-symbols-outlined { font-variation-settings: 'FILL' 1; }
+
+    .main { flex: 1; overflow-y: auto; }
+    .content { max-width: 1000px; margin: 0 auto; padding: 24px 32px 64px; display: flex; flex-direction: column; gap: 24px; }
+    .pagehead { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+    .pagehead h1 { font-size: 32px; font-weight: 700; letter-spacing: -.02em; margin: 0; }
+    .pagehead p { margin: 6px 0 0; color: var(--muted); max-width: 640px; }
+    .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .who { color: var(--muted); font-size: 13px; margin-right: 4px; } .who b { color: var(--txt); }
+    .sel { padding: 9px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--txt); font: inherit; font-weight: 500; cursor: pointer; max-width: 360px; }
+    .sel:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
+    .btn { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; padding: 10px 16px; border-radius: 8px; font: inherit; font-weight: 600; border: 0; }
+    .btn .material-symbols-outlined { font-size: 18px; }
+    .btn.primary { background: var(--pri); color: #fff; box-shadow: 0 2px 6px rgba(22,102,196,.25); }
+    .btn.primary:hover { background: var(--pri2); }
+    .btn.sec { background: var(--card); color: var(--txt); border: 1px solid var(--line); }
+    .btn.sec:hover { background: var(--surface-2); }
+    .btn.mini { padding: 7px 12px; font-size: 13px; }
+    .btn.ghost { background: none; border: 0; color: var(--pri); padding: 4px 8px; font-size: 13px; }
+    .btn.ghost.danger { color: var(--err); }
+
+    .cards2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .fcard { background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--sombra); padding: 18px 20px; }
+    .fcard .ic { width: 36px; height: 36px; border-radius: 9px; display: grid; place-items: center; margin-bottom: 10px; }
+    .fcard .ic.blue { background: rgba(22,102,196,.12); color: var(--pri); }
+    .fcard .ic.green { background: rgba(20,160,90,.14); color: var(--acc2); }
+    .fcard h4 { margin: 0 0 6px; font-size: 16px; }
+    .fcard p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+
+    .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--sombra); overflow: hidden; }
+    .panel > .phead { padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--surface-2); display: flex; align-items: center; gap: 10px; }
+    .panel > .phead .material-symbols-outlined { color: var(--pri); }
+    .panel > .phead h3 { margin: 0; font-size: 15px; font-weight: 700; }
+    .panel > .phead .step { width: 24px; height: 24px; border-radius: 7px; background: var(--pri); color: #fff; display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+    .panel .pbody { padding: 18px 20px; }
+    .panel .pbody > p { margin: 0 0 14px; color: var(--muted); }
+    .lbl { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin: 12px 0 4px; }
+    input, select { padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); color: var(--txt); font: inherit; }
+    input:focus, select:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .row .fld { display: flex; flex-direction: column; }
+    .row .fld.grow { flex: 1; min-width: 200px; }
+    .row .fld input, .row .fld select { width: 100%; }
+
+    .code { background: #0b1c30; color: #cfe4ff; border-radius: 10px; padding: 14px 16px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; position: relative; overflow-x: auto; white-space: pre; line-height: 1.6; }
+    .code .cp { position: absolute; right: 8px; top: 8px; background: rgba(255,255,255,.08); color: #cfe4ff; border: 0; border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 12px; }
+    .code .k { color: var(--secondary-fixed-dim, #88da78); } .code .u { color: #8ea3b8; } .code .v { color: var(--primary-fixed-dim, #8ccdff); }
+    .tokenbox { margin-top: 10px; padding: 12px 14px; background: #fff7ec; border: 1px solid var(--warn, #c77a0a); border-radius: 10px; }
+    .tokenbox code { word-break: break-all; color: var(--acc2); font-weight: 600; }
+    .note { display: flex; gap: 10px; padding: 12px 14px; background: rgba(39,93,131,.08); border-left: 4px solid var(--tertiary, #275d83); border-radius: 8px; color: var(--muted); font-size: 13px; margin-top: 12px; }
+    .note .material-symbols-outlined { color: var(--tertiary, #275d83); font-size: 20px; }
+    .msg { font-size: 12px; min-height: 16px; margin-top: 8px; } .msg.err { color: var(--err); } .msg.ok { color: var(--acc2); font-weight: 600; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    thead th { text-align: left; padding: 8px 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: var(--surface-2); border-bottom: 1px solid var(--line); }
+    tbody td { padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 13px; vertical-align: middle; }
+    .method { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; }
+    .method.get { background: rgba(22,102,196,.14); color: var(--pri); }
+    .method.post { background: rgba(20,160,90,.14); color: var(--acc2); }
+    .pill { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+    .pill.on { background: rgba(20,160,90,.14); color: var(--acc2); border: 0; }
+    .pill.off { background: rgba(198,57,74,.12); color: var(--err); border: 0; }
+    ol.guide { margin: 0; padding-left: 18px; color: var(--txt); } ol.guide li { margin: 6px 0; line-height: 1.5; }
+
+    .loading { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; z-index: 80; }
+    .loading .spin { width: 38px; height: 38px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--pri); animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .login { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; z-index: 70; }
+    .login .lbox { background: var(--card); border: 1px solid var(--line); border-radius: var(--raio); box-shadow: var(--sombra); padding: 28px; width: 340px; }
+    .login .lbox .marca { margin-bottom: 18px; }
+    .login label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+    .login input { width: 100%; }
+    .login .m { font-size: 12px; color: var(--err); min-height: 16px; margin-top: 8px; }
+
+    @media (max-width: 900px) { .cards2 { grid-template-columns: 1fr; } }
+    @media (max-width: 720px) { .side { display: none; } .content { padding: 20px 16px 48px; } .pagehead h1 { font-size: 24px; } }
+  </style>
+</head>
+<body>
+  <div class="loading" id="loading"><div class="spin"></div></div>
+
+  <!-- Login gate -->
+  <div class="login hide" id="login">
+    <div class="lbox">
+      <div class="marca">
+        <div class="logo" style="width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--acc),var(--pri));display:grid;place-items:center"><svg width="20" height="20" viewBox="0 0 32 32"><path d="M13.5 7h5v6.5H25v5h-6.5V25h-5v-6.5H7v-5h6.5z" fill="#fff"/></svg></div>
+        <div><div class="nome" style="font-weight:800;color:var(--pri)">S&amp;A <b>Imunizações</b></div><div class="tag" style="font-size:12px;color:var(--muted)">Portal do cliente</div></div>
+      </div>
+      <label>E-mail</label>
+      <input id="email" autocomplete="username" />
+      <label>Senha</label>
+      <input id="senha" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')entrar()" />
+      <div class="m" id="loginMsg"></div>
+      <button class="btn primary" style="width:100%;justify-content:center;margin-top:12px" onclick="entrar()">Entrar</button>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="side">
+    <div class="brand">
+      <div class="logo"><svg width="24" height="24" viewBox="0 0 32 32"><path d="M13.5 7h5v6.5H25v5h-6.5V25h-5v-6.5H7v-5h6.5z" fill="#fff"/></svg></div>
+      <div><div class="nome">Portal do Cliente</div><div class="tag">S&amp;A Imunizações</div></div>
+    </div>
+    <nav>
+      <a class="navlink" href="/portal/"><span class="material-symbols-outlined">dashboard</span> Dashboard</a>
+      <a class="navlink" href="/portal/campanhas.html"><span class="material-symbols-outlined">campaign</span> Campanhas</a>
+      <a class="navlink" href="/portal/elegiveis.html"><span class="material-symbols-outlined">group</span> Elegíveis</a>
+      <a class="navlink" href="/portal/vacinados.html"><span class="material-symbols-outlined">verified</span> Vacinados</a>
+      <a class="navlink" href="/portal/relatorios.html"><span class="material-symbols-outlined">monitoring</span> Relatórios</a>
+      <a class="navlink" href="/portal/usuarios.html"><span class="material-symbols-outlined">manage_accounts</span> Usuários</a>
+      <button class="navlink active"><span class="material-symbols-outlined">sync</span> Integrações</button>
+      <a class="navlink" href="/portal/auditoria.html"><span class="material-symbols-outlined">history</span> Auditoria</a>
+    </nav>
+    <div class="foot">
+      <a class="navlink" href="/portal/legado.html"><span class="material-symbols-outlined">tune</span> Versão anterior</a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="content">
+      <div class="pagehead">
+        <div>
+          <h1>Integrações</h1>
+          <p>Conecte o TI da sua empresa à plataforma: receba eventos em tempo real, envie a sua lista de elegíveis e consuma os relatórios dos seus vacinados para gestão e BI. Você só acessa e envia dados da sua empresa.</p>
+        </div>
+        <div class="actions">
+          <span class="who">Olá, <b id="quem">—</b></span>
+          <button class="btn sec" onclick="sair()"><span class="material-symbols-outlined">logout</span> Sair</button>
+        </div>
+      </div>
+
+      <!-- Cards -->
+      <div class="cards2">
+        <div class="fcard">
+          <div class="ic green material-symbols-outlined">notifications_active</div>
+          <h4>Webhooks em tempo real</h4>
+          <p>Receba um POST HTTP assinado (HMAC-SHA256) a cada aplicação registrada, estorno, importação concluída ou campanha encerrada — sem ficar consultando.</p>
+        </div>
+        <div class="fcard">
+          <div class="ic blue material-symbols-outlined">monitoring</div>
+          <h4>Relatórios &amp; BI (pull)</h4>
+          <p>Consulte a tabela verdade (elegível × vacinado × pendente) e a carteira por CPF via token de leitura — pronto para Power BI, Tableau ou Data Studio.</p>
+        </div>
+      </div>
+
+      <!-- Contexto -->
+      <div class="panel">
+        <div class="phead"><span class="material-symbols-outlined">tune</span><h3>Contexto</h3></div>
+        <div class="pbody">
+          <p>Escolha a sua campanha. Ela define o escopo dos tokens e webhooks abaixo — sempre restrito aos dados da sua empresa.</p>
+          <div class="row">
+            <div class="fld grow">
+              <span class="lbl">Campanha / cliente</span>
+              <select class="sel" id="campSel" style="max-width:none" onchange="onCampanha()"><option value="">— selecione —</option></select>
+            </div>
+            <div class="fld"><span class="lbl">Base da API</span><code id="apiBase" class="pill" style="padding:9px 12px">—</code></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Autenticação -->
+      <div class="panel">
+        <div class="phead"><span class="material-symbols-outlined">vpn_key</span><h3>Autenticação</h3></div>
+        <div class="pbody">
+          <p>Toda chamada da API externa usa um <b>token Bearer</b> no cabeçalho <code>Authorization</code>. O token é exibido <b>uma única vez</b> na emissão — guarde-o em cofre de segredos.</p>
+          <div class="code" id="cbAuth"><button class="cp" onclick="copiar('cbAuth', this)">copiar</button><span class="k">GET</span> /parceiro/carteira/52998224725 HTTP/1.1
+<span class="u">Host:</span> <span id="hHost">seu-dominio</span>
+<span class="u">Authorization:</span> Bearer <span class="v">SEU_TOKEN</span>
+<span class="u">Content-Type:</span> application/json</div>
+        </div>
+      </div>
+
+      <!-- Tokens -->
+      <div class="panel">
+        <div class="phead"><span class="step">1</span><span class="material-symbols-outlined">key</span><h3>Tokens de API</h3></div>
+        <div class="pbody">
+          <p>Emita o token conforme o uso. <b>Leitura/BI</b> = escopo do cliente; <b>envio de elegíveis</b> e <b>app in company</b> = escopo da campanha selecionada.</p>
+          <div class="row">
+            <div class="fld grow">
+              <span class="lbl">Tipo de token</span>
+              <select id="tkTipo">
+                <option value="consulta">consulta — leitura (carteira / tabela verdade) · Power BI</option>
+                <option value="ingestao_b2b">ingestao_b2b — enviar elegíveis por API</option>
+                <option value="app_in_company">app_in_company — registrar aplicação (app/PWA/terceiro)</option>
+              </select>
+            </div>
+            <button class="btn primary" onclick="emitirToken()"><span class="material-symbols-outlined">add</span> Emitir token</button>
+            <button class="btn sec" onclick="listarTokens()">Listar</button>
+          </div>
+          <div class="msg" id="tkMsg"></div>
+          <div class="tokenbox hide" id="tkBox">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Token (copie agora — não será exibido de novo):</div>
+            <code id="tkVal"></code>
+            <div style="margin-top:8px"><button class="btn mini sec" onclick="copiarToken()">Copiar token</button></div>
+          </div>
+          <div id="tblTk"></div>
+        </div>
+      </div>
+
+      <!-- Webhooks -->
+      <div class="panel">
+        <div class="phead"><span class="step">2</span><span class="material-symbols-outlined">sync</span><h3>Webhooks (tempo real)</h3></div>
+        <div class="pbody">
+          <p>Registre uma URL <b>https</b> para receber eventos do cliente selecionado. Cada entrega traz o header <code>X-Assinatura</code> = HMAC-SHA256 do corpo, com o <b>segredo</b> mostrado na criação.</p>
+          <div class="row">
+            <div class="fld"><span class="lbl">Evento</span><select id="whEvento" style="min-width:220px"></select></div>
+            <div class="fld grow"><span class="lbl">URL de destino (https)</span><input id="whUrl" placeholder="https://sistema-cliente/webhook" /></div>
+            <button class="btn primary" onclick="criarWebhook()"><span class="material-symbols-outlined">add</span> Criar</button>
+            <button class="btn sec" onclick="listarWebhooks()">Listar</button>
+          </div>
+          <div class="msg" id="whMsg"></div>
+          <div id="tblWh"></div>
+          <div id="tblWhEnt"></div>
+        </div>
+      </div>
+
+      <!-- Endpoints -->
+      <div class="panel">
+        <div class="phead"><span class="material-symbols-outlined">api</span><h3>Endpoints da API externa</h3></div>
+        <div class="pbody">
+          <p>Base: <code id="apiBase2" class="pill" style="padding:4px 8px">—</code> · Autenticação: <code>Authorization: Bearer &lt;token&gt;</code></p>
+          <table>
+            <thead><tr><th>Método / Rota</th><th>Para que serve</th><th>Token</th></tr></thead>
+            <tbody>
+              <tr><td><span class="method get">GET</span> <code>/parceiro/campanhas/{id}/tabela-verdade</code></td><td>Relatório de <b>vacinados × elegíveis × pendentes</b> (analítico) — gestão e BI</td><td><span class="pill">consulta</span></td></tr>
+              <tr><td><span class="method get">GET</span> <code>/parceiro/carteira/{cpf}</code></td><td>Carteira/histórico de vacinação de um CPF (perpétua)</td><td><span class="pill">consulta</span></td></tr>
+              <tr><td><span class="method post">POST</span> <code>/parceiro/campanhas/{id}/elegiveis</code></td><td><b>Enviar/atualizar elegíveis</b> em lote (RH → plataforma)</td><td><span class="pill">ingestao_b2b</span></td></tr>
+              <tr><td><span class="method post">POST</span> <code>/parceiro/campanhas/{id}/elegiveis/sincronizar</code></td><td>Sincronizar (remove quem saiu da lista — turnover)</td><td><span class="pill">ingestao_b2b</span></td></tr>
+              <tr><td><span class="method get">GET</span> <code>/parceiro/campanhas/{id}/elegiveis/{cpf}</code></td><td>Consultar situação de um elegível</td><td><span class="pill">ingestao_b2b</span></td></tr>
+              <tr><td><span class="method post">POST</span> <code>/parceiro/aplicacoes</code></td><td>Registrar aplicação (vacinação) — app/terceiro</td><td><span class="pill">app_in_company</span></td></tr>
+              <tr><td><span class="method post">POST</span> <code>/parceiro/aplicacoes-lote</code></td><td>Registrar várias aplicações de uma vez</td><td><span class="pill">app_in_company</span></td></tr>
+            </tbody>
+          </table>
+          <div class="note"><span class="material-symbols-outlined">info</span><div>Paginação por cursor (<code>?apos=&lt;cursor&gt;</code>) para grandes volumes; idempotência de escrita via header <code>Idempotency-Key</code>. Datas em ISO-8601. CPF pode ser mascarado conforme a permissão do token/cliente.</div></div>
+          <div class="lbl" style="margin-top:18px">Exemplo — enviar elegíveis (ingestao_b2b)</div>
+          <div class="code" id="cbIng"><button class="cp" onclick="copiar('cbIng', this)">copiar</button><span class="k">POST</span> /parceiro/campanhas/<span class="v">123</span>/elegiveis
+<span class="u">Authorization:</span> Bearer <span class="v">SEU_TOKEN</span>
+
+{
+  <span class="u">"elegiveis"</span>: [
+    { <span class="u">"cpf"</span>: <span class="v">"52998224725"</span>, <span class="u">"nome"</span>: <span class="v">"Maria Silva"</span>, <span class="u">"data_nascimento"</span>: <span class="v">"1990-05-10"</span>,
+      <span class="u">"tipo_vinculo"</span>: <span class="v">"colaborador"</span>, <span class="u">"codigo_lotacao"</span>: <span class="v">"LOT-01"</span>, <span class="u">"codigo_rh"</span>: <span class="v">"RH-1001"</span> }
+  ]
+}</div>
+        </div>
+      </div>
+
+      <!-- Power BI -->
+      <div class="panel">
+        <div class="phead"><span class="material-symbols-outlined">insights</span><h3>Conectar o Power BI</h3></div>
+        <div class="pbody">
+          <ol class="guide">
+            <li>Gere um token do tipo <b>consulta</b> (seção 1).</li>
+            <li>No Power BI: <b>Obter dados → Web → Avançado</b>.</li>
+            <li>URL: <code id="pbiUrl">—</code></li>
+            <li>Cabeçalho HTTP: <code>Authorization</code> = <code>Bearer SEU_TOKEN</code>.</li>
+            <li>Atualize periodicamente (agendamento do Power BI). Para grandes volumes, pagine com <code>?apos=</code>.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // ---------------------------------------------------------------------------
+  // Integrações (admin) — tokens de API + webhooks + documentação. Sessão + CSRF.
+  // ---------------------------------------------------------------------------
+  let CSRF = null, CAMPANHAS = [];
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const ocultarLoading = () => $('loading').classList.add('hide');
+
+  async function api(path, metodo = 'GET', corpo = null) {
+    const opts = { method: metodo, headers: {}, credentials: 'same-origin' };
+    if (corpo) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(corpo); }
+    if (metodo !== 'GET' && CSRF) opts.headers['X-CSRF-Token'] = CSRF;
+    const r = await fetch('/api/v1' + path, opts);
+    let d; try { d = await r.json(); } catch (e) { d = { success: false }; }
+    return { http: r.status, ...d };
+  }
+  const campSelObj = () => CAMPANHAS.find(c => String(c.id) === $('campSel').value) || null;
+  function copiar(id, btn) { const t = $(id).innerText.replace(/^copiar/, '').trim(); navigator.clipboard.writeText(t); const o = btn.textContent; btn.textContent = 'copiado!'; setTimeout(() => btn.textContent = o, 1500); }
+  function copiarToken() { navigator.clipboard.writeText($('tkVal').textContent); }
+
+  async function entrar() {
+    $('loginMsg').textContent = '...';
+    const d = await api('/interno/auth/login', 'POST', { email: $('email').value, senha: $('senha').value });
+    if (!d.success) { $('loginMsg').textContent = 'E-mail ou senha inválidos.'; return; }
+    CSRF = d.data.csrf_token; $('loginMsg').textContent = ''; $('senha').value = '';
+    await iniciar();
+  }
+  async function sair() { await api('/interno/auth/logout', 'POST', {}); CSRF = null; $('login').classList.remove('hide'); }
+
+  async function iniciar() {
+    const d = await api('/interno/campanhas?por_pagina=100');
+    if (d.http === 401) { $('login').classList.remove('hide'); ocultarLoading(); return; }
+    $('login').classList.add('hide'); ocultarLoading();
+    if (!d.success) return;
+    CAMPANHAS = d.data.itens || [];
+    $('campSel').innerHTML = '<option value="">— selecione —</option>'
+      + CAMPANHAS.map(c => '<option value="' + c.id + '">' + esc(c.codigo || c.nome || ('#' + c.id)) + ' — ' + esc(c.cliente || '') + '</option>').join('');
+    const base = location.origin + '/api/v1';
+    $('apiBase').textContent = base; $('apiBase2').textContent = base; $('hHost').textContent = location.host;
+    $('pbiUrl').textContent = base + '/parceiro/campanhas/{id}/tabela-verdade';
+    const eu = await api('/interno/auth/eu');
+    if (eu.success) { $('quem').textContent = eu.data.usuario.nome || '—'; if (!CSRF && eu.data.csrf_token) CSRF = eu.data.csrf_token; }
+    if (CAMPANHAS.length) { $('campSel').value = String(CAMPANHAS[0].id); }
+    await listarWebhooks();
+    await listarTokens();
+  }
+  function onCampanha() { listarWebhooks(); listarTokens(); }
+
+  // ---- Tokens ----
+  async function emitirToken() {
+    const camp = campSelObj();
+    if (!camp) { $('tkMsg').className = 'msg err'; $('tkMsg').textContent = 'Selecione uma campanha.'; return; }
+    const tipo = $('tkTipo').value;
+    const body = { tipo };
+    if (tipo === 'consulta') body.cliente_b2b_id = camp.cliente_b2b_id; else body.campanha_id = camp.id;
+    $('tkMsg').className = 'msg'; $('tkMsg').textContent = 'Emitindo...';
+    const d = await api('/interno/credenciais', 'POST', body);
+    if (!d.success) { $('tkMsg').className = 'msg err'; $('tkMsg').textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Falhou.')); return; }
+    $('tkMsg').className = 'msg ok'; $('tkMsg').textContent = 'Token #' + d.data.credencial_id + ' (' + d.data.tipo + ') emitido.';
+    $('tkBox').classList.remove('hide'); $('tkVal').textContent = d.data.token;
+    listarTokens();
+  }
+  async function listarTokens() {
+    const d = await api('/interno/credenciais'); if (!d.success) return;
+    const itens = d.data.itens || [];
+    $('tblTk').innerHTML = itens.length
+      ? '<table><thead><tr><th>ID</th><th>Tipo</th><th>Escopo campanha</th><th>Status</th><th></th></tr></thead><tbody>'
+        + itens.map(c => '<tr><td>' + c.id + '</td><td>' + esc(c.tipo) + '</td><td>' + (c.escopo_campanha_id || '—') + '</td><td><span class="pill ' + (Number(c.ativo) ? 'on' : 'off') + '">' + (Number(c.ativo) ? 'ativo' : 'revogado') + '</span></td>'
+          + '<td>' + (Number(c.ativo) ? '<button class="btn ghost danger" onclick="revogarToken(' + c.id + ')">revogar</button>' : '') + '</td></tr>').join('')
+        + '</tbody></table>'
+      : '';
+  }
+  async function revogarToken(id) {
+    if (!confirm('Revogar este token? Integrações que o usam param de funcionar.')) return;
+    const d = await api('/interno/credenciais/' + id + '/revogar', 'POST', {});
+    if (!d.success) alert('Erro: ' + ((d.errors && d.errors[0] && d.errors[0].message) || d.message || 'falhou'));
+    listarTokens();
+  }
+
+  // ---- Webhooks ----
+  async function criarWebhook() {
+    const camp = campSelObj();
+    if (!camp) { $('whMsg').className = 'msg err'; $('whMsg').textContent = 'Selecione uma campanha (define o cliente).'; return; }
+    const evento = $('whEvento').value, url = $('whUrl').value.trim();
+    if (!url) { $('whMsg').className = 'msg err'; $('whMsg').textContent = 'Informe a URL de destino.'; return; }
+    $('whMsg').className = 'msg'; $('whMsg').textContent = 'Criando...';
+    const d = await api('/interno/webhooks', 'POST', { evento, url, tenant_id: camp.cliente_b2b_id });
+    if (!d.success) { $('whMsg').className = 'msg err'; $('whMsg').textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Falhou.')); return; }
+    $('whMsg').className = 'msg ok';
+    $('whMsg').innerHTML = 'Webhook #' + d.data.webhook_id + ' criado. <b>Segredo (guarde agora):</b> <code style="color:var(--acc2)">' + esc(d.data.segredo) + '</code>';
+    $('whUrl').value = '';
+    listarWebhooks();
+  }
+  async function listarWebhooks() {
+    const d = await api('/interno/webhooks'); if (!d.success) return;
+    const evs = d.data.eventos_disponiveis || [];
+    if ($('whEvento').options.length !== evs.length) $('whEvento').innerHTML = evs.map(e => '<option value="' + e + '">' + e + '</option>').join('');
+    const itens = d.data.itens || [];
+    $('tblWh').innerHTML = itens.length
+      ? '<table><thead><tr><th>ID</th><th>Evento</th><th>URL</th><th>Status</th><th></th></tr></thead><tbody>'
+        + itens.map(w => '<tr><td>' + w.id + '</td><td>' + esc(w.evento) + '</td><td style="max-width:260px;overflow:hidden;text-overflow:ellipsis">' + esc(w.url) + '</td>'
+          + '<td><span class="pill ' + (Number(w.ativo) ? 'on' : 'off') + '">' + (Number(w.ativo) ? 'ativo' : 'inativo') + '</span></td>'
+          + '<td style="white-space:nowrap"><button class="btn ghost" onclick="testarWebhook(' + w.id + ')">testar</button>'
+          + '<button class="btn ghost" onclick="entregasWebhook(' + w.id + ')">entregas</button>'
+          + (Number(w.ativo) ? '<button class="btn ghost danger" onclick="desativarWebhook(' + w.id + ')">desativar</button>' : '') + '</td></tr>').join('')
+        + '</tbody></table>'
+      : '';
+  }
+  async function testarWebhook(id) {
+    const d = await api('/interno/webhooks/' + id + '/testar', 'POST', {});
+    $('whMsg').className = 'msg ' + (d.success ? 'ok' : 'err');
+    $('whMsg').textContent = d.success ? ('Teste enfileirado (entrega #' + d.data.entrega_id + ').') : ('Erro: ' + ((d.errors && d.errors[0] && d.errors[0].message) || d.message));
+    entregasWebhook(id);
+  }
+  async function desativarWebhook(id) {
+    if (!confirm('Desativar este webhook?')) return;
+    const d = await api('/interno/webhooks/' + id + '/desativar', 'POST', {});
+    if (d.success) listarWebhooks();
+  }
+  async function entregasWebhook(id) {
+    const d = await api('/interno/webhooks/' + id + '/entregas'); if (!d.success) return;
+    const itens = d.data.itens || [];
+    $('tblWhEnt').innerHTML = '<table><thead><tr><th colspan="5">Entregas do webhook #' + id + '</th></tr>'
+      + '<tr><th>ID</th><th>Evento</th><th>Status</th><th>HTTP</th><th>Quando</th></tr></thead><tbody>'
+      + (itens.length ? itens.map(e => '<tr><td>' + e.id + '</td><td>' + esc(e.evento) + '</td><td>' + esc(e.status) + '</td><td>' + (e.ultimo_status_code || '—') + '</td><td>' + esc((e.entregue_em || e.criado_em || '').substring(0, 19).replace('T', ' ')) + '</td></tr>').join('') : '<tr><td colspan="5" style="color:var(--muted)">Sem entregas ainda.</td></tr>')
+      + '</tbody></table>';
+  }
+
+  iniciar();
+  </script>
+</body>
+</html>
