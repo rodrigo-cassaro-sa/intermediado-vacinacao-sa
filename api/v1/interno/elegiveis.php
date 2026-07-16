@@ -8,8 +8,6 @@
 require_once BASE_PATH . '/app/services/elegiveis.php';
 require_once BASE_PATH . '/app/services/importacao.php';
 
-const PERFIS_IMPORTA_ELEGIVEIS = ['super_admin', 'operador_interno', 'cliente_b2b'];
-
 /** POST /api/v1/interno/campanhas/{id}/elegiveis/importar */
 function rota_importar_elegiveis(array $params): void
 {
@@ -26,15 +24,18 @@ function rota_sincronizar_elegiveis(array $params): void
 function executar_importacao_interno(array $params, bool $sincronizar): void
 {
     $usuario = exigir_login();
-    if (!in_array($usuario['perfil'], PERFIS_IMPORTA_ELEGIVEIS, true)) {
-        responder_erro('Sem permissão para importar elegíveis.', 403, [
-            ['field' => null, 'code' => 'SEM_PERMISSAO', 'message' => 'Seu perfil não permite esta ação.'],
-        ]);
-    }
     exigir_csrf();
 
     $id = id_campanha_rota($params['id'] ?? null);
     $campanha = exigir_campanha_do_usuario($usuario, $id);
+    // Importar/atualizar a lista exige nível de GESTÃO do cliente (negócio/grupo/
+    // interno). Usuário só-local opera a unidade, mas não gere a base — 403.
+    // (Antes o gate era por 'perfil', o que barrava usuários de portal nível grupo.)
+    if (!usuario_eh_interno($usuario) && !usuario_pode_cliente($usuario, (int) $campanha['tenant_id'], true)) {
+        responder_erro('Sem permissão para importar elegíveis.', 403, [
+            ['field' => null, 'code' => 'SEM_PERMISSAO', 'message' => 'É preciso gerir este cliente para importar elegíveis.'],
+        ]);
+    }
     if ($campanha['status'] === 'encerrada') {
         responder_erro('Campanha encerrada.', 422, [
             ['field' => null, 'code' => 'CAMPANHA_ENCERRADA', 'message' => 'Não é possível importar em campanha encerrada.'],
