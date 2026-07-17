@@ -162,7 +162,7 @@
         </div>
         <div class="actions">
           <span class="who">Olá, <b id="quem">—</b></span>
-          <select class="sel" id="cliSel" onchange="trocarCliente()"><option value="">— selecione o cliente —</option></select>
+          <button class="btn sec" onclick="carregar()"><span class="material-symbols-outlined">refresh</span> Atualizar</button>
           <button class="btn sec" onclick="abrirImport()"><span class="material-symbols-outlined">upload_file</span> Importar CSV</button>
           <button class="btn primary" onclick="abrirCadastro()"><span class="material-symbols-outlined">add</span> Nova Unidade</button>
           <button class="btn sec" onclick="sair()"><span class="material-symbols-outlined">logout</span> Sair</button>
@@ -171,6 +171,10 @@
 
       <div class="panel">
         <div class="search">
+          <div class="field">
+            <label>Cliente</label>
+            <select id="cliSel" onchange="trocarCliente()" style="min-width:260px"><option value="">— selecione o cliente —</option></select>
+          </div>
           <div class="field">
             <label>Buscar por nome, código ou cidade</label>
             <div class="box"><span class="material-symbols-outlined">search</span>
