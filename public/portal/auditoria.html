@@ -42,7 +42,13 @@
     .btn.sec:hover { background: var(--surface-2); }
 
     .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--sombra); overflow: hidden; }
-    .panel .phead { padding: 12px 20px; border-bottom: 1px solid var(--line); background: var(--surface-2); display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
+    .panel .phead { padding: 12px 20px; border-bottom: 1px solid var(--line); background: var(--surface-2); display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .filtros-btn { flex: 0 0 auto; }
+    .filtros-pop { position: fixed; z-index: 60; width: min(600px, calc(100vw - 40px)); background: var(--card); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--sombra); padding: 14px; display: grid !important; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; align-items: end; }
+    .filtros-pop.hide { display: none !important; }
+    .filtros-pop .box { width: 100%; }
+    .filtros-pop .box input, .filtros-pop input, .filtros-pop select { width: 100% !important; }
+    .filtros-pop .btn { width: 100%; justify-content: center; }
     .panel .phead h3 { margin: 0; font-size: 14px; font-weight: 600; }
     .filters { display: flex; gap: 8px; flex-wrap: nowrap; align-items: center; overflow-x: auto; padding-bottom: 2px; }
     .filters > * { flex: 0 0 auto; }
@@ -156,7 +162,8 @@
       <div class="panel">
         <div class="phead">
           <h3>Trilha de eventos</h3>
-          <div class="filters">
+          <button class="btn sec filtros-btn" type="button" onclick="toggleFiltros(event)"><span class="material-symbols-outlined">tune</span> Filtros</button>
+          <div class="filters filtros-pop hide" id="filtrosPop">
             <div class="box"><span class="material-symbols-outlined">search</span>
               <input id="busca" placeholder="Filtrar (ator, detalhe...)" oninput="renderTabela()" />
             </div>
@@ -383,6 +390,26 @@
   }
 
   carregar();
+
+  // ---- Popover de filtros (padrão das telas) ----
+  function toggleFiltros(ev) {
+    var p = document.getElementById('filtrosPop'); if (!p) return;
+    if (p.classList.contains('hide')) {
+      var b = (ev && ev.currentTarget) ? ev.currentTarget : document.querySelector('.filtros-btn');
+      var r = b.getBoundingClientRect();
+      p.style.top = (r.bottom + 6) + 'px';
+      p.style.right = Math.max(8, window.innerWidth - r.right) + 'px';
+      p.classList.remove('hide');
+    } else { p.classList.add('hide'); }
+    if (ev) ev.stopPropagation();
+  }
+  document.addEventListener('click', function (e) {
+    var p = document.getElementById('filtrosPop');
+    if (!p || p.classList.contains('hide')) return;
+    if (p.contains(e.target) || (e.target.closest && e.target.closest('.filtros-btn'))) return;
+    p.classList.add('hide');
+  });
+
   </script>
 </body>
 </html>
