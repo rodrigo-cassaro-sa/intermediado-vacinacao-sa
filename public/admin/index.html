@@ -48,7 +48,7 @@
 
     /* ---- Main ---------------------------------------------------------- */
     .main { flex: 1; overflow-y: auto; }
-    .content { max-width: 1440px; margin: 0 auto; padding: 24px 32px; display: flex; flex-direction: column; gap: 24px; }
+    .content { max-width: 1440px; margin: 0 auto; padding: 20px 32px; display: flex; flex-direction: column; gap: 16px; }
 
     .pagehead { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
     .pagehead h1 { font-size: 32px; font-weight: 700; letter-spacing: -.02em; margin: 0; color: var(--txt); }
@@ -72,17 +72,17 @@
     .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
     .metric {
       background: var(--card); border: 1px solid var(--line); border-radius: 12px;
-      padding: 20px; box-shadow: var(--sombra); display: flex; flex-direction: column; gap: 6px; min-height: 140px;
+      padding: 16px; box-shadow: var(--sombra); display: flex; flex-direction: column; gap: 4px; min-height: 104px;
     }
     .metric .head { display: flex; justify-content: space-between; align-items: center; }
-    .metric .label { color: var(--muted); font-weight: 500; }
-    .metric .icon { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; }
+    .metric .label { color: var(--muted); font-weight: 500; font-size: 12px; }
+    .metric .icon { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font-size: 18px; }
     .icon.blue  { background: rgba(22,102,196,.12); color: var(--pri); }
     .icon.green { background: rgba(20,160,90,.14); color: var(--acc); }
     .icon.teal  { background: rgba(15,127,156,.12); color: #0f7f9c; }
     .icon.red   { background: rgba(198,57,74,.12); color: var(--err); }
-    .metric .big { font-size: 40px; font-weight: 700; letter-spacing: -.02em; margin: 4px 0; line-height: 1; }
-    .metric .delta { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; margin-top: auto; }
+    .metric .big { font-size: 32px; font-weight: 700; letter-spacing: -.02em; margin: 2px 0; line-height: 1; }
+    .metric .delta { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; margin-top: auto; }
     .metric .delta .material-symbols-outlined { font-size: 15px; }
     .delta.up { color: var(--acc); } .delta.down { color: var(--err); }
     .metric .delta small { color: var(--muted); font-weight: 500; }
@@ -97,7 +97,7 @@
     .panel .phead.mini h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
     .panel .phead.mini { display: flex; justify-content: space-between; align-items: center; }
 
-    .chart { flex: 1; min-height: 300px; padding: 20px; display: flex; align-items: flex-end; gap: 12px; background: var(--surface-2); }
+    .chart { flex: 1; min-height: 240px; padding: 20px; display: flex; align-items: flex-end; gap: 12px; background: var(--surface-2); }
     .chart .col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; height: 100%; justify-content: flex-end; }
     .chart .col .fill { width: 100%; border-radius: 6px 6px 0 0; background: var(--pri); transition: height .4s, opacity .15s; min-height: 3px; }
     .chart .col:hover .fill { opacity: .85; }
