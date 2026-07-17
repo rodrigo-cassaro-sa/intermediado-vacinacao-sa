@@ -209,6 +209,7 @@
           <select class="sel" id="campSel" onchange="trocarCampanha()"><option value="">— selecione a campanha —</option></select>
           <button class="btn primary" onclick="abrirAdd('form')"><span class="material-symbols-outlined">person_add</span> Adicionar</button>
           <button class="btn sec" onclick="abrirAdd('csv')"><span class="material-symbols-outlined">upload_file</span> Importar CSV</button>
+          <button class="btn sec" onclick="exportar()"><span class="material-symbols-outlined">download</span> Exportar</button>
           <button class="btn sec" onclick="sair()"><span class="material-symbols-outlined">logout</span> Sair</button>
         </div>
       </div>
@@ -257,7 +258,6 @@
               <option value="expirado">Expirado</option>
               <option value="removido">Removido</option>
             </select>
-            <button class="btn sec" onclick="exportar()" title="Exportar CSV"><span class="material-symbols-outlined">download</span></button>
           </div>
         </div>
         <!-- Barra de ação em massa (aparece quando há seleção) -->
