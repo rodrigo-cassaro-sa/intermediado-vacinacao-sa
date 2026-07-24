@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="32" height="32" role="img" aria-label="S&amp;A Imunizações">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="S&amp;A Imunizações">
   <defs>
     <linearGradient id="saBlue" x1="6" y1="14" x2="40" y2="56" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#3aaee6"/>
@@ -10,8 +10,11 @@
     </linearGradient>
   </defs>
   <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="11">
+    <!-- verde: base -> direita -> topo -->
     <path d="M32 54 L54 32 L32 10" stroke="url(#saGreen)"/>
+    <!-- azul: topo -> esquerda -> base (passa por cima do verde nos polos) -->
     <path d="M32 10 L10 32 L32 54" stroke="url(#saBlue)"/>
+    <!-- entrelace: a ponta verde cruza por cima do azul na base -->
     <path d="M40 46 L32 54" stroke="url(#saGreen)"/>
   </g>
 </svg>
