@@ -1,20 +1,32 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="S&amp;A Imunizações">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="56 56 400 400" width="512" height="512" role="img" aria-label="S&amp;A Imunizações">
   <defs>
-    <linearGradient id="saBlue" x1="6" y1="14" x2="40" y2="56" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#3aaee6"/>
-      <stop offset="1" stop-color="#0f4e9c"/>
+    <linearGradient id="saBlueOut" gradientUnits="userSpaceOnUse" x1="170" y1="400" x2="250" y2="70">
+      <stop offset="0" stop-color="#45c2ef"/>
+      <stop offset="0.45" stop-color="#2b74b4"/>
+      <stop offset="0.8" stop-color="#0f4275"/>
     </linearGradient>
-    <linearGradient id="saGreen" x1="32" y1="52" x2="58" y2="10" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#0f7f45"/>
-      <stop offset="1" stop-color="#4cbb4f"/>
+    <linearGradient id="saBlueIn" gradientUnits="userSpaceOnUse" x1="285" y1="115" x2="300" y2="330">
+      <stop offset="0" stop-color="#0f4275"/>
+      <stop offset="0.45" stop-color="#3aabde"/>
+      <stop offset="1" stop-color="#123a66"/>
+    </linearGradient>
+    <linearGradient id="saGreenOut" gradientUnits="userSpaceOnUse" x1="342" y1="112" x2="262" y2="442">
+      <stop offset="0" stop-color="#1c7239"/>
+      <stop offset="0.45" stop-color="#2e9c48"/>
+      <stop offset="0.8" stop-color="#50bd4a"/>
+    </linearGradient>
+    <linearGradient id="saGreenIn" gradientUnits="userSpaceOnUse" x1="227" y1="397" x2="212" y2="182">
+      <stop offset="0" stop-color="#50bd4a"/>
+      <stop offset="0.45" stop-color="#2e9445"/>
+      <stop offset="1" stop-color="#1c6f35"/>
     </linearGradient>
   </defs>
-  <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="11">
-    <!-- verde: base -> direita -> topo -->
-    <path d="M32 54 L54 32 L32 10" stroke="url(#saGreen)"/>
-    <!-- azul: topo -> esquerda -> base (passa por cima do verde nos polos) -->
-    <path d="M32 10 L10 32 L32 54" stroke="url(#saBlue)"/>
-    <!-- entrelace: a ponta verde cruza por cima do azul na base -->
-    <path d="M40 46 L32 54" stroke="url(#saGreen)"/>
+  <g fill="none" stroke-width="52" stroke-linejoin="round">
+    <!-- fita verde: ponta no topo (corte diagonal), desce pela direita, envolve a base e espirala p/ dentro (banda interna esquerda) -->
+    <path d="M309,137 L411,239 Q428,256 411,273 L269,415 Q256,428 256,410 L256,372" stroke="url(#saGreenOut)"/>
+    <path d="M256,392 L256,341 L188,273 Q171,256 188,239 L233,194" stroke="url(#saGreenIn)"/>
+    <!-- fita azul: ponta na base (corte diagonal), sobe pela esquerda, envolve o topo e espirala p/ dentro (banda interna direita) -->
+    <path d="M203,375 L101,273 Q84,256 101,239 L243,97 Q256,84 256,102 L256,140" stroke="url(#saBlueOut)"/>
+    <path d="M256,120 L256,171 L324,239 Q341,256 324,273 L279,318" stroke="url(#saBlueIn)"/>
   </g>
 </svg>
