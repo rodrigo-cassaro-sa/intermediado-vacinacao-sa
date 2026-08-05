@@ -122,6 +122,20 @@ Códigos HTTP:
 
 # 3. Detalhe dos endpoints críticos
 
+## Identidade da campanha em qualquer resposta
+
+```txt
+codigo = identidade oficial da campanha (VAC.TEMP.MOD.GRP.CLI.SEQ), migration 026.
+nome   = rótulo humano OPCIONAL. Pode ser null. Nunca use sozinho para identificar.
+Na tela:  codigo || nome || ('#' + id)   — o nome só aparece como texto secundário.
+```
+
+Endpoints que devolvem campanha e já trazem `codigo`: `/interno/campanhas`,
+`/interno/campanhas/{id}`, `/interno/dashboard`, `/interno/relatorios/campanhas`,
+`/interno/clientes/{id}/campanhas-resumo`, `/interno/campanhas/{id}/faturamento-cliente`
+e `/interno/campanhas/{id}/faturamento-clinicas`. Nas carteiras (interna e de parceiro)
+o campo `campanha` já vem resolvido para o código.
+
 ## POST /api/v1/interno/campanhas/{id}/elegiveis/importar
 
 ```txt
@@ -376,8 +390,14 @@ Rate limit por credencial (429 + Retry-After). Versão atual: **v1** (mudança i
 
 ```txt
 GET /api/v1/parceiro/carteira/{cpf|voucher}     (token consulta)
-  → { paciente:{identidade,nome}, total_doses, doses:[{aplicado_em,vacina,dose,lote,campanha,cidade,uf}] }
+  → { paciente:{identidade,nome}, total_doses,
+      doses:[{aplicado_em,vacina,dose,lote,campanha,campanha_codigo,cidade,uf}] }
   Só doses do PRÓPRIO cliente (escopo do token). CPF mascarado.
+  campanha        = CÓDIGO da campanha (migration 026). Campanhas anteriores ao
+                    código caem no nome antigo. Antes da correção do BUG-002 este
+                    campo vinha null para toda campanha criada após a 026.
+  campanha_codigo = o código puro (null nas campanhas antigas). Use este para
+                    casar registros de forma estável.
 
 GET /api/v1/parceiro/campanhas/{id}/tabela-verdade?apos=&por_pagina=   (token consulta)
   → { itens:[{cpf,nome,situacao_elegivel,total_aplicacoes,ultima_aplicacao_em}] }, meta.proximo_cursor

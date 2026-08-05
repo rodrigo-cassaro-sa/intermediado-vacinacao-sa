@@ -26,7 +26,11 @@ function rota_consulta_carteira(array $params): void
     }
 
     $doses = db_todos(
-        "SELECT a.aplicado_em, v.nome AS vacina, a.dose, a.lote, c.nome AS campanha, a.cidade, a.uf
+        // 'campanha' passou a trazer o CÓDIGO (migration 026). Campanhas antigas sem
+        // código caem no nome. 'campanha_codigo' é o código puro (null se não houver).
+        "SELECT a.aplicado_em, v.nome AS vacina, a.dose, a.lote,
+                COALESCE(c.codigo, c.nome) AS campanha, c.codigo AS campanha_codigo,
+                a.cidade, a.uf
            FROM aplicacao a
            JOIN vacina v ON v.id = a.vacina_id
            JOIN campanha c ON c.id = a.campanha_id

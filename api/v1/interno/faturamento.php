@@ -66,7 +66,7 @@ function rota_faturamento_cliente(array $params): void
     }
 
     responder_sucesso([
-        'campanha'   => ['id' => $id, 'nome' => $campanha['nome'], 'modalidade' => $modalidade],
+        'campanha'   => ['id' => $id, 'codigo' => $campanha['codigo'] ?? null, 'nome' => $campanha['nome'], 'modalidade' => $modalidade],
         'base'       => $baseLabel,
         'itens'      => $itens,
         'total'      => round($total, 2),
@@ -83,7 +83,7 @@ function rota_faturamento_clinicas(array $params): void
     $campanha = exigir_campanha_do_usuario($usuario, $id);
 
     if ($campanha['modalidade'] !== 'rede_credenciada') {
-        responder_sucesso(['campanha' => ['id' => $id, 'modalidade' => $campanha['modalidade']],
+        responder_sucesso(['campanha' => ['id' => $id, 'codigo' => $campanha['codigo'] ?? null, 'modalidade' => $campanha['modalidade']],
             'itens' => [], 'total' => 0, 'observacao' => 'Sem pagamento a clínicas (modalidade in company).'], 'OK.');
     }
 
@@ -121,7 +121,7 @@ function rota_faturamento_clinicas(array $params): void
     }
 
     responder_sucesso([
-        'campanha'    => ['id' => $id, 'nome' => $campanha['nome']],
+        'campanha'    => ['id' => $id, 'codigo' => $campanha['codigo'] ?? null, 'nome' => $campanha['nome']],
         'clinicas'    => array_values($porClinica),
         'total_geral' => round($totalGeral, 2),
         'sem_preco'   => $semPreco,

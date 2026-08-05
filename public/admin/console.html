@@ -108,7 +108,7 @@
             <option value="rede_credenciada">rede_credenciada</option>
           </select>
         </div>
-        <div><label>Nome</label><input id="campNome" value="Gripe 2026" /></div>
+        <div><label>Rótulo (opcional)</label><input id="campNome" value="Gripe 2026" title="O código da campanha é gerado automaticamente; este rótulo é só um apelido humano." /></div>
       </div>
       <div class="row" style="margin-top:8px">
         <div><label>Início</label><input id="campInicio" type="date" value="2026-07-10" /></div>
@@ -574,16 +574,32 @@ async function criarCampanha() {
   listarCampanhas();
 }
 
+// Identidade da campanha na tela: o CÓDIGO manda (migration 026). O nome virou
+// rótulo humano opcional e vem null nas campanhas novas — por isso nunca deve ser
+// exibido sozinho. Mesmo padrão das demais telas do admin e do portal.
+function rotuloCampanha(c) {
+  if (!c) return '—';
+  return c.codigo || c.nome || ('#' + c.id);
+}
+
+// Rótulo opcional para mostrar ao lado do código, quando os dois existirem.
+function apelidoCampanha(c) {
+  return (c && c.codigo && c.nome) ? c.nome : '';
+}
+
 async function listarCampanhas() {
   const d = await api('/interno/campanhas');
   const tbl = document.getElementById('tblCampanhas');
   if (!d.success) return;
   const itens = d.data.itens || [];
-  tbl.innerHTML = '<tr><th>ID</th><th>Cliente</th><th>Nome</th><th>Modalidade</th><th>Período</th><th>Status</th></tr>' +
-    itens.map(c => `<tr><td>${c.id}</td><td>${c.cliente}</td><td>${c.nome}</td><td>${c.modalidade}</td><td>${c.periodo_inicio} → ${c.periodo_fim}</td><td>${c.status}</td></tr>`).join('');
+  tbl.innerHTML = '<tr><th>ID</th><th>Cliente</th><th>Código</th><th>Modalidade</th><th>Período</th><th>Status</th></tr>' +
+    itens.map(c => {
+      const ap = apelidoCampanha(c);
+      return `<tr><td>${c.id}</td><td>${c.cliente}</td><td>${rotuloCampanha(c)}${ap ? ` <span class="muted">${ap}</span>` : ''}</td><td>${c.modalidade}</td><td>${c.periodo_inicio} → ${c.periodo_fim}</td><td>${c.status}</td></tr>`;
+    }).join('');
   // Popula os seletores de campanha das seções 4, 5, 6 e 7.
   const opts = '<option value="">— selecione —</option>' +
-    itens.map(c => `<option value="${c.id}">${c.nome} (#${c.id})</option>`).join('');
+    itens.map(c => `<option value="${c.id}">${rotuloCampanha(c)} (#${c.id})</option>`).join('');
   ['elegCampanha', 'credCampanha', 'aplicCampanha', 'tvCampanha', 'redeCampanha'].forEach(idsel => {
     const el = document.getElementById(idsel); if (el) el.innerHTML = opts;
   });
@@ -935,7 +951,7 @@ async function verResumoCliente() {
   document.getElementById('tblCarteira').innerHTML =
     '<tr><th>Ano</th><th>Campanha</th><th>Modalidade</th><th>Período</th><th>Elegíveis</th><th>Aplicados</th><th>Cobertura</th></tr>' +
     (d.data.itens || []).map(c =>
-      `<tr><td>${c.ano||''}</td><td>${c.nome}</td><td>${c.modalidade}</td><td>${c.periodo_inicio}→${c.periodo_fim}</td><td>${c.elegiveis}</td><td>${c.aplicados}</td><td>${c.cobertura_percentual}%</td></tr>`).join('');
+      `<tr><td>${c.ano||''}</td><td>${rotuloCampanha(c)}</td><td>${c.modalidade}</td><td>${c.periodo_inicio}→${c.periodo_fim}</td><td>${c.elegiveis}</td><td>${c.aplicados}</td><td>${c.cobertura_percentual}%</td></tr>`).join('');
 }
 
 function resumoHistorico(r) {
@@ -1009,7 +1025,7 @@ async function faturamentoCliente() {
   if (!d.success) return;
   const x = d.data;
   document.getElementById('fatInfo').textContent =
-    `Cobrar (${x.campanha.modalidade}, base: ${x.base}) — TOTAL R$ ${x.total}` +
+    `Cobrar ${rotuloCampanha(x.campanha)} (${x.campanha.modalidade}, base: ${x.base}) — TOTAL R$ ${x.total}` +
     (x.sem_preco.length ? ` · sem preço: ${x.sem_preco.join(', ')}` : '');
   document.getElementById('tblFaturamento').innerHTML =
     '<tr><th>Vacina</th><th>Qtd</th><th>Valor unit.</th><th>Subtotal</th></tr>' +
@@ -1023,7 +1039,7 @@ async function faturamentoClinicas() {
   if (!d.success) return;
   const x = d.data;
   document.getElementById('fatInfo').textContent =
-    `Pagar às clínicas — TOTAL R$ ${x.total_geral ?? 0}` + (x.observacao ? ` · ${x.observacao}` : '') +
+    `Pagar às clínicas · ${rotuloCampanha(x.campanha)} — TOTAL R$ ${x.total_geral ?? 0}` + (x.observacao ? ` · ${x.observacao}` : '') +
     (x.sem_preco && x.sem_preco.length ? ` · sem preço: ${x.sem_preco.join(', ')}` : '');
   let html = '<tr><th>Clínica</th><th>Vacina</th><th>Qtd</th><th>Valor unit.</th><th>Subtotal</th></tr>';
   (x.clinicas || []).forEach(c => {

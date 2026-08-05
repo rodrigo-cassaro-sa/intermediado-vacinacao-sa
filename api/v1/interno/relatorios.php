@@ -41,8 +41,11 @@ function rota_carteira_paciente(array $params): void
     }
 
     $doses = db_todos(
+        // Identidade da campanha = codigo (migration 026); nome virou rótulo
+        // opcional e pode ser NULL — por isso o COALESCE.
         "SELECT a.id, a.aplicado_em, a.dose, a.lote, v.nome AS vacina,
-                c.nome AS campanha, cb.razao_social AS cliente,
+                COALESCE(c.codigo, c.nome) AS campanha, c.codigo AS campanha_codigo,
+                cb.razao_social AS cliente,
                 a.cidade, a.uf, a.unidade, a.profissional_nome
            FROM aplicacao a
            JOIN vacina v      ON v.id = a.vacina_id
@@ -90,7 +93,7 @@ function rota_resumo_campanhas_cliente(array $params): void
     }
 
     $campanhas = db_todos(
-        "SELECT c.id, c.nome, c.modalidade, c.periodo_inicio, c.periodo_fim, c.status,
+        "SELECT c.id, c.codigo, c.temporada, c.nome, c.modalidade, c.periodo_inicio, c.periodo_fim, c.status,
                 YEAR(c.periodo_inicio) AS ano,
                 (SELECT COUNT(*) FROM elegivel e WHERE e.campanha_id = c.id) AS elegiveis,
                 (SELECT COUNT(*) FROM elegivel e WHERE e.campanha_id = c.id AND e.status = 'aplicado') AS aplicados
