@@ -76,6 +76,22 @@ Configurar no painel do `imz-app` (NÃO versionar `.env`). Nomes conforme `app/c
 
 > Nunca registrar senha real neste documento. Banco separado por ambiente (nunca hml=prod).
 
+## 3.1 Variáveis que SÓ funcionam no painel
+
+O arquivo `.env` é lido pelo PHP (`carregar_env`, em `app/config/config.php`). O entrypoint
+do container é um shell script — **ele não lê o `.env`**. As variáveis abaixo são usadas
+antes do PHP subir (ou pelo próprio shell), então precisam estar no painel do `imz-app`:
+
+| Variável | Padrão | Quem lê | Observação |
+|---|---|---|---|
+| AUTO_MIGRAR | `true` | `docker/entrypoint.sh` | **Pôr `false` só no `.env` não trava migration nenhuma** — em produção defina no painel |
+| WORKERS_EMBUTIDOS | `true` | `docker/entrypoint.sh` | `false` desliga os workers do container (aí os Cron Jobs viram obrigatórios) |
+| WORKER_INTERVALO | `15` | `docker/entrypoint.sh` | segundos entre as passadas do worker |
+| WORKER_MEMORIA | `512M` | `scripts/processar_importacoes.php` | lido antes do `.env` ser carregado |
+
+Nenhuma delas precisa ser configurada para o sistema funcionar — todas têm padrão seguro.
+Ver também `.env.example`, seção 2.
+
 ---
 
 # 4. Banco e phpMyAdmin
