@@ -50,6 +50,11 @@ Definir quem pode acessar cada área e executar cada ação.
 - Ações administrativas e acesso a dado de saúde devem ser registrados em **log/auditoria** (RN-004, RN-011).
 - Usuário/sistema não pode acessar dados de outro tenant/campanha sem autorização (isolamento multi-tenant).
 - `clinica_credenciada` e `profissional_saude` operam sempre com **escopo restrito à campanha** autorizada.
+- **Registrar vacinação segue o acesso ao paciente** (decisão de 2026-08-05): quem enxerga o
+  paciente na campanha pode registrar a dose dele, e toda aplicação fica gravada com autor,
+  origem e histórico. Antes o gate era por `perfil`, o que dava 403 no portal — a tela oferecia
+  o botão e o backend recusava. **Desfazer** (estorno unitário, retificação e estorno de lote)
+  continua restrito ao interno, com motivo obrigatório: dose aplicada é dose faturada.
 - Paciente B2C só acessa os **próprios** dados.
 
 ---
@@ -62,7 +67,12 @@ Definir quem pode acessar cada área e executar cada ação.
 |---|---|---|
 | POST /elegiveis/importar | cliente_b2b (própria campanha) / operador_interno | sim |
 | GET /campanhas/{id}/elegiveis | escopo da campanha (cliente_b2b, profissional_saude, clinica_credenciada, operador) | sim |
-| POST /aplicacoes | profissional_saude / clinica_credenciada / operador (campanha autorizada) | sim (crítico) |
+| POST /aplicacoes | **quem tem acesso aos dados do paciente na campanha** (escopo hierárquico §4.1) — inclui o portal | sim (crítico) |
+| POST /aplicacoes-lote | idem acima (registro em massa pela seleção da tela) | sim (crítico) |
+| POST /campanhas/{id}/vacinados/importar | idem acima (RN-031; sempre simula antes de gravar) | sim (crítico) |
+| POST /importacoes-vacinados/{id}/confirmar | idem acima | sim (crítico) |
+| POST /importacoes-vacinados/{id}/estornar | **super_admin / operador_interno**, com justificativa obrigatória | sim (crítico) |
+| POST /aplicacoes/{id}/estornar \| /retificar | **super_admin / operador_interno**, com motivo | sim (crítico) |
 | POST /aplicacoes/{id}/retificar | operador_interno / super_admin | sim (crítico) |
 | GET /campanhas/{id}/tabela-verdade | cliente_b2b (própria) / operador | sim |
 | GET /campanhas/{id}/dashboard | cliente_b2b (própria) / operador | sim |

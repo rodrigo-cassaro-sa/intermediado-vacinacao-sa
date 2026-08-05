@@ -22,12 +22,17 @@ function registrar_aplicacao(array $ctx): array
 }
 
 /**
- * Registra uma aplicação de dose (rastreável e imutável) SEM encerrar em erro.
- * Devolve, em sucesso: ['ok'=>true, 'aplicacao_id', 'tenant_id', 'campanha_id'];
- *          em erro:    ['ok'=>false, 'http', 'code', 'message', 'field'].
- * Não valida escopo/permissão (responsabilidade do chamador). Base: RN-003/010/013.
+ * Valida uma aplicação SEM gravar nada. Fonte única das regras RN-003/013/019 —
+ * usada tanto pelo registro real quanto pela SIMULAÇÃO da importação em massa
+ * (RN-031), para que o que a simulação promete seja exatamente o que grava.
+ *
+ * $elegPre: contexto do elegível já resolvido pelo chamador. Na simulação de um
+ * elegível que ainda será criado, passe um sintético com id 0 e os dados da
+ * campanha (não há dose anterior a checar).
+ *
+ * Devolve ['ok'=>true,'eleg'=>,'uf'=>,'ts'=>] ou ['ok'=>false,'http','code','message','field'].
  */
-function processar_aplicacao(array $ctx): array
+function validar_aplicacao(array $ctx, ?array $elegPre = null): array
 {
     $erro = fn(int $http, string $code, string $msg, ?string $field = null) =>
         ['ok' => false, 'http' => $http, 'code' => $code, 'message' => $msg, 'field' => $field];
@@ -50,7 +55,7 @@ function processar_aplicacao(array $ctx): array
     }
 
     // Elegível + dados da campanha.
-    $eleg = db_primeiro(
+    $eleg = $elegPre ?? db_primeiro(
         "SELECT e.id, e.campanha_id, c.tenant_id, c.status AS campanha_status,
                 c.periodo_inicio, c.periodo_fim
            FROM elegivel e
@@ -86,14 +91,36 @@ function processar_aplicacao(array $ctx): array
 
     // RN-013 (revisada): não repetir a MESMA dose da MESMA vacina para o elegível
     // (faturamento por vacina/dose). Trava definitiva é a UNIQUE no banco (concorrência).
-    $jaVacinado = db_primeiro(
-        "SELECT id FROM aplicacao
-          WHERE elegivel_id = :e AND vacina_id = :v AND dose = :d AND status = 'confirmada' LIMIT 1",
-        [':e' => (int) $ctx['elegivel_id'], ':v' => (int) $ctx['vacina_id'], ':d' => (int) $ctx['dose']]
-    );
-    if ($jaVacinado !== null) {
-        return $erro(409, 'VACINADO_DUPLICADO', 'Esta dose desta vacina já consta para o paciente.');
+    if ((int) $ctx['elegivel_id'] > 0) {
+        $jaVacinado = db_primeiro(
+            "SELECT id FROM aplicacao
+              WHERE elegivel_id = :e AND vacina_id = :v AND dose = :d AND status = 'confirmada' LIMIT 1",
+            [':e' => (int) $ctx['elegivel_id'], ':v' => (int) $ctx['vacina_id'], ':d' => (int) $ctx['dose']]
+        );
+        if ($jaVacinado !== null) {
+            return $erro(409, 'VACINADO_DUPLICADO', 'Esta dose desta vacina já consta para o paciente.');
+        }
     }
+
+    return ['ok' => true, 'eleg' => $eleg, 'uf' => $uf, 'profissional_cpf' => $profCpf, 'ts' => $ts];
+}
+
+/**
+ * Registra uma aplicação de dose (rastreável e imutável) SEM encerrar em erro.
+ * Devolve, em sucesso: ['ok'=>true, 'aplicacao_id', 'tenant_id', 'campanha_id'];
+ *          em erro:    ['ok'=>false, 'http', 'code', 'message', 'field'].
+ * Não valida escopo/permissão (responsabilidade do chamador). Base: RN-003/010/013.
+ */
+function processar_aplicacao(array $ctx): array
+{
+    $v = validar_aplicacao($ctx);
+    if (!$v['ok']) {
+        return $v;
+    }
+    $eleg = $v['eleg'];
+    $uf = $v['uf'];
+    $profCpf = $v['profissional_cpf'];
+    $ts = $v['ts'];
 
     try {
         pdo()->beginTransaction();
@@ -103,10 +130,11 @@ function processar_aplicacao(array $ctx): array
                 (tenant_id, campanha_id, elegivel_id, paciente_id, vacina_id, dose, lote,
                  via_administracao, local_aplicacao, cidade, uf, unidade,
                  profissional_nome, profissional_cpf, executor_tipo, executor_id, clinica_id, origem,
-                 status, aplicado_em, criado_por)
+                 importacao_aplicacoes_id, status, aplicado_em, criado_por)
              SELECT c.tenant_id, e.campanha_id, e.id, e.paciente_id, :vacina, :dose, :lote,
                     :via, :local, :cidade, :uf, :unidade,
-                    :pnome, :pcpf, :etipo, :eid, :clinica, :origem, 'confirmada', :aplicado_em, :criado_por
+                    :pnome, :pcpf, :etipo, :eid, :clinica, :origem,
+                    :importacao, 'confirmada', :aplicado_em, :criado_por
                FROM elegivel e JOIN campanha c ON c.id = e.campanha_id
               WHERE e.id = :elegivel",
             [
@@ -124,6 +152,7 @@ function processar_aplicacao(array $ctx): array
                 ':eid'         => (int) $ctx['executor_id'],
                 ':clinica'     => !empty($ctx['clinica_id']) ? (int) $ctx['clinica_id'] : null,
                 ':origem'      => $ctx['origem'],
+                ':importacao'  => !empty($ctx['importacao_aplicacoes_id']) ? (int) $ctx['importacao_aplicacoes_id'] : null,
                 ':aplicado_em' => date('Y-m-d H:i:s', $ts),
                 ':criado_por'  => $ctx['criado_por'] ?? null,
                 ':elegivel'    => (int) $ctx['elegivel_id'],

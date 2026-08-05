@@ -183,6 +183,44 @@ function csv_alias_elegiveis(): array
     ];
 }
 
+/** Ordem posicional padrão da importação de vacinados em campanha ativa (RN-031). */
+function csv_ordem_vacinacao(): array
+{
+    return ['cpf', 'nome', 'vacina', 'dose', 'lote', 'aplicado_em',
+            'profissional_nome', 'profissional_cpf', 'cidade', 'uf', 'unidade',
+            'data_nascimento', 'tipo_vinculo', 'cpf_titular', 'codigo_lotacao',
+            'codigo_rh', 'identificador'];
+}
+
+/** Nomes de coluna aceitos na importação de vacinados em campanha ativa. */
+function csv_alias_vacinacao(): array
+{
+    $a = csv_alias_historico();
+    return [
+        'cpf'               => $a['cpf'],
+        'nome'              => $a['nome'],
+        'vacina'            => $a['vacina'],
+        'dose'              => $a['dose'],
+        'lote'              => $a['lote'],
+        'aplicado_em'       => $a['aplicado_em'],
+        'profissional_nome' => ['profissional', 'vacinador', 'aplicador', 'enfermeiro', 'responsavel_aplicacao'],
+        'profissional_cpf'  => ['cpf_profissional', 'cpf_vacinador', 'cpf_aplicador'],
+        'cidade'            => $a['cidade'],
+        'uf'                => $a['uf'],
+        'unidade'           => ['local_aplicacao', 'local', 'posto', 'sala'],
+        'data_nascimento'   => $a['data_nascimento'],
+        // Abaixo: só necessários quando a importação pode CRIAR o elegível que
+        // ainda não está na lista (RN-016/RN-018 continuam valendo).
+        'tipo_vinculo'      => ['vinculo', 'tipo', 'parentesco', 'categoria'],
+        'cpf_titular'       => ['titular', 'cpf_responsavel'],
+        'codigo_rh'         => ['matricula', 'cod_rh', 'matricula_rh', 'registro', 'chapa', 'codigo_funcionario'],
+        // Sem o sinônimo "unidade" aqui: neste mapa 'unidade' é o LOCAL da
+        // aplicação, não a lotação do colaborador — os dois coexistem.
+        'codigo_lotacao'    => ['lotacao', 'cod_lotacao', 'centro_custo', 'codigo_unidade', 'filial', 'setor', 'departamento'],
+        'identificador'     => $a['identificador'],
+    ];
+}
+
 /** Ordem posicional padrão dos vacinados históricos (fallback sem cabeçalho). */
 function csv_ordem_historico(): array
 {

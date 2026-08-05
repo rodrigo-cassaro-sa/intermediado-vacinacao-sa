@@ -347,6 +347,63 @@ Erros: `APLICACAO_NAO_ENCONTRADA`, `MOTIVO_OBRIGATORIO`.
 
 ---
 
+## POST /api/v1/interno/campanhas/{id}/vacinados/importar  (RN-031)
+
+```txt
+Objetivo: importar vacinados em MASSA numa campanha ATIVA.
+Permissão: quem tem acesso aos dados do paciente na campanha (doc 04 §4.1).
+Autenticação: sessão + CSRF. multipart (arquivo=@vacinados.csv) OU JSON {csv, padroes, criar_elegivel}.
+IMPORTANTE: esta chamada NÃO grava — ela SIMULA e devolve o relatório.
+```
+
+### Colunas do CSV
+
+Cabeçalho por nome (ordem livre, sinônimos aceitos — ver §3.1):
+
+```txt
+cpf | identificador, vacina (nome OU sigla), dose, lote, aplicado_em,
+profissional_nome, profissional_cpf, cidade, uf, unidade
+```
+
+O que faltar na linha é preenchido pelos **dados comuns do lote** (`padroes`), com os
+mesmos campos mais `vacina_id` e `clinica_id`. Com `criar_elegivel = true`, quem não está
+na lista é criado — e aí a linha também precisa de `tipo_vinculo`, `codigo_lotacao` e
+`codigo_rh` (RN-016/RN-018 continuam valendo).
+
+### Fluxo
+
+```txt
+POST /campanhas/{id}/vacinados/importar        -> status 'simulada' (ou 'simulando' se grande)
+GET  /importacoes-vacinados/{id}               -> acompanha e traz o resumo + amostra de erros
+POST /importacoes-vacinados/{id}/confirmar     -> grava (status 'concluida' ou 'pendente' na fila)
+POST /importacoes-vacinados/{id}/estornar      -> desfaz o LOTE (interno + justificativa)
+GET  /importacoes-vacinados/{id}/erros/exportar -> CSV dos rejeitados com o motivo
+```
+
+Acima de 2.000 linhas a simulação e a gravação vão para a fila do worker (doc 13).
+
+### Response (resumo do lote)
+```json
+{
+  "success": true,
+  "data": {
+    "importacao_id": 12, "status": "simulada",
+    "total_linhas": 5000, "total_processados": 5000,
+    "total_aplicacoes": 4800, "total_elegiveis": 0, "total_rejeitados": 200,
+    "erros_amostra": [{ "linha": 17, "cpf": "529***.**-25", "codigo": "NAO_ELEGIVEL",
+                        "motivo": "Pessoa não está na lista de elegíveis da campanha" }]
+  }
+}
+```
+
+### Códigos de erro por linha
+`CPF_INVALIDO` · `SEM_IDENTIDADE` · `NAO_ELEGIVEL` · `NOME_OBRIGATORIO` ·
+`TIPO_VINCULO_INVALIDO` · `CODIGO_LOTACAO_OBRIGATORIO` · `CODIGO_RH_OBRIGATORIO` ·
+`VACINA_OBRIGATORIA` · `VACINA_FORA_DA_CAMPANHA` · `VACINADO_DUPLICADO` ·
+`FORA_DO_PERIODO` · `DATA_INVALIDA` · `CAMPO_OBRIGATORIO` · `CPF_PROFISSIONAL_INVALIDO` · `UF_INVALIDA`
+
+---
+
 ## GET /api/v1/interno/campanhas/{id}/tabela-verdade
 
 ```txt

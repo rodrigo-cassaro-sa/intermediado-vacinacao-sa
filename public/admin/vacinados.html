@@ -125,6 +125,14 @@
     .drawer .msg { font-size: 12px; min-height: 16px; margin-top: 10px; }
     .drawer .msg.err { color: var(--err); } .drawer .msg.ok { color: var(--acc2); font-weight: 600; }
     .drawer .dfoot { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--line); background: var(--surface-2); }
+    /* Importação de vacinados: bloco de orientação e relatório da simulação. */
+    .drawer .hint { font-size: 12px; color: var(--muted); background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 4px 0; }
+    .drawer input[type="checkbox"] { width: auto; margin-right: 6px; vertical-align: middle; }
+    .relat { margin-top: 12px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+    .relat .rrow { display: flex; justify-content: space-between; padding: 8px 12px; font-size: 13px; border-bottom: 1px solid var(--line); }
+    .relat .rrow:last-child { border-bottom: 0; }
+    .relat .erros { max-height: 180px; overflow-y: auto; background: #fff6f6; }
+    .relat .erros div { padding: 6px 12px; font-size: 12px; color: var(--err); border-bottom: 1px solid #f4dede; }
 
     .login { position: fixed; inset: 0; background: var(--bg); display: grid; place-items: center; z-index: 70; }
     .login .lbox { background: var(--card); border: 1px solid var(--line); border-radius: var(--raio); box-shadow: var(--sombra); padding: 28px; width: 340px; }
@@ -198,6 +206,7 @@
         <div class="actions">
           <span class="who">Olá, <b id="quem">—</b></span>
           <select class="sel" id="campSel" onchange="trocarCampanha()"><option value="">— selecione a campanha —</option></select>
+          <button class="btn sec" onclick="abrirImp()"><span class="material-symbols-outlined">upload_file</span> Importar vacinados</button>
           <button class="btn sec" onclick="exportar()"><span class="material-symbols-outlined">download</span> Exportar</button>
           <button class="btn sec" onclick="sair()"><span class="material-symbols-outlined">logout</span> Sair</button>
         </div>
@@ -268,6 +277,61 @@
           <span class="cnt" id="contagem">—</span>
           <button class="btn sec hide" id="btnMais" onclick="carregarMais()">Carregar mais</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drawer importar vacinados em massa (RN-031) -->
+  <div class="drawer hide" id="drawerImp">
+    <div class="backdrop" onclick="fecharImp()"></div>
+    <div class="box">
+      <div class="dhead"><h3>Importar vacinados</h3><button class="x" onclick="fecharImp()"><span class="material-symbols-outlined">close</span></button></div>
+      <div class="dbody">
+        <div class="hint">Envie a lista de quem já foi vacinado. <b>Nada é gravado direto:</b>
+          primeiro você vê a simulação e só então confirma.<br>
+          Colunas: <b>cpf, vacina, dose, lote, aplicado_em, profissional_nome, profissional_cpf, cidade, uf</b>.
+          Com cabeçalho na 1ª linha a ordem não importa. O que faltar na linha vem dos dados do lote abaixo.
+          A vacina pode vir pelo nome ou pela sigla.</div>
+        <button class="btn sec" style="margin:4px 0 8px" onclick="baixarModeloVac()"><span class="material-symbols-outlined">download</span> Baixar modelo (CSV)</button>
+        <label>Arquivo (.csv)</label>
+        <input type="file" id="impArquivo" accept=".csv,.txt" />
+        <label>…ou cole as linhas</label>
+        <textarea id="impTexto" rows="4" placeholder="cpf,vacina,dose&#10;52998224725,IF3,1"></textarea>
+
+        <label style="margin-top:14px"><b>Dados comuns do lote</b> <span class="sub">(a linha do arquivo sobrepõe)</span></label>
+        <label>Vacina</label>
+        <select id="impVacina"></select>
+        <div class="g2">
+          <div><label>Dose</label><input id="impDose" type="number" min="1" value="1" /></div>
+          <div><label>Aplicado em</label><input id="impData" type="date" /></div>
+        </div>
+        <label>Lote</label>
+        <input id="impLote" placeholder="ex.: ABC123" />
+        <label>Clínica que aplicou</label>
+        <select id="impClinica"><option value="">— In company / sem clínica —</option></select>
+        <div class="g2">
+          <div><label>Profissional — nome</label><input id="impProfNome" /></div>
+          <div><label>Profissional — CPF</label><input id="impProfCpf" /></div>
+        </div>
+        <div class="g2">
+          <div><label>Cidade</label><input id="impCidade" /></div>
+          <div><label>UF</label><input id="impUf" maxlength="2" style="text-transform:uppercase" /></div>
+        </div>
+        <label>Unidade / local (opcional)</label>
+        <input id="impUnid" />
+
+        <label style="margin-top:12px"><input type="checkbox" id="impCriar" /> Criar o elegível quando o CPF não estiver na lista</label>
+        <div class="hint">Sem isso, quem não está na lista da campanha é rejeitado. Marcando, o arquivo
+          também precisa trazer <b>tipo_vinculo</b>, <b>codigo_lotacao</b> e <b>matricula</b> — as regras da
+          lista de elegíveis continuam valendo.</div>
+
+        <div class="msg" id="impMsg"></div>
+        <div id="impRelat"></div>
+      </div>
+      <div class="dfoot">
+        <button class="btn sec" onclick="fecharImp()">Fechar</button>
+        <button class="btn sec" id="btnSimular" onclick="simularImp()"><span class="material-symbols-outlined">preview</span> Simular</button>
+        <button class="btn primary hide" id="btnConfirmar" onclick="confirmarImp()"><span class="material-symbols-outlined">vaccines</span> Confirmar importação</button>
       </div>
     </div>
   </div>
@@ -564,6 +628,177 @@
     if (!d.success) return falhaReg(d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Erro.'));
     msg.className = 'msg ok'; msg.textContent = 'Vacinação registrada!';
     setTimeout(() => { fecharReg(); recarregar(); }, 600);
+  }
+
+  // ---- Importar vacinados em massa (RN-031) --------------------------------
+  // Fluxo: simular -> conferir -> confirmar. Nada é gravado sem confirmação,
+  // porque dose aplicada é dose faturada.
+  let IMP_ID = null;
+
+  function abrirImp() {
+    const c = campSelObj(); if (!c) { alert('Selecione uma campanha.'); return; }
+    if (c.status !== 'ativa') { alert('A campanha precisa estar ativa para importar vacinados.'); return; }
+    if (!CAMP_VACINAS.length) { alert('A campanha não tem vacina cadastrada.'); return; }
+    IMP_ID = null;
+    ['impArquivo', 'impTexto', 'impLote', 'impProfNome', 'impProfCpf', 'impCidade', 'impUf', 'impUnid']
+      .forEach(i => document.getElementById(i).value = '');
+    document.getElementById('impDose').value = 1;
+    document.getElementById('impData').value = hoje();
+    document.getElementById('impCriar').checked = false;
+    document.getElementById('impRelat').innerHTML = '';
+    const m = document.getElementById('impMsg'); m.className = 'msg'; m.textContent = '';
+    document.getElementById('btnConfirmar').classList.add('hide');
+    document.getElementById('impVacina').innerHTML = '<option value="">— vem de cada linha —</option>'
+      + CAMP_VACINAS.map(v => '<option value="' + v.vacina_id + '">' + esc(v.nome) + '</option>').join('');
+    document.getElementById('impClinica').innerHTML = '<option value="">— In company / sem clínica —</option>'
+      + CLINICAS.map(x => '<option value="' + x.id + '">' + esc(x.nome) + '</option>').join('');
+    document.getElementById('drawerImp').classList.remove('hide');
+  }
+  function fecharImp() { document.getElementById('drawerImp').classList.add('hide'); }
+
+  function baixarModeloVac() {
+    const cab = 'cpf,vacina,dose,lote,aplicado_em,profissional_nome,profissional_cpf,cidade,uf,unidade,tipo_vinculo,codigo_lotacao,matricula';
+    const ex = [
+      '52998224725,IF3,1,ABC123,2026-03-10,Enf. Ana,11144477735,Sao Paulo,SP,Matriz,,,',
+      '11144477735,Influenza (Gripe),1,ABC123,2026-03-10,Enf. Ana,11144477735,Sao Paulo,SP,Matriz,colaborador,LOT-01,RH-1001',
+    ];
+    const conteudo = '﻿' + cab + '\r\n' + ex.join('\r\n') + '\r\n';
+    const blob = new Blob([conteudo], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'modelo-vacinados.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
+  function padroesImp() {
+    const p = {};
+    const v = Number(document.getElementById('impVacina').value || 0); if (v) p.vacina_id = v;
+    const d = Number(document.getElementById('impDose').value || 0); if (d) p.dose = d;
+    const cl = Number(document.getElementById('impClinica').value || 0); if (cl) p.clinica_id = cl;
+    [['lote', 'impLote'], ['aplicado_em', 'impData'], ['profissional_nome', 'impProfNome'],
+     ['profissional_cpf', 'impProfCpf'], ['cidade', 'impCidade'], ['unidade', 'impUnid']]
+      .forEach(([k, id]) => { const val = document.getElementById(id).value.trim(); if (val) p[k] = val; });
+    const uf = document.getElementById('impUf').value.trim().toUpperCase(); if (uf) p.uf = uf;
+    return p;
+  }
+
+  async function simularImp() {
+    const c = campSelObj(); if (!c) return;
+    const msg = document.getElementById('impMsg');
+    const file = document.getElementById('impArquivo').files[0];
+    const texto = document.getElementById('impTexto').value.trim();
+    if (!file && !texto) { msg.className = 'msg err'; msg.textContent = 'Envie um arquivo ou cole as linhas.'; return; }
+    msg.className = 'msg'; msg.textContent = 'Simulando...';
+    document.getElementById('btnConfirmar').classList.add('hide');
+    document.getElementById('impRelat').innerHTML = '';
+
+    let d;
+    if (file) {
+      const fd = new FormData();
+      fd.append('arquivo', file);
+      fd.append('padroes', JSON.stringify(padroesImp()));
+      fd.append('criar_elegivel', document.getElementById('impCriar').checked ? '1' : '0');
+      const r = await fetch('/api/v1/interno/campanhas/' + c.id + '/vacinados/importar',
+        { method: 'POST', headers: CSRF ? { 'X-CSRF-Token': CSRF } : {}, credentials: 'same-origin', body: fd });
+      try { d = await r.json(); } catch (e) { d = { success: false }; }
+    } else {
+      d = await api('/interno/campanhas/' + c.id + '/vacinados/importar', 'POST', {
+        csv: texto, padroes: padroesImp(), criar_elegivel: document.getElementById('impCriar').checked,
+      });
+    }
+    if (!d.success) { msg.className = 'msg err'; msg.textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Falha na simulação.')); return; }
+    IMP_ID = d.data.importacao_id;
+    mostrarRelatorioImp(d.data);
+  }
+
+  function mostrarRelatorioImp(s) {
+    const msg = document.getElementById('impMsg');
+    if (s.status === 'simulando' || s.status === 'pendente' || s.status === 'processando') {
+      msg.className = 'msg';
+      msg.textContent = (s.status === 'simulando' ? 'Simulando' : 'Gravando') + ' em segundo plano — '
+        + fmt(s.total_processados) + (s.total_linhas ? ' de ' + fmt(s.total_linhas) : '') + ' linha(s)...';
+      setTimeout(acompanharImp, 3000);
+      return;
+    }
+    if (s.status === 'falha') {
+      msg.className = 'msg err'; msg.textContent = 'Falhou: ' + (s.mensagem_erro || 'erro no processamento') + '.';
+      return;
+    }
+
+    const simulou = s.status === 'simulada';
+    msg.className = 'msg ' + (s.total_rejeitados > 0 ? 'err' : 'ok');
+    msg.textContent = simulou
+      ? 'Simulação: ' + fmt(s.total_aplicacoes) + ' seriam registradas, ' + fmt(s.total_rejeitados) + ' rejeitadas.'
+      : fmt(s.total_aplicacoes) + ' vacinado(s) registrado(s).';
+
+    let html = '<div class="relat">'
+      + '<div class="rrow"><span>Linhas lidas</span><b>' + fmt(s.total_processados) + '</b></div>'
+      + '<div class="rrow"><span>' + (simulou ? 'Seriam registradas' : 'Registradas') + '</span><b>' + fmt(s.total_aplicacoes) + '</b></div>'
+      + (s.criar_elegivel ? '<div class="rrow"><span>Elegíveis ' + (simulou ? 'a criar' : 'criados') + '</span><b>' + fmt(s.total_elegiveis) + '</b></div>' : '')
+      + '<div class="rrow"><span>Rejeitadas</span><b>' + fmt(s.total_rejeitados) + '</b></div>';
+    if ((s.erros_amostra || []).length) {
+      html += '<div class="erros">' + s.erros_amostra.map(e =>
+        '<div>Linha ' + e.linha + (e.cpf ? ' (' + esc(e.cpf) + ')' : '') + ': ' + esc(e.motivo) + '</div>').join('')
+        + (s.total_rejeitados > s.erros_amostra.length ? '<div>…e mais ' + fmt(s.total_rejeitados - s.erros_amostra.length) + '</div>' : '')
+        + '</div>';
+    }
+    if (s.total_rejeitados > 0) {
+      html += '<div style="margin-top:8px"><a href="#" onclick="return baixarErrosImp()">Baixar relatório de erros</a></div>';
+    }
+    // Desfazer o lote inteiro (interno, com justificativa): o arquivo errado é o
+    // risco desta função — 5.000 linhas equivocadas viram 5.000 doses faturadas.
+    if (s.status === 'concluida' && s.total_aplicacoes > 0) {
+      html += '<div style="margin-top:8px"><a href="#" onclick="return estornarLoteImp()">Estornar este lote inteiro</a></div>';
+    }
+    if (s.status === 'estornada') {
+      html += '<div class="rrow"><span>Lote estornado</span><b>' + fmt(s.total_estornados) + '</b></div>';
+    }
+    html += '</div>';
+    document.getElementById('impRelat').innerHTML = html;
+
+    document.getElementById('btnConfirmar').classList.toggle('hide', !(simulou && s.total_aplicacoes > 0));
+    if (!simulou) { recarregar(); }
+  }
+
+  async function acompanharImp() {
+    if (!IMP_ID) return;
+    const d = await api('/interno/importacoes-vacinados/' + IMP_ID);
+    if (d.success) { mostrarRelatorioImp(d.data); } else { setTimeout(acompanharImp, 5000); }
+  }
+
+  function baixarErrosImp() {
+    if (IMP_ID) window.open('/api/v1/interno/importacoes-vacinados/' + IMP_ID + '/erros/exportar', '_blank');
+    return false;
+  }
+
+  async function estornarLoteImp() {
+    if (!IMP_ID) return false;
+    const motivo = prompt('Justificativa do estorno do lote inteiro:');
+    if (motivo === null) return false;
+    if (!motivo.trim()) { alert('A justificativa é obrigatória.'); return false; }
+    const msg = document.getElementById('impMsg');
+    const d = await api('/interno/importacoes-vacinados/' + IMP_ID + '/estornar', 'POST', { motivo: motivo.trim() });
+    if (!d.success) {
+      msg.className = 'msg err';
+      msg.textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Falha ao estornar.'));
+      return false;
+    }
+    msg.className = 'msg ok'; msg.textContent = d.message;
+    const st = await api('/interno/importacoes-vacinados/' + IMP_ID);
+    if (st.success) mostrarRelatorioImp(st.data);
+    recarregar();
+    return false;
+  }
+
+  async function confirmarImp() {
+    if (!IMP_ID) return;
+    const msg = document.getElementById('impMsg');
+    if (!confirm('Confirmar a importação? As doses passam a valer para a tabela verdade e o faturamento.')) return;
+    msg.className = 'msg'; msg.textContent = 'Gravando...';
+    document.getElementById('btnConfirmar').classList.add('hide');
+    const d = await api('/interno/importacoes-vacinados/' + IMP_ID + '/confirmar', 'POST', {});
+    if (!d.success) { msg.className = 'msg err'; msg.textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Falha.')); return; }
+    mostrarRelatorioImp(d.data);
   }
 
   // ---- Estornar (desvacinar) -----------------------------------------------

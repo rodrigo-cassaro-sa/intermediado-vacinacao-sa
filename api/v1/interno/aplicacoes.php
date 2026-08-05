@@ -7,17 +7,17 @@
 
 require_once BASE_PATH . '/app/services/aplicacoes.php';
 
-const PERFIS_APLICA = ['super_admin', 'operador_interno', 'profissional_saude'];
+// Quem enxerga o paciente pode registrar a vacinação dele; toda aplicação fica
+// gravada com autor, origem e histórico. O antigo gate por 'perfil' barrava os
+// usuários do portal (perfil cliente_b2b), que viam o paciente na tela mas
+// levavam 403 ao confirmar — mesmo problema já corrigido em elegiveis.php.
+// O escopo continua sendo validado por campanha (exigir_campanha_do_usuario /
+// usuario_pode_campanha). Estorno e retificação seguem restritos ao interno.
 
 /** POST /api/v1/interno/aplicacoes */
 function rota_registrar_aplicacao(array $params): void
 {
     $usuario = exigir_login();
-    if (!in_array($usuario['perfil'], PERFIS_APLICA, true)) {
-        responder_erro('Sem permissão para registrar aplicação.', 403, [
-            ['field' => null, 'code' => 'SEM_PERMISSAO', 'message' => 'Seu perfil não permite esta ação.'],
-        ]);
-    }
     exigir_csrf();
 
     $dados = corpo_json();
@@ -158,11 +158,6 @@ function rota_historico_aplicacao(array $params): void
 function rota_registrar_aplicacoes_lote(array $params): void
 {
     $usuario = exigir_login();
-    if (!in_array($usuario['perfil'], PERFIS_APLICA, true)) {
-        responder_erro('Sem permissão para registrar aplicação.', 403, [
-            ['field' => null, 'code' => 'SEM_PERMISSAO', 'message' => 'Seu perfil não permite esta ação.'],
-        ]);
-    }
     exigir_csrf();
 
     $dados = corpo_json();
@@ -240,15 +235,18 @@ function rota_registrar_aplicacoes_lote(array $params): void
     ], 'Lote processado.', 201);
 }
 
-/** Verifica (sem encerrar) se o usuário pode operar na campanha. */
+/**
+ * Verifica (sem encerrar) se o usuário pode operar na campanha.
+ * Usa a resolução hierárquica do portal (doc 04 §4.1) — a comparação crua por
+ * tenant_id barrava usuários de nível grupo/unidade.
+ */
 function usuario_pode_campanha(array $usuario, int $campanhaId): bool
 {
-    $internos = ['super_admin', 'operador_interno'];
-    if (in_array($usuario['perfil'], $internos, true)) {
-        return true;
-    }
     $c = db_primeiro("SELECT tenant_id FROM campanha WHERE id = :id AND excluido_em IS NULL LIMIT 1", [':id' => $campanhaId]);
-    return $c !== null && $usuario['tenant_id'] !== null && (int) $c['tenant_id'] === (int) $usuario['tenant_id'];
+    if ($c === null) {
+        return false;
+    }
+    return usuario_eh_interno($usuario) || usuario_pode_cliente($usuario, (int) $c['tenant_id']);
 }
 
 /** POST /api/v1/interno/aplicacoes/{id}/retificar — cria novo registro (RN-010). */

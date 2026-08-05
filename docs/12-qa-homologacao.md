@@ -63,6 +63,25 @@ sem depender de Cron Job configurado à mão no painel.
 | Importação travada | Deixar uma importação em `processando` há 90 min | O worker devolve para `pendente` e reprocessa | ok (auto) |
 | Progresso na tela | Importar >2000 linhas em /admin/elegiveis.html | Mensagem vai de "recebida" → "N de M linha(s)" → "concluída" | pendente (homolog) |
 
+## 2.1d Vacinar pelo admin/portal e importar vacinados em massa (RN-031)
+
+Automatizados contra banco real (31 migrations + fixture de campanha ativa): 27 casos.
+
+| Fluxo | Passos | Resultado esperado | Status |
+|---|---|---|---|
+| Simulação não grava | CSV com 5 linhas (3 válidas, 1 fora da lista, 1 vacina inexistente) | `simulada`, 3 seriam registradas, 2 rejeitadas, **0 aplicações e 0 elegíveis no banco** | ok (auto) |
+| Motivos por linha | idem acima | `NAO_ELEGIVEL` e `VACINA_FORA_DA_CAMPANHA` no relatório | ok (auto) |
+| Confirmação entrega o prometido | Confirmar o lote simulado | 3 aplicações gravadas, elegíveis viram `aplicado`, todas com `importacao_aplicacoes_id` | ok (auto) |
+| Não confirma duas vezes | Confirmar de novo | `LOTE_NAO_SIMULADO` | ok (auto) |
+| Estorno do lote | Estornar com justificativa | 3 estornadas, elegíveis voltam a `pendente`; 2ª tentativa dá `LOTE_JA_ESTORNADO` | ok (auto) |
+| Criar elegível — sem os dados | `criar_elegivel` marcado, arquivo sem tipo_vinculo/lotação/matrícula | Simulação **recusa** com `TIPO_VINCULO_INVALIDO` (não promete o que não grava) | ok (auto) |
+| Criar elegível — com os dados | idem com as colunas | Elegível criado na confirmação e vacinado | ok (auto) |
+| Dose duplicada | Reimportar a mesma dose | `VACINADO_DUPLICADO` | ok (auto) |
+| Fora do período | Data fora da janela da campanha | `FORA_DO_PERIODO` | ok (auto) |
+| Vacina por nome e por sigla | `IF3` e `Influenza (Gripe)` | Ambas resolvem | ok (auto) |
+| Cabeçalho fora de ordem | `Imunizante;CPF;Dose;...;Vacinador;...` | Mapeado por nome (reusa BUG-001) | ok (auto) |
+| Vacinar pelo portal | Usuário de portal registra vacinação | Antes: **403**. Agora: registra, com autor no histórico | pendente (homolog) |
+
 ## 2.2 Telas a validar em homologação (manual)
 
 | Tela | Caminho | O que validar |
@@ -80,6 +99,9 @@ sem depender de Cron Job configurado à mão no painel.
 
 | Área | O que não pode quebrar | Status |
 |---|---|---|
+| Registro unitário de aplicação | `processar_aplicacao()` teve a validação extraída para `validar_aplicacao()`; a regra não mudou, só passou a ser compartilhada com a simulação | ok (auto — 27 casos exercitam os dois caminhos) |
+| Estorno e retificação unitários | Continuam restritos a super_admin/operador_interno, com motivo | ok (não alterado) |
+| Faturamento por clínica | `executor_tipo = 'clinica_credenciada'` é preservado quando o lote informa a clínica | ok (revisado) |
 | Importação pequena (≤2000) | Continua inline, respondendo na hora, sem passar pela fila | ok (não alterado) |
 | Worker por Cron Job | Quem já tiver os Cron Jobs do painel pode manter: o `flock` evita processamento duplicado, e `WORKERS_EMBUTIDOS=false` desliga o worker do container | ok (auto — fase B) |
 | Limite `IMPORTACAO_LIMITE_SINCRONO` | Mantido em 2000 — aumentar jogaria lote grande para dentro da requisição web (60s de `max_execution_time`) | ok (não alterado) |
@@ -102,6 +124,7 @@ sem depender de Cron Job configurado à mão no painel.
 | 2026-08-05 | local (php:8.3-cli + Node 22) | automatizado | BUG-001: backend 37/37 e frontend 35/35 casos aprovados; `php -l` limpo nos 7 arquivos PHP tocados |
 | 2026-08-05 | local (mysql:8 + Node 22) | automatizado | BUG-002: 31 migrations aplicadas em banco limpo; as 3 queries alteradas rodaram contra o schema real; 16/16 casos do rótulo da campanha |
 | 2026-08-05 | local (imagem real do projeto + mysql:8) | automatizado | BUG-003: container normal, **sem nenhum cron**, drenou 30.000 elegíveis em **285s** (0 → 29.999 no banco); trava e recuperação de importação travada validadas |
+| 2026-08-05 | local (imagem real do projeto + mysql:8) | automatizado | RN-031: 27/27 casos da importação de vacinados (simulação, confirmação, criar elegível, estorno de lote, duplicidade, período, vacina por nome/sigla) |
 |  | homolog (EasyPanel) | pendente | validar as 6 telas da tabela 2.2 após o deploy |
 
 ---

@@ -40,6 +40,7 @@ require_once __DIR__ . '/../app/services/webhooks.php';
 require_once __DIR__ . '/../app/services/elegiveis.php';
 require_once __DIR__ . '/../app/services/importacao.php';
 require_once __DIR__ . '/../app/services/historico_import.php';
+require_once __DIR__ . '/../app/services/importacao_aplicacoes.php';
 
 $fez = false;
 
@@ -83,6 +84,25 @@ foreach ($pendHist as $p) {
         echo "  concluído histórico #$id\n";
     } catch (Throwable $e) {
         fwrite(STDERR, "  FALHA histórico #$id: " . $e->getMessage() . "\n");
+    }
+}
+
+// 3) Importação de vacinados em massa (RN-031): simulação e gravação confirmada.
+$pendAplic = db_todos(
+    "SELECT id, status, criado_por FROM importacao_aplicacoes
+      WHERE status IN ('simulando', 'pendente') ORDER BY id LIMIT 3"
+);
+foreach ($pendAplic as $p) {
+    $fez = true;
+    $id = (int) $p['id'];
+    $simular = $p['status'] === 'simulando';
+    $ator = ['tipo' => 'usuario', 'id' => $p['criado_por'] ? (int) $p['criado_por'] : null];
+    echo ($simular ? 'Simulando' : 'Gravando') . " vacinados em massa #$id ...\n";
+    try {
+        imp_aplic_executar($id, $simular, $ator);
+        echo "  ok #$id\n";
+    } catch (Throwable $e) {
+        fwrite(STDERR, "  FALHA vacinados #$id: " . $e->getMessage() . "\n");
     }
 }
 

@@ -91,6 +91,7 @@ dificuldade de auditoria e de devolver dados confiáveis ao cliente.
 | RN-030 | **Sincronização de turnover.** O RH envia a **lista completa atual** (CSV na tela ou API); o sistema atualiza os presentes e marca como `removido` os que **não estão na lista** e **não foram vacinados**. Não remove vacinados | Colaborador desligado some da lista → removido; vacinado permanece | Turnover e integração RH | importante |
 | RN-029 | **Faturamento.** Cobrança do cliente por preço [cliente, modalidade, vacina]: **rede credenciada = por elegível indicado** (× vacinas da campanha); **in company = por vacinado**. Pagamento à clínica por preço [clínica, vacina], **por vacinado** (rede credenciada). Vacinas sem preço são sinalizadas, não somadas | Relatórios "a cobrar" e "a pagar" por campanha | Financeiro | crítica |
 | RN-028 | Identidade do paciente por **CPF (validado)** ou, quando não houver CPF (estrangeiro/terceiro), por um **identificador/voucher** único. Um dos dois é obrigatório | Estrangeiro sem CPF entra por voucher; carteira busca por CPF ou voucher | Cobertura e integridade | importante |
+| RN-031 | **Importação de vacinados em massa** (campanha ativa). Arquivo CSV identificando a pessoa por **CPF ou identificador/voucher** e a vacina por **nome ou sigla**; o que faltar na linha vem dos dados comuns do lote. **A simulação é obrigatória**: o sistema processa, mostra quantas seriam registradas e por que as demais foram rejeitadas, e só grava após confirmação explícita. Cada linha passa pelas mesmas regras do registro unitário (RN-003, RN-013, RN-019). CPF fora da lista de elegíveis é rejeitado, salvo se o operador marcar **"criar o elegível"** — e aí RN-016/RN-018 continuam valendo (tipo de vínculo, código de lotação e matrícula obrigatórios). O lote inteiro pode ser **estornado** pelo interno com justificativa | RH envia planilha do dia da campanha in company; 4.800 entram, 200 rejeitadas com motivo; arquivo errado é desfeito em um clique | Operação, financeiro e integridade | crítica |
 | RN-027 | **Vacinado é perpétuo** (carteira de vacinação): a aplicação guarda o paciente diretamente e nunca é apagada; campanha/elegível com aplicação não podem ser excluídos (FK RESTRICT). A **carteira consolidada** por CPF reúne todas as doses de todos os anos. Cliente B2B só vê as doses das próprias campanhas (LGPD); internos veem tudo (auditado) | Colaborador muda de empresa mas a carteira dele persiste; relatório ano a ano compara campanhas | Produto e integridade | crítica |
 
 ---
@@ -115,7 +116,7 @@ Regras que não podem ser quebradas:
 
 | Regra | Exceção | Quem pode autorizar |
 |---|---|---|
-| RN-003 (aplicação só para elegível) | Vacinação de "elegível tardio" (colaborador que apareceu no dia, in company) | Operador interno / regra da campanha (a confirmar) |
+| RN-003 (aplicação só para elegível) | Vacinação de "elegível tardio" (colaborador que apareceu no dia, in company) | **RESOLVIDO (RN-031)**: a importação em massa cria o elegível na hora quando o operador marca a opção, obedecendo RN-016/RN-018 |
 | RN-010 (registro imutável) | Retificação por erro de digitação de lote/dose | Operador interno com registro auditado |
 | RN-008 (CPF como chave) | Paciente estrangeiro sem CPF | Identificador alternativo (passaporte) — a definir |
 
