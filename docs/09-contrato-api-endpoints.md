@@ -378,7 +378,16 @@ GET  /importacoes-vacinados/{id}               -> acompanha e traz o resumo + am
 POST /importacoes-vacinados/{id}/confirmar     -> grava (status 'concluida' ou 'pendente' na fila)
 POST /importacoes-vacinados/{id}/estornar      -> desfaz o LOTE (interno + justificativa)
 GET  /importacoes-vacinados/{id}/erros/exportar -> CSV dos rejeitados com o motivo
+GET  /campanhas/{id}/importacoes-vacinados     -> histórico dos lotes da campanha
 ```
+
+### GET /campanhas/{id}/importacoes-vacinados
+
+Últimos 50 lotes, com quem importou, totais e — quando estornado — quem desfez e por quê.
+**O cliente enxerga** (confere o que enviou); o campo `pode_estornar` só vem `true` para
+`super_admin`/`operador_interno`, e é apenas dica de tela: quem decide é o endpoint de estorno.
+Sem essa listagem o controle "só o interno estorna" seria inoperante — o operador não teria
+como descobrir o número do lote que o cliente importou.
 
 Acima de 2.000 linhas a simulação e a gravação vão para a fila do worker (doc 13).
 

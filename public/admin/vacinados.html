@@ -327,6 +327,9 @@
 
         <div class="msg" id="impMsg"></div>
         <div id="impRelat"></div>
+
+        <label style="margin-top:18px"><b>Importações desta campanha</b></label>
+        <div id="impHistorico"><span class="sub">carregando…</span></div>
       </div>
       <div class="dfoot">
         <button class="btn sec" onclick="fecharImp()">Fechar</button>
@@ -653,8 +656,53 @@
     document.getElementById('impClinica').innerHTML = '<option value="">— In company / sem clínica —</option>'
       + CLINICAS.map(x => '<option value="' + x.id + '">' + esc(x.nome) + '</option>').join('');
     document.getElementById('drawerImp').classList.remove('hide');
+    carregarHistoricoImp();
   }
   function fecharImp() { document.getElementById('drawerImp').classList.add('hide'); }
+
+  // Histórico dos lotes: o cliente confere o que enviou; o interno acha o lote
+  // para estornar quando o arquivo veio errado.
+  const IMP_ST = {
+    simulando: ['Simulando…', 'plan'], simulada: ['Simulada — aguardando confirmação', 'plan'],
+    pendente: ['Na fila', 'plan'], processando: ['Gravando…', 'plan'],
+    concluida: ['Concluída', 'ok'], falha: ['Falhou', 'done'], estornada: ['Estornada', 'done'],
+  };
+
+  async function carregarHistoricoImp() {
+    const c = campSelObj(); if (!c) return;
+    const box = document.getElementById('impHistorico');
+    const d = await api('/interno/campanhas/' + c.id + '/importacoes-vacinados');
+    if (!d.success) { box.innerHTML = '<span class="sub">não foi possível carregar.</span>'; return; }
+    const itens = d.data.itens || [];
+    if (!itens.length) { box.innerHTML = '<span class="sub">Nenhuma importação ainda.</span>'; return; }
+
+    box.innerHTML = '<div class="relat">' + itens.map(i => {
+      const [rot, cls] = IMP_ST[i.status] || [i.status, 'plan'];
+      const quando = (i.criado_em || '').substring(0, 16).replace('T', ' ');
+      const podeEstornar = d.data.pode_estornar && i.status === 'concluida' && i.total_aplicacoes > 0;
+      return '<div class="rrow" style="align-items:flex-start">'
+        + '<span><b>#' + i.id + '</b> · ' + esc(quando)
+        + '<div class="sub">' + esc(i.criado_por_nome || '—')
+        + ' · ' + fmt(i.total_aplicacoes) + ' registrada(s)'
+        + (i.total_rejeitados > 0 ? ' · ' + fmt(i.total_rejeitados) + ' rejeitada(s)' : '')
+        + (i.status === 'estornada' ? ' · estornada por ' + esc(i.estornado_por_nome || '—')
+            + (i.motivo_estorno ? ': ' + esc(i.motivo_estorno) : '') : '')
+        + '</div></span>'
+        + '<span style="text-align:right"><span class="chip ' + cls + '">' + rot + '</span>'
+        + '<div class="sub" style="margin-top:6px">'
+        + '<a href="#" onclick="return verLoteImp(' + i.id + ')">detalhes</a>'
+        + (podeEstornar ? ' · <a href="#" onclick="return estornarLoteId(' + i.id + ')">estornar</a>' : '')
+        + '</div></span>'
+        + '</div>';
+    }).join('') + '</div>';
+  }
+
+  async function verLoteImp(id) {
+    IMP_ID = id;
+    const d = await api('/interno/importacoes-vacinados/' + id);
+    if (d.success) mostrarRelatorioImp(d.data);
+    return false;
+  }
 
   function baixarModeloVac() {
     const cab = 'cpf,vacina,dose,lote,aplicado_em,profissional_nome,profissional_cpf,cidade,uf,unidade,tipo_vinculo,codigo_lotacao,matricula';
@@ -771,21 +819,25 @@
     return false;
   }
 
-  async function estornarLoteImp() {
-    if (!IMP_ID) return false;
-    const motivo = prompt('Justificativa do estorno do lote inteiro:');
+  function estornarLoteImp() { return estornarLoteId(IMP_ID); }
+
+  async function estornarLoteId(id) {
+    if (!id) return false;
+    const motivo = prompt('Justificativa do estorno do lote #' + id + ' (desfaz TODAS as doses dele):');
     if (motivo === null) return false;
     if (!motivo.trim()) { alert('A justificativa é obrigatória.'); return false; }
     const msg = document.getElementById('impMsg');
-    const d = await api('/interno/importacoes-vacinados/' + IMP_ID + '/estornar', 'POST', { motivo: motivo.trim() });
+    const d = await api('/interno/importacoes-vacinados/' + id + '/estornar', 'POST', { motivo: motivo.trim() });
     if (!d.success) {
       msg.className = 'msg err';
       msg.textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Falha ao estornar.'));
       return false;
     }
     msg.className = 'msg ok'; msg.textContent = d.message;
-    const st = await api('/interno/importacoes-vacinados/' + IMP_ID);
+    IMP_ID = id;
+    const st = await api('/interno/importacoes-vacinados/' + id);
     if (st.success) mostrarRelatorioImp(st.data);
+    carregarHistoricoImp();
     recarregar();
     return false;
   }
@@ -799,6 +851,7 @@
     const d = await api('/interno/importacoes-vacinados/' + IMP_ID + '/confirmar', 'POST', {});
     if (!d.success) { msg.className = 'msg err'; msg.textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Falha.')); return; }
     mostrarRelatorioImp(d.data);
+    carregarHistoricoImp();
   }
 
   // ---- Estornar (desvacinar) -----------------------------------------------

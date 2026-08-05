@@ -76,6 +76,40 @@ function rota_importar_vacinados(array $params): void
     );
 }
 
+/**
+ * GET /api/v1/interno/campanhas/{id}/importacoes-vacinados
+ * Histórico dos lotes da campanha. O cliente enxerga para conferir o que enviou;
+ * só o interno recebe `pode_estornar` (a autoridade continua sendo o endpoint de
+ * estorno, que valida o perfil de novo).
+ */
+function rota_listar_importacoes_vacinados(array $params): void
+{
+    $usuario = exigir_login();
+    $id = id_campanha_rota($params['id'] ?? null);
+    exigir_campanha_do_usuario($usuario, $id);
+
+    $itens = db_todos(
+        "SELECT i.id, i.status, i.criar_elegivel, i.total_linhas, i.total_aplicacoes,
+                i.total_elegiveis, i.total_rejeitados, i.total_estornados,
+                i.motivo_estorno, i.criado_em, i.finalizado_em, i.estornado_em,
+                u.nome  AS criado_por_nome,
+                ue.nome AS estornado_por_nome
+           FROM importacao_aplicacoes i
+           LEFT JOIN usuario u  ON u.id = i.criado_por
+           LEFT JOIN usuario ue ON ue.id = i.estornado_por
+          WHERE i.campanha_id = :c
+          ORDER BY i.id DESC
+          LIMIT 50",
+        [':c' => $id]
+    );
+
+    responder_sucesso([
+        'itens'         => $itens,
+        // Mesma lista de perfis exigida por rota_estornar_importacao_vacinados.
+        'pode_estornar' => in_array($usuario['perfil'] ?? '', ['super_admin', 'operador_interno'], true),
+    ], 'OK.');
+}
+
 /** GET /api/v1/interno/importacoes-vacinados/{id} — status/resumo do lote. */
 function rota_status_importacao_vacinados(array $params): void
 {

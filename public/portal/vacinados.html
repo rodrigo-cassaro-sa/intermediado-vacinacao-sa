@@ -314,6 +314,9 @@
 
         <div class="msg" id="impMsg"></div>
         <div id="impRelat"></div>
+
+        <label style="margin-top:18px"><b>Importações desta campanha</b></label>
+        <div id="impHistorico"><span class="sub">carregando…</span></div>
       </div>
       <div class="dfoot">
         <button class="btn sec" onclick="fecharImp()">Fechar</button>
@@ -633,8 +636,67 @@
     document.getElementById('impClinica').innerHTML = '<option value="">— In company / sem clínica —</option>'
       + CLINICAS.map(x => '<option value="' + x.id + '">' + esc(x.nome) + '</option>').join('');
     document.getElementById('drawerImp').classList.remove('hide');
+    carregarHistoricoImp();
   }
   function fecharImp() { document.getElementById('drawerImp').classList.add('hide'); }
+
+  // Histórico dos lotes: o cliente confere o que enviou; o interno acha o lote
+  // para estornar quando o arquivo veio errado.
+  const IMP_ST = {
+    simulando: ['Simulando…', 'plan'], simulada: ['Simulada — aguardando confirmação', 'plan'],
+    pendente: ['Na fila', 'plan'], processando: ['Gravando…', 'plan'],
+    concluida: ['Concluída', 'ok'], falha: ['Falhou', 'done'], estornada: ['Estornada', 'done'],
+  };
+
+  async function carregarHistoricoImp() {
+    const c = campSelObj(); if (!c) return;
+    const box = document.getElementById('impHistorico');
+    const d = await api('/interno/campanhas/' + c.id + '/importacoes-vacinados');
+    if (!d.success) { box.innerHTML = '<span class="sub">não foi possível carregar.</span>'; return; }
+    const itens = d.data.itens || [];
+    if (!itens.length) { box.innerHTML = '<span class="sub">Nenhuma importação ainda.</span>'; return; }
+
+    box.innerHTML = '<div class="relat">' + itens.map(i => {
+      const [rot, cls] = IMP_ST[i.status] || [i.status, 'plan'];
+      const quando = (i.criado_em || '').substring(0, 16).replace('T', ' ');
+      // O portal nao estorna: desfazer o lote e do interno (RN-031). Aqui o cliente
+      // apenas confere o que enviou.
+      return '<div class="rrow" style="align-items:flex-start">'
+        + '<span><b>#' + i.id + '</b> · ' + esc(quando)
+        + '<div class="sub">' + esc(i.criado_por_nome || '—')
+        + ' · ' + fmt(i.total_aplicacoes) + ' registrada(s)'
+        + (i.total_rejeitados > 0 ? ' · ' + fmt(i.total_rejeitados) + ' rejeitada(s)' : '')
+        + (i.status === 'estornada' ? ' · estornada por ' + esc(i.estornado_por_nome || '—')
+            + (i.motivo_estorno ? ': ' + esc(i.motivo_estorno) : '') : '')
+        + '</div></span>'
+        + '<span style="text-align:right"><span class="chip ' + cls + '">' + rot + '</span>'
+        + '<div class="sub" style="margin-top:6px">'
+        + '<a href="#" onclick="return verLoteImp(' + i.id + ')">detalhes</a>'
+        + '</div></span>'
+        + '</div>';
+    }).join('') + '</div>';
+  }
+
+  async function verLoteImp(id) {
+    IMP_ID = id;
+    const d = await api('/interno/importacoes-vacinados/' + id);
+    if (d.success) mostrarRelatorioImp(d.data);
+    return false;
+  }
+
+  function baixarModeloVac() {
+    const cab = 'cpf,vacina,dose,lote,aplicado_em,profissional_nome,profissional_cpf,cidade,uf,unidade,tipo_vinculo,codigo_lotacao,matricula';
+    const ex = [
+      '52998224725,IF3,1,ABC123,2026-03-10,Enf. Ana,11144477735,Sao Paulo,SP,Matriz,,,',
+      '11144477735,Influenza (Gripe),1,ABC123,2026-03-10,Enf. Ana,11144477735,Sao Paulo,SP,Matriz,colaborador,LOT-01,RH-1001',
+    ];
+    const conteudo = '﻿' + cab + '\r\n' + ex.join('\r\n') + '\r\n';
+    const blob = new Blob([conteudo], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'modelo-vacinados.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
 
   function baixarModeloVac() {
     const cab = 'cpf,vacina,dose,lote,aplicado_em,profissional_nome,profissional_cpf,cidade,uf,unidade,tipo_vinculo,codigo_lotacao,matricula';
@@ -752,6 +814,7 @@
     const d = await api('/interno/importacoes-vacinados/' + IMP_ID + '/confirmar', 'POST', {});
     if (!d.success) { msg.className = 'msg err'; msg.textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Falha.')); return; }
     mostrarRelatorioImp(d.data);
+    carregarHistoricoImp();
   }
 
   // ---- Estornar (desvacinar) -----------------------------------------------

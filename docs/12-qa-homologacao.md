@@ -80,7 +80,9 @@ Automatizados contra banco real (31 migrations + fixture de campanha ativa): 27 
 | Fora do período | Data fora da janela da campanha | `FORA_DO_PERIODO` | ok (auto) |
 | Vacina por nome e por sigla | `IF3` e `Influenza (Gripe)` | Ambas resolvem | ok (auto) |
 | Cabeçalho fora de ordem | `Imunizante;CPF;Dose;...;Vacinador;...` | Mapeado por nome (reusa BUG-001) | ok (auto) |
+| Histórico de lotes | Listar importações da campanha | Traz os 6 lotes, com quem importou e — no estornado — quem desfez e o motivo | ok (auto) |
 | Vacinar pelo portal | Usuário de portal registra vacinação | Antes: **403**. Agora: registra, com autor no histórico | pendente (homolog) |
+| Cliente confere o que enviou | Abrir "Importar vacinados" no portal | Vê o histórico dos lotes, **sem** o link de estornar | pendente (homolog) |
 
 ## 2.2 Telas a validar em homologação (manual)
 

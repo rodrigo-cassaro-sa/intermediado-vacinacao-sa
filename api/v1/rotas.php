@@ -130,6 +130,7 @@ return [
     // --- Importar vacinados em massa na campanha ativa (RN-031) ---
     // Fluxo: importar (simula) -> confirmar (grava) -> estornar (desfaz o lote).
     'POST /api/v1/interno/campanhas/{id}/vacinados/importar'         => ['arquivo' => 'interno/importacao_vacinados.php', 'funcao' => 'rota_importar_vacinados'],
+    'GET  /api/v1/interno/campanhas/{id}/importacoes-vacinados'      => ['arquivo' => 'interno/importacao_vacinados.php', 'funcao' => 'rota_listar_importacoes_vacinados'],
     'GET  /api/v1/interno/importacoes-vacinados/{id}'                => ['arquivo' => 'interno/importacao_vacinados.php', 'funcao' => 'rota_status_importacao_vacinados'],
     'POST /api/v1/interno/importacoes-vacinados/{id}/confirmar'      => ['arquivo' => 'interno/importacao_vacinados.php', 'funcao' => 'rota_confirmar_importacao_vacinados'],
     'POST /api/v1/interno/importacoes-vacinados/{id}/estornar'       => ['arquivo' => 'interno/importacao_vacinados.php', 'funcao' => 'rota_estornar_importacao_vacinados'],
