@@ -14,6 +14,8 @@ Documentar critérios de aceite, testes funcionais, regressão, homologação e 
 | CA-002 | Com cabeçalho, a ORDEM das colunas não altera o resultado da importação | Importar o mesmo arquivo com as colunas embaralhadas | atendido |
 | CA-003 | Arquivo SEM cabeçalho continua sendo importado pela ordem padrão, sem perder a 1ª linha | `scripts/testar_csv.php` casos 3 e 7 | atendido |
 | CA-004 | Toda referência a campanha na tela mostra o CÓDIGO, nunca `null` | Listar campanhas no console e abrir os 5 dropdowns | atendido |
+| CA-006 | Lista de 20.000 a 30.000 elegíveis é importada por completo, sem cron externo | Subir o container e acompanhar a fila drenar | atendido |
+| CA-007 | O usuário vê o progresso da importação grande até concluir, em vez de "processando em segundo plano" para sempre | Importar >2000 linhas pela tela de elegíveis | atendido (falta validar em homolog) |
 | CA-005 | Campanha anterior à migration 026 (sem código) continua aparecendo pelo nome | Fixture com `codigo = NULL` na validação SQL | atendido |
 
 ---
@@ -47,6 +49,20 @@ lógica no frontend). O script não toca no banco e sai com código 1 se algo fa
 | Resumo ano a ano | Seção 12 → resumo do cliente | Coluna Campanha com o código | ok (SQL) |
 | Faturamento | Seção 13 → a cobrar / a pagar | Linha de resumo identifica a campanha pelo código | ok (revisado) |
 
+## 2.1c Importação de listas grandes (BUG-003)
+
+Até ~2000 linhas a importação é processada na hora (inline). Acima disso vai para a
+**fila**, que agora é drenada pelo worker embutido no container (`docker/entrypoint.sh`),
+sem depender de Cron Job configurado à mão no painel.
+
+| Fluxo | Passos | Resultado esperado | Status |
+|---|---|---|---|
+| Fila drena sozinha | Subir o container com uma importação `pendente` de 30.000 linhas e nenhum cron | Importação vira `concluida` com 30.000 processados | ok (auto) |
+| Volume de 20k–30k | CSV de 30.000 com CPFs válidos e distintos | 30.000 elegíveis e 30.000 pacientes no banco, 0 rejeitados | ok (auto) |
+| Dois workers ao mesmo tempo | Rodar 2 instâncias do worker na mesma fila | O segundo sai com "Outro worker já está processando a fila" | ok (auto) |
+| Importação travada | Deixar uma importação em `processando` há 90 min | O worker devolve para `pendente` e reprocessa | ok (auto) |
+| Progresso na tela | Importar >2000 linhas em /admin/elegiveis.html | Mensagem vai de "recebida" → "N de M linha(s)" → "concluída" | pendente (homolog) |
+
 ## 2.2 Telas a validar em homologação (manual)
 
 | Tela | Caminho | O que validar |
@@ -64,6 +80,9 @@ lógica no frontend). O script não toca no banco e sai com código 1 se algo fa
 
 | Área | O que não pode quebrar | Status |
 |---|---|---|
+| Importação pequena (≤2000) | Continua inline, respondendo na hora, sem passar pela fila | ok (não alterado) |
+| Worker por Cron Job | Quem já tiver os Cron Jobs do painel pode manter: o `flock` evita processamento duplicado, e `WORKERS_EMBUTIDOS=false` desliga o worker do container | ok (auto — fase B) |
+| Limite `IMPORTACAO_LIMITE_SINCRONO` | Mantido em 2000 — aumentar jogaria lote grande para dentro da requisição web (60s de `max_execution_time`) | ok (não alterado) |
 | Campanhas antigas (pré-026) | Sem `codigo`, continuam visíveis pelo nome em listas e dropdowns | ok (auto + SQL com fixture `codigo = NULL`) |
 | Contrato `/parceiro/carteira` | Campo `campanha` continua existindo (agora preenchido com o código em vez de null) | ok (SQL) |
 | Dropdown de clínicas | `carregarClinicas()` usa `c.nome` de propósito — `clinica.nome` não é opcional | ok (não alterado) |
@@ -82,6 +101,7 @@ lógica no frontend). O script não toca no banco e sai com código 1 se algo fa
 |---|---|---|---|
 | 2026-08-05 | local (php:8.3-cli + Node 22) | automatizado | BUG-001: backend 37/37 e frontend 35/35 casos aprovados; `php -l` limpo nos 7 arquivos PHP tocados |
 | 2026-08-05 | local (mysql:8 + Node 22) | automatizado | BUG-002: 31 migrations aplicadas em banco limpo; as 3 queries alteradas rodaram contra o schema real; 16/16 casos do rótulo da campanha |
+| 2026-08-05 | local (imagem real do projeto + mysql:8) | automatizado | BUG-003: container normal, **sem nenhum cron**, drenou 30.000 elegíveis em **285s** (0 → 29.999 no banco); trava e recuperação de importação travada validadas |
 |  | homolog (EasyPanel) | pendente | validar as 6 telas da tabela 2.2 após o deploy |
 
 ---
@@ -90,6 +110,7 @@ lógica no frontend). O script não toca no banco e sai com código 1 se algo fa
 
 | Código | Descrição | Gravidade | Status | Evidência |
 |---|---|---|---|---|
+| BUG-003 | Importação acima de ~2000 linhas nunca acontecia: o lote ia para a fila (`pendente`) e o worker `scripts/processar_importacoes.php` dependia de um Cron Job do EasyPanel que nunca foi criado. Abaixo de 2000 funcionava (inline), o que dava a impressão de um "teto" de ~1500 | alta | corrigido | Container normal, sem cron nenhum, drenou 30.000 linhas; `worker.log` linha 1: "Processando importação de elegíveis #1 ... concluída #1" |
 | BUG-002 | Campanha aparecendo `null` no console (tabela, os 5 dropdowns, resumo e carteira). A migration 026 tornou `campanha.nome` opcional e criou `campanha.codigo`; o console.html continuou imprimindo `c.nome` cru, e 4 endpoints ainda entregavam a campanha só pelo nome | média | corrigido | SQL contra o schema real: `campanha_antes = NULL` → `campanha_depois = IFT.2026.IC.GTE.CTE.1`; 16 casos no teste do rótulo |
 | BUG-001 | Primeira linha (cabeçalho) importada como registro e colunas lidas por posição, em todas as telas de importação. Causas: (a) detecção de cabeçalho por igualdade exata a `cpf`/`vacina`, quebrada pelo BOM do Excel; (b) telas em JavaScript sem nenhuma detecção; (c) `array_search` devolvendo `false` fazia `$col[false]` = coluna 0, jogando o CPF no campo `nome` | alta | corrigido | `scripts/testar_csv.php` (37 casos, todos PASS) |
 
@@ -103,6 +124,9 @@ lógica no frontend). O script não toca no banco e sai com código 1 se algo fa
 | código | `app/helpers/csv.php` | leitor canônico do backend |
 | código | `public/assets/csv.js` | espelho no frontend, usado pelas 6 telas |
 | saída SQL | BUG-002 | `campanha_antes = NULL` / `campanha_depois = IFT.2026.IC.GTE.CTE.1` na mesma aplicação |
+| log do worker | BUG-003 fase A | `Processando importação de elegíveis #1 ... concluída #1` — antes: `pendente 0/30000`; depois: `concluida 30000/30000`, 29.999 válidos, 1 rejeitado (CPF `00000000000`, inválido de verdade) |
+| saída do worker | BUG-003 fase B | worker 1: `Outro worker já está processando a fila; saindo.` · worker 2: `Processando importação de elegíveis #2 ... concluída #2` |
+| saída do worker | BUG-003 fase C | `Reenfileiradas 1 importacao(oes) travada(s).` seguida do reprocessamento até `concluída #2` |
 | código | `rotuloCampanha()` / `apelidoCampanha()` em `public/admin/console.html` | regra única de exibição: `codigo \|\| nome \|\| ('#' + id)` |
 
 ---

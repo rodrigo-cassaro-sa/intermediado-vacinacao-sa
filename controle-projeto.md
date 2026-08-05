@@ -56,7 +56,14 @@ Domínio com SSL. Sem framework e sem OO por padrão.
 # 3. Etapa atual
 
 ```txt
-Etapa atual (2026-08-05): correção BUG-002 — identidade da campanha. O console.html
+Etapa atual (2026-08-05): correção BUG-003 — importação de listas grandes. Acima de
+~2000 linhas o lote ia para a fila e dependia de um Cron Job do EasyPanel que nunca foi
+criado: ficava em 'pendente' para sempre (parecia um teto de ~1500). O worker passou a
+rodar dentro do container (docker/entrypoint.sh), com lock, recuperação de importação
+travada e progresso acompanhado na tela. Evidência: container normal, sem cron nenhum,
+drenou 30.000 linhas de ponta a ponta.
+
+Etapa anterior (2026-08-05): correção BUG-002 — identidade da campanha. O console.html
 ainda exibia campanha.nome cru (null desde a migration 026) na tabela, nos 5 dropdowns,
 no resumo do cliente e na carteira. Passou a usar o CÓDIGO, com o nome como rótulo
 secundário. 4 endpoints que entregavam a campanha só pelo nome agora mandam o código.
@@ -116,6 +123,8 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | 2026-07-06 | `public/` como único document root | Esconder código/config/uploads | Deploy aponta docroot p/ public/ | Orquestrador (doc 05) |
 | 2026-08-05 | CSV: cabeçalho na 1ª linha manda; colunas mapeadas por NOME, não por posição | BUG-001: cabeçalho entrava como registro e o BOM do Excel quebrava a detecção | Contrato de importação (doc 09 §3.1); ordem das colunas deixou de importar | Orquestrador |
 | 2026-08-05 | Um leitor de CSV só: `app/helpers/csv.php` + espelho `public/assets/csv.js` | Havia 8 parsers duplicados (2 PHP + 6 JS), cada um com uma regra diferente | Qualquer ajuste futuro de coluna é feito em 2 lugares, não em 8 | Orquestrador |
+| 2026-08-05 | Worker da fila passa a rodar DENTRO do container, não como Cron Job manual do painel | BUG-003: o cron nunca foi criado e toda importação grande morria em 'pendente'. Deploy que depende de alguém lembrar de 3 crons é frágil | `docker/entrypoint.sh` sobe o loop; `WORKERS_EMBUTIDOS=false` volta ao modelo antigo | Orquestrador |
+| 2026-08-05 | Manter `IMPORTACAO_LIMITE_SINCRONO` em 2000 | Aumentar jogaria lote grande para dentro da requisição web (60s de max_execution_time). O caminho assíncrono é o certo — só precisava funcionar | Lotes grandes seguem assíncronos, agora com progresso na tela | Orquestrador |
 | 2026-08-05 | Campanha se identifica pelo `codigo`; `nome` é rótulo humano opcional e nunca aparece sozinho | BUG-002: nome virou NULL na migration 026 e o console exibia "null" | Regra de exibição `codigo \|\| nome \|\| ('#' + id)` vale para toda a UI (doc 09 §3) | Orquestrador |
 | 2026-08-05 | `/parceiro/carteira` passa a devolver o código no campo `campanha` (+ novo `campanha_codigo`) | O campo já vinha null desde a 026; consumidores externos não tinham como identificar a campanha | Contrato público v1 ajustado no doc 09 §3.9 — campo mantido, conteúdo corrigido | Orquestrador |
 | 2026-08-05 | Arquivo SEM cabeçalho continua lido pela ordem padrão | Não quebrar quem já importa assim; cabeçalho só é consumido com 2+ colunas reconhecidas | Compatibilidade preservada | Orquestrador |
@@ -136,6 +145,7 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | 2026-07-06 | Scaffold backend PHP | app/*, api/v1/*, public/index.php, .env.example, .gitignore | arquivos gerados | Fundação procedural; health + login; não executado (sem PHP/MySQL) |
 | 2026-07-06 | Docker + deploy EasyPanel + Git | Dockerfile, docker/*, public/.htaccess, .dockerignore, scripts/migrar.php, docs/13 | commit ac5a892 | docroot public/; health em /api/v1/health; repo local (main) |
 | 2026-07-06 | Atualização do checkpoint | controle-projeto.md | este arquivo | — |
+| 2026-08-05 | BUG-003 corrigido: importação acima de ~2000 linhas nunca era processada (fila sem worker rodando) | docker/entrypoint.sh, scripts/processar_importacoes.php, public/admin/elegiveis.html, public/portal/elegiveis.html, docs/12, docs/13 | Container normal, sem cron, drenou 30.000 linhas em 285s (0 → 29.999 elegíveis); trava e recuperação validadas | Medições: 30k = 830 ms de parse e 36,6 MB de pico; 100k = 120,7 MB. `max_execution_time` do php.ini não afeta o CLI (é 0) |
 | 2026-08-05 | BUG-002 corrigido: campanha aparecia `null` (console.html usava `nome`, opcional desde a mig 026, em vez de `codigo`) | public/admin/console.html, api/v1/interno/relatorios.php, api/v1/interno/faturamento.php, api/v1/parceiro/consulta.php, docs/09, docs/12 | SQL no schema real: `campanha_antes = NULL` → `campanha_depois = IFT.2026.IC.GTE.CTE.1`; 16/16 no teste do rótulo; `php -l` limpo | Novo helper `rotuloCampanha()` no console; campanhas antigas sem código continuam pelo nome |
 | 2026-08-05 | BUG-001 corrigido: cabeçalho do CSV virava registro e colunas eram lidas por posição | app/helpers/csv.php (novo), public/assets/csv.js (novo), scripts/testar_csv.php (novo), app/services/{elegiveis,historico_import,importacao}.php, app/bootstrap.php, scripts/processar_importacoes.php, public/{admin,portal}/*.html (6 telas), docs/09, docs/12 | `php scripts/testar_csv.php` = 37/37; espelho JS = 35/35; `php -l` limpo | Afetava as 6 telas de importação; nenhuma regra de negócio/banco/permissão foi tocada |
 
@@ -194,6 +204,7 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | HIST-IMPORT+ | Ajustes: (a) auto-cria vacina no catálogo se não existir (nome normalizado) — retorna vacinas_criadas; (b) ASSÍNCRONO p/ lotes >2000 (mig 025 importacao_historico + worker em processar_importacoes.php) com status GET /interno/importacoes-historico/{id}; inline p/ lotes pequenos | backend/frontend | média | feito |
 | BUG-001 | CSV: 1ª linha = cabeçalho e mapeamento por nome da coluna em todas as importações (leitor único csv.php/csv.js) | QA/backend/frontend | alta | feito — falta validar nas telas em homolog |
 | BUG-002 | Campanha identificada pelo `codigo` no console e nos endpoints de carteira/resumo/faturamento | QA/frontend/backend | média | feito — falta validar nas telas em homolog |
+| BUG-003 | Worker da fila embutido no container + progresso da importação na tela (listas de 20k–30k) | deploy/backend/frontend | alta | feito — exige redeploy e volume em storage/uploads |
 | V2 | Autoadesão B2C (consentimento) + venda de voucher (pagamento) | — | baixa | pendente |
 | Banco: migrations até 025 | — | — | — | 023 consentimento · 024 import histórico · 025 fila import histórico |
 | backlog | Rastreabilidade extra: fabricante/validade lote, conselho profissional, comprovante, idempotência (recomendado) | especialista-backend | baixa/média | pendente |
@@ -243,6 +254,9 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | Registro de aplicação sem rastreabilidade (lote/dose) | banco/negócio | alta | RN-004 e RN-010 (imutabilidade + retificação auditada) | aberto |
 | Cabeçalho do CSV importado como registro / colunas lidas por posição | integridade de dados | alta | RESOLVIDO: leitor único com cabeçalho por nome (app/helpers/csv.php + public/assets/csv.js, teste em scripts/testar_csv.php) | mitigado |
 | Lixo já gravado por importações anteriores (linhas "cpf/nome/razao_social" viradas registro) | dados | média | PENDENTE: varrer elegíveis/unidades/clientes/grupos em homolog e produção e remover os registros criados a partir de cabeçalho | aberto |
+| Fila de importação dependendo de Cron Job criado à mão no painel | operação | alta | RESOLVIDO: worker embutido no `docker/entrypoint.sh`, com lock e recuperação de importação travada (BUG-003) | mitigado |
+| `storage/uploads` sem volume persistente derruba importação grande na fila | operação/dados | alta | PENDENTE DE CONFIRMAÇÃO: o arquivo do lote mora lá; redeploy no meio do processamento faz a importação virar `falha`. Checklist reforçado no doc 13 §6 | aberto |
+| Ingestão linha a linha: 30k levou 285s (~105 linhas/s) | performance | baixa | Aceitável em segundo plano com progresso na tela. Se um dia precisar de 100k+ em minutos, avaliar INSERT em lote / dedup por consulta única antes do loop | aberto |
 | Telas ainda exibindo `campanha.nome` cru (null desde a mig 026) | UX/dados | média | RESOLVIDO no console.html (BUG-002); as demais telas já usavam `codigo \|\| nome \|\| '#id'`. Regra registrada no doc 09 §3 para telas novas | mitigado |
 | Cabeçalho com nomes totalmente fora do padrão (nenhum sinônimo reconhecido) cai na leitura posicional | importação | baixa | Lista de sinônimos documentada no doc 09 §3.1; ampliar conforme aparecerem arquivos reais de clientes | aberto |
 
@@ -352,7 +366,18 @@ Status do deploy: preparado (Docker + docs/13), aguardando push e configuração
 # 13. Último checkpoint
 
 ```txt
-Última coisa feita (2026-08-05): correção do BUG-002. Campanha é identificada pelo
+Última coisa feita (2026-08-05): correção do BUG-003 — importação de listas grandes.
+Acima de ~2000 linhas o lote vai para uma fila; o worker que a processa dependia de um
+Cron Job do EasyPanel que nunca foi criado, então toda lista grande morria em 'pendente'
+(o cliente via "processando em segundo plano" para sempre e achava que havia um teto de
+~1500). O worker passou a rodar dentro do container pelo entrypoint, com flock, com
+recuperação de importação travada em 'processando' e com progresso acompanhado pela tela.
+
+AÇÃO NECESSÁRIA NO DEPLOY: redeploy da imagem (o entrypoint mudou) e CONFIRMAR que
+/var/www/html/storage/uploads é volume persistente — o arquivo do lote mora lá.
+Se preferir manter os Cron Jobs do painel, use WORKERS_EMBUTIDOS=false.
+
+Coisa feita antes (2026-08-05): correção do BUG-002. Campanha é identificada pelo
 CÓDIGO (migration 026) em toda referência; `nome` é rótulo humano opcional e nunca
 aparece sozinho. Corrigido no console.html (tabela, 5 dropdowns, resumo do cliente,
 carteira e faturamento) e em 4 endpoints (carteira interna e de parceiro, resumo

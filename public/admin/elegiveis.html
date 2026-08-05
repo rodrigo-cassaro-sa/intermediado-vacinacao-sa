@@ -612,8 +612,39 @@
     msg.innerHTML = (t
       ? 'Importação #' + d.data.importacao_id + ' — válidos: ' + (t.validos || 0) + ', rejeitados: ' + rej + (t.removidos !== undefined ? ', removidos: ' + t.removidos : '') + '.'
       : 'Importação #' + d.data.importacao_id + ' recebida — processando em segundo plano.') + link;
+    // Lista grande (acima de 2000) vai para a fila: acompanha até terminar para o
+    // usuário não ficar sem resposta achando que nada foi importado (BUG-003).
+    if (!t) { acompanharImportacao(d.data.importacao_id); }
     recarregar();
     return true;
+  }
+
+  // Consulta o status da importação até concluir/falhar. Silencioso em erro de
+  // rede: a próxima passada tenta de novo.
+  async function acompanharImportacao(id) {
+    const msg = document.getElementById('addMsg');
+    const link = ' <a href="#" onclick="return baixarErros()">Baixar relatório de erros</a>';
+    for (let i = 0; i < 900; i++) {                       // até ~45 min
+      await new Promise(r => setTimeout(r, 3000));
+      const d = await api('/interno/importacoes/' + id);
+      if (!d.success) continue;
+      const s = d.data;
+      if (s.status === 'concluida') {
+        msg.className = 'msg ' + (s.total_invalidos > 0 ? 'err' : 'ok');
+        msg.innerHTML = 'Importação #' + id + ' concluída — válidos: ' + fmt(s.total_validos)
+          + ', rejeitados: ' + fmt(s.total_invalidos) + '.' + link;
+        recarregar();
+        return;
+      }
+      if (s.status === 'falha') {
+        msg.className = 'msg err';
+        msg.textContent = 'Importação #' + id + ' falhou: ' + (s.mensagem_erro || 'erro no processamento') + '.';
+        return;
+      }
+      msg.className = 'msg';
+      msg.textContent = 'Importação #' + id + ' em andamento — ' + fmt(s.total_processados)
+        + (s.total_linhas ? ' de ' + fmt(s.total_linhas) : '') + ' linha(s) processada(s)...';
+    }
   }
 
   async function salvarAdd() {

@@ -178,35 +178,61 @@ php scripts/expirar_elegiveis.php
 
 Ele expira elegíveis pendentes de campanhas vencidas e encerra campanhas com período terminado.
 
-## Worker da ingestão assíncrona (item 9a) — cron a cada minuto
+## Worker da fila — já roda dentro do container (BUG-003)
 
-Listas grandes (acima de ~2000 elegíveis) são processadas em segundo plano. Configure um
-**Cron Job** no `imz-app` rodando **a cada minuto**:
+Listas acima de ~2000 elegíveis são processadas em segundo plano. **O worker é ligado
+pelo próprio entrypoint do container** — não depende mais de ninguém lembrar de criar o
+Cron Job. A cada `WORKER_INTERVALO` segundos (padrão 15) ele roda, como `www-data`:
 
 ```bash
-php scripts/processar_importacoes.php
+php scripts/processar_importacoes.php   # fila de elegíveis + histórico
+php scripts/processar_webhooks.php      # entrega de webhooks
 ```
+
+Saída em `storage/logs/worker.log` (truncado automaticamente ao passar de 5 MB).
+
+| Env | Padrão | Para quê |
+|---|---|---|
+| `WORKERS_EMBUTIDOS` | `true` | `false` desliga o worker do container (use os Cron Jobs do painel) |
+| `WORKER_INTERVALO` | `15` | segundos entre as passadas |
+| `WORKER_MEMORIA` | `512M` | limite de memória do worker (o php.ini do site, 256M, vale para a web) |
+
+O worker tem trava de arquivo (`flock`): mesmo com o Cron Job do painel configurado junto,
+a mesma fila não é processada duas vezes. Importação presa em `processando` há mais de
+60 minutos (container reiniciou no meio, por exemplo) volta sozinha para `pendente`.
 
 Ele pega as importações `pendente`, processa em chunks (sobe os válidos e grava os rejeitados
-em `importacao_erro`) e atualiza o progresso. O cliente acompanha por
-`GET /api/v1/interno/importacoes/{id}` e baixa o **relatório de erros** por
-`GET /api/v1/interno/importacoes/{id}/erros/exportar`.
+em `importacao_erro`) e atualiza o progresso. As telas de elegíveis acompanham sozinhas até
+concluir; via API, `GET /api/v1/interno/importacoes/{id}` mostra o progresso e
+`GET /api/v1/interno/importacoes/{id}/erros/exportar` baixa o **relatório de erros**.
 
-> Sem esse cron, importações grandes ficam paradas em `pendente`. Listas pequenas continuam
-> sendo processadas na hora (inline), sem depender do worker.
+> **`storage/uploads` precisa ser volume persistente.** O arquivo da fila mora lá; se o
+> caminho não for volume, um redeploy no meio do processamento perde o arquivo e a
+> importação termina em `falha` ("arquivo não encontrado").
 
-## Worker de webhooks (Fase A) — cron a cada minuto
+### Desempenho medido (2026-08-05, php:8.3 + MySQL 8)
 
-Entrega os webhooks de saída (eventos como `aplicacao.registrada`) com HMAC e retry/backoff:
+| Lote | Parse | Pico de memória | Observação |
+|---|---|---|---|
+| 3.000 linhas | 55 ms | 6 MB | acima de 2000 já vai para a fila |
+| 20.000 linhas | 506 ms | 26 MB | |
+| 30.000 linhas | 830 ms | 36,6 MB | alvo do cliente |
+| 100.000 linhas | 2,8 s | 120,7 MB | cabe nos 512M do worker |
 
-```bash
-php scripts/processar_webhooks.php
-```
+O tempo total é dominado pela ingestão no banco (validação e dedup linha a linha), não pelo
+parse: um lote de 30.000 leva alguns minutos. Como roda em segundo plano com progresso na
+tela, isso é esperado — não aumente `IMPORTACAO_LIMITE_SINCRONO` para "resolver".
 
-Cadastre 3 Cron Jobs no `imz-app`:
+## Cron Jobs ainda necessários
+
+Só um continua sendo obrigatório no painel:
+
+- `php scripts/expirar_elegiveis.php` (1x/dia) — expiração de elegíveis (RN-015)
+
+Os dois workers de fila já rodam no container. Se preferir centralizar tudo em Cron Jobs,
+defina `WORKERS_EMBUTIDOS=false` e cadastre também:
 - `php scripts/processar_importacoes.php`   (a cada minuto)
 - `php scripts/processar_webhooks.php`       (a cada minuto)
-- `php scripts/expirar_elegiveis.php`        (1x/dia)
 
 ---
 
@@ -218,6 +244,8 @@ Cadastre 3 Cron Jobs no `imz-app`:
 - [ ] Banco criado (imz-mysql) com usuário próprio (sem root na app).
 - [ ] Backup feito quando já houver dados.
 - [ ] Volumes persistentes configurados (mysql, storage/uploads, storage/logs).
+- [ ] **storage/uploads é volume mesmo** — sem isso, importação grande na fila vira `falha` após redeploy.
+- [ ] Worker da fila ativo: `storage/logs/worker.log` recebendo linhas (ou `WORKERS_EMBUTIDOS=false` + Cron Jobs).
 - [ ] Domínio configurado e DNS propagado.
 - [ ] SSL ativo.
 - [ ] Rollback definido (redeploy da imagem anterior + restore de banco).
