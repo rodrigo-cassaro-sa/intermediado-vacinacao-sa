@@ -133,6 +133,40 @@ Autenticação: sessão + CSRF. Content-Type: multipart/form-data (arquivo).
 ### Request
 `multipart/form-data`: `arquivo=@elegiveis.csv` (colunas mínimas: `cpf,nome,data_nascimento`).
 
+#### Leitura do CSV (vale para TODAS as importações do sistema)
+
+```txt
+1ª linha  = CABEÇALHO sempre que trouxer nomes de coluna reconhecidos.
+            Nesse caso o mapeamento é POR NOME e a ORDEM das colunas não importa;
+            colunas desconhecidas são ignoradas e coluna ausente vira null.
+Sem cabeçalho reconhecível, vale a ordem posicional padrão:
+            cpf, nome, data_nascimento, tipo_vinculo, cpf_titular,
+            codigo_lotacao, codigo_rh, identificador
+Delimitador: ; , TAB ou | (detectado pela 1ª linha).
+BOM UTF-8 (Excel), acentos, maiúsculas/minúsculas e aspas são normalizados.
+```
+
+Nomes aceitos no cabeçalho (além do nome canônico):
+
+| Campo | Também aceita |
+|---|---|
+| cpf | cpf_colaborador, cpf_funcionario, cpf_paciente, cpf_beneficiario, num_cpf, documento |
+| nome | nome_completo, nome_colaborador, nome_funcionario, nome_paciente, nome_beneficiario |
+| data_nascimento | nascimento, data de nascimento, dt_nascimento, data_nasc, dt_nasc, nasc |
+| tipo_vinculo | vinculo, tipo, parentesco, categoria |
+| cpf_titular | titular, cpf_responsavel |
+| codigo_lotacao | lotacao, cod_lotacao, centro de custo, codigo_unidade, unidade, filial, setor, departamento |
+| codigo_rh | matricula, cod_rh, matricula_rh, registro, chapa, codigo_funcionario |
+| identificador | voucher, passaporte, codigo_voucher, id_externo, documento_estrangeiro, rne |
+
+Para o histórico de vacinados (`POST /interno/clientes/{id}/vacinados-historico/importar`)
+valem os mesmos campos de pessoa mais: `vacina` (imunizante, imunobiologico, produto),
+`dose`, `lote`, `aplicado_em` (data_aplicacao, data da aplicação, data_vacinacao, data),
+`cidade` (municipio) e `uf` (estado).
+
+Implementação: `app/helpers/csv.php` (backend) e `public/assets/csv.js` (telas).
+Teste: `php scripts/testar_csv.php`.
+
 ### Response sucesso (201)
 ```json
 {

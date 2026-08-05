@@ -199,47 +199,23 @@ function unidade_por_lotacao(int $tenantId, string $codLotacao): ?int
 }
 
 /**
- * Converte CSV (com ou sem cabeçalho) em lista de itens.
- * Aceita delimitador vírgula ou ponto e vírgula. Colunas: cpf, nome, data_nascimento.
+ * Converte CSV em lista de itens (app/helpers/csv.php faz o trabalho).
+ * A 1ª linha é cabeçalho quando traz nomes de coluna reconhecidos — e aí a ORDEM
+ * das colunas não importa. Sem cabeçalho reconhecível, vale a ordem padrão
+ * (cpf, nome, data_nascimento, tipo_vinculo, cpf_titular, codigo_lotacao,
+ * codigo_rh, identificador). Delimitador ; , TAB ou | e BOM do Excel são tratados.
  */
 function parsear_csv_elegiveis(string $conteudo): array
 {
-    $linhas = preg_split('/\r\n|\r|\n/', trim($conteudo));
-    if (!$linhas || $linhas[0] === '') {
-        return [];
-    }
-    $delim = substr_count($linhas[0], ';') > substr_count($linhas[0], ',') ? ';' : ',';
+    $lista = csv_parsear($conteudo, csv_ordem_elegiveis(), csv_alias_elegiveis());
 
-    $cabecalho = array_map(fn($h) => strtolower(trim($h)), str_getcsv($linhas[0], $delim));
-    $temCabecalho = in_array('cpf', $cabecalho, true);
-
-    $idx = ['cpf' => 0, 'nome' => 1, 'data_nascimento' => 2, 'tipo_vinculo' => 3,
-            'cpf_titular' => 4, 'codigo_lotacao' => 5, 'codigo_rh' => 6, 'identificador' => 7];
-    if ($temCabecalho) {
-        foreach ($idx as $nome => $_) {
-            $idx[$nome] = array_search($nome, $cabecalho, true);
-        }
+    // cpf e nome seguem como string (contrato antigo do ingerir_elegiveis).
+    foreach ($lista as &$item) {
+        $item['cpf']  = $item['cpf'] ?? '';
+        $item['nome'] = $item['nome'] ?? '';
     }
-    $val = fn($col, $i) => ($i !== false && isset($col[$i])) ? $col[$i] : null;
+    unset($item);
 
-    $lista = [];
-    $inicio = $temCabecalho ? 1 : 0;
-    for ($i = $inicio; $i < count($linhas); $i++) {
-        if (trim($linhas[$i]) === '') {
-            continue;
-        }
-        $col = str_getcsv($linhas[$i], $delim);
-        $lista[] = [
-            'cpf'             => $col[$idx['cpf']] ?? '',
-            'nome'            => $col[$idx['nome']] ?? '',
-            'data_nascimento' => $val($col, $idx['data_nascimento']),
-            'tipo_vinculo'    => $val($col, $idx['tipo_vinculo']),
-            'cpf_titular'     => $val($col, $idx['cpf_titular']),
-            'codigo_lotacao'  => $val($col, $idx['codigo_lotacao']),
-            'codigo_rh'       => $val($col, $idx['codigo_rh']),
-            'identificador'   => $val($col, $idx['identificador']),
-        ];
-    }
     return $lista;
 }
 

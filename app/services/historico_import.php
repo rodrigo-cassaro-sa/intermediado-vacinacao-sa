@@ -11,6 +11,7 @@
 // (elegível, vacina, dose) — a UNIQUE do banco é a trava final.
 // ============================================================================
 
+require_once BASE_PATH . '/app/helpers/csv.php';       // leitura de CSV com cabeçalho
 require_once BASE_PATH . '/app/services/elegiveis.php'; // unidade_por_lotacao()
 
 const HIST_IMPORT_LIMITE_SINCRONO = 2000;  // acima disso, vai para a fila (worker)
@@ -318,47 +319,24 @@ function historico_import_processar(int $jobId): void
 }
 
 /**
- * Converte CSV do histórico (com ou sem cabeçalho) em lista de itens.
- * Colunas: cpf, nome, data_nascimento, vacina, dose, lote, aplicado_em,
- *          codigo_lotacao, cidade, uf, identificador
+ * Converte CSV do histórico em lista de itens (app/helpers/csv.php faz o trabalho).
+ * A 1ª linha é cabeçalho quando traz nomes de coluna reconhecidos — e aí a ORDEM
+ * das colunas não importa. Sem cabeçalho reconhecível, vale a ordem padrão:
+ * cpf, nome, data_nascimento, vacina, dose, lote, aplicado_em, codigo_lotacao,
+ * cidade, uf, identificador.
  */
 function parsear_csv_vacinados_historico(string $conteudo): array
 {
-    $linhas = preg_split('/\r\n|\r|\n/', trim($conteudo));
-    if (!$linhas || $linhas[0] === '') {
-        return [];
-    }
-    $delim = substr_count($linhas[0], ';') > substr_count($linhas[0], ',') ? ';' : ',';
-    $cabecalho = array_map(fn($h) => strtolower(trim($h)), str_getcsv($linhas[0], $delim));
+    $lista = csv_parsear($conteudo, csv_ordem_historico(), csv_alias_historico());
 
-    $ordem = ['cpf', 'nome', 'data_nascimento', 'vacina', 'dose', 'lote', 'aplicado_em', 'codigo_lotacao', 'cidade', 'uf', 'identificador'];
-    $idx = array_flip($ordem);           // posição padrão (sem cabeçalho)
-    $temCabecalho = in_array('vacina', $cabecalho, true) || in_array('aplicado_em', $cabecalho, true);
-    if ($temCabecalho) {
-        foreach ($ordem as $campo) {
-            $p = array_search($campo, $cabecalho, true);
-            $idx[$campo] = $p === false ? null : $p;
-        }
+    // cpf, nome, vacina e aplicado_em seguem como string (contrato antigo).
+    foreach ($lista as &$item) {
+        $item['cpf']         = $item['cpf'] ?? '';
+        $item['nome']        = $item['nome'] ?? '';
+        $item['vacina']      = $item['vacina'] ?? '';
+        $item['aplicado_em'] = $item['aplicado_em'] ?? '';
     }
-    $val = fn($col, $campo) => (isset($idx[$campo]) && $idx[$campo] !== null && isset($col[$idx[$campo]])) ? $col[$idx[$campo]] : null;
+    unset($item);
 
-    $lista = [];
-    for ($i = $temCabecalho ? 1 : 0; $i < count($linhas); $i++) {
-        if (trim($linhas[$i]) === '') { continue; }
-        $col = str_getcsv($linhas[$i], $delim);
-        $lista[] = [
-            'cpf'             => $val($col, 'cpf') ?? '',
-            'nome'            => $val($col, 'nome') ?? '',
-            'data_nascimento' => $val($col, 'data_nascimento'),
-            'vacina'          => $val($col, 'vacina') ?? '',
-            'dose'            => $val($col, 'dose'),
-            'lote'            => $val($col, 'lote'),
-            'aplicado_em'     => $val($col, 'aplicado_em') ?? '',
-            'codigo_lotacao'  => $val($col, 'codigo_lotacao'),
-            'cidade'          => $val($col, 'cidade'),
-            'uf'              => $val($col, 'uf'),
-            'identificador'   => $val($col, 'identificador'),
-        ];
-    }
     return $lista;
 }

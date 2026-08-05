@@ -29,10 +29,10 @@ function importacao_contar(string $conteudo, string $formato): int
         $d = json_decode($conteudo, true);
         return is_array($d['elegiveis'] ?? null) ? count($d['elegiveis']) : 0;
     }
-    $linhas = preg_split('/\r\n|\r|\n/', trim($conteudo));
+    $linhas = csv_linhas($conteudo);
     $n = count(array_filter($linhas, fn($l) => trim($l) !== ''));
-    // desconta cabeçalho, se houver
-    return ($n > 0 && stripos($linhas[0], 'cpf') !== false) ? $n - 1 : $n;
+    // desconta o cabeçalho, se houver (mesma regra do parser)
+    return ($n > 0 && csv_tem_cabecalho($conteudo, csv_alias_elegiveis())) ? $n - 1 : $n;
 }
 
 /** Salva o conteúdo bruto em storage/uploads e devolve o nome do arquivo. */

@@ -56,7 +56,13 @@ Domínio com SSL. Sem framework e sem OO por padrão.
 # 3. Etapa atual
 
 ```txt
-Etapa atual: MVP + robustez + faturamento. Migrations até 018. Todos os gaps da análise resolvidos (concorrência, idempotência, isolamento, voucher, ingestão assíncrona+relatório de erros, rate limit, carteira/relatório anual, observabilidade, keyset, faturamento). Aguardando deploy das migrations 015-018. Próximo natural: telas reais / preparar produção.
+Etapa atual (2026-08-05): correção BUG-001 — leitura de CSV. Toda importação passou a
+tratar a 1ª linha como CABEÇALHO e a mapear as colunas POR NOME (a ordem deixou de
+importar). Leitor único: app/helpers/csv.php (backend) + public/assets/csv.js (telas).
+Evidência: php scripts/testar_csv.php (37/37) e espelho JS (35/35). Aguarda deploy e
+validação nas telas em homologação.
+
+Etapa anterior: MVP + robustez + faturamento. Migrations até 018. Todos os gaps da análise resolvidos (concorrência, idempotência, isolamento, voucher, ingestão assíncrona+relatório de erros, rate limit, carteira/relatório anual, observabilidade, keyset, faturamento). Aguardando deploy das migrations 015-018. Próximo natural: telas reais / preparar produção.
 
 Etapa anterior: MVP FUNCIONAL COMPLETO validado em homologação. Ambas modalidades (in_company + rede credenciada com isolamento por clínica RN-012), elegíveis (upload/JSON/API), aplicação, tabela verdade/dashboard e extração CSV — tudo via /admin em https://imunizacao-imz-app.imx7lc.easypanel.host. Próximo: telas reais (sair do console) e/ou preparar produção.
 Protocolo em uso: protocolo-criacao-projeto-zero.md
@@ -80,7 +86,7 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | Backend/API/PHP | validado (homolog) | blocos 1, 2 e 3 VALIDADOS em homolog via /admin (cliente→campanha→elegíveis→aplicação→tabela verdade/dashboard). Falta: extração CSV, rede credenciada testada com clínica real, refino. |
 | Frontend | em andamento | public/admin/index.html: console de testes (login/health/clientes/campanhas) via Fetch; validar no deploy |
 | Segurança/auditoria | em andamento | doc 10 preenchido (auth, escopo, auditoria, LGPD, criptografia); implementação nos middlewares pendente |
-| QA/testes | pendente |  |
+| QA/testes | em andamento | doc 12 preenchido para a importação de CSV; `scripts/testar_csv.php` roda sem banco e sai 1 se falhar (serve de check pós-deploy) |
 | Documentação | em andamento | fase 1 documentada |
 | Git/GitHub | feito | repo público no GitHub (intermediado-vacinacao-sa), branch main, push do commit inicial 7071c6c |
 | Docker/EasyPanel | validado (homolog) | 3 serviços no ar; entrypoint aplica migrations no boot (AUTO_MIGRAR, incremental); cron de expiração (RN-015) documentado |
@@ -102,6 +108,9 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | 2026-07-06 | Multi-tenant por coluna `tenant_id` (schema compartilhado) | Simples para PHP procedural; isolamento no middleware | Toda tabela de negócio tem tenant_id | Orquestrador (doc 05) |
 | 2026-07-06 | API separada: `/api/v1/interno` (sessão) e `/api/v1/parceiro` (credencial+escopo) | Reduzir superfície e aplicar escopo por campanha (RN-009) | Estrutura de endpoints | Orquestrador (doc 05) |
 | 2026-07-06 | `public/` como único document root | Esconder código/config/uploads | Deploy aponta docroot p/ public/ | Orquestrador (doc 05) |
+| 2026-08-05 | CSV: cabeçalho na 1ª linha manda; colunas mapeadas por NOME, não por posição | BUG-001: cabeçalho entrava como registro e o BOM do Excel quebrava a detecção | Contrato de importação (doc 09 §3.1); ordem das colunas deixou de importar | Orquestrador |
+| 2026-08-05 | Um leitor de CSV só: `app/helpers/csv.php` + espelho `public/assets/csv.js` | Havia 8 parsers duplicados (2 PHP + 6 JS), cada um com uma regra diferente | Qualquer ajuste futuro de coluna é feito em 2 lugares, não em 8 | Orquestrador |
+| 2026-08-05 | Arquivo SEM cabeçalho continua lido pela ordem padrão | Não quebrar quem já importa assim; cabeçalho só é consumido com 2+ colunas reconhecidas | Compatibilidade preservada | Orquestrador |
 
 ---
 
@@ -119,6 +128,7 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | 2026-07-06 | Scaffold backend PHP | app/*, api/v1/*, public/index.php, .env.example, .gitignore | arquivos gerados | Fundação procedural; health + login; não executado (sem PHP/MySQL) |
 | 2026-07-06 | Docker + deploy EasyPanel + Git | Dockerfile, docker/*, public/.htaccess, .dockerignore, scripts/migrar.php, docs/13 | commit ac5a892 | docroot public/; health em /api/v1/health; repo local (main) |
 | 2026-07-06 | Atualização do checkpoint | controle-projeto.md | este arquivo | — |
+| 2026-08-05 | BUG-001 corrigido: cabeçalho do CSV virava registro e colunas eram lidas por posição | app/helpers/csv.php (novo), public/assets/csv.js (novo), scripts/testar_csv.php (novo), app/services/{elegiveis,historico_import,importacao}.php, app/bootstrap.php, scripts/processar_importacoes.php, public/{admin,portal}/*.html (6 telas), docs/09, docs/12 | `php scripts/testar_csv.php` = 37/37; espelho JS = 35/35; `php -l` limpo | Afetava as 6 telas de importação; nenhuma regra de negócio/banco/permissão foi tocada |
 
 ---
 
@@ -173,7 +183,7 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | MARCA | Identidade visual "S&A Imunizações" (tema claro azul+verde; public/assets/marca.css + favicon; portal e admin) | frontend | média | feito |
 | HIST-IMPORT | Importar vacinados de anos anteriores (RN-027, mig 024): auto-cria campanha modalidade 'historico' por cliente/vacina/ano; app/services/historico_import.php; POST /interno/clientes/{id}/vacinados-historico/importar (interno-only, tolera lote/prof/cidade ausentes, aceita data AAAA-MM-DD ou só o ano); console admin §10b | backend/frontend | média | feito |
 | HIST-IMPORT+ | Ajustes: (a) auto-cria vacina no catálogo se não existir (nome normalizado) — retorna vacinas_criadas; (b) ASSÍNCRONO p/ lotes >2000 (mig 025 importacao_historico + worker em processar_importacoes.php) com status GET /interno/importacoes-historico/{id}; inline p/ lotes pequenos | backend/frontend | média | feito |
-| V2 | Autoadesão B2C (consentimento) + venda de voucher (pagamento) | — | baixa | pendente |
+| BUG-001 | CSV: 1ª linha = cabeçalho e mapeamento por nome da coluna em todas as importações (leitor único csv.php/csv.js) | QA/backend/frontend | alta | feito — falta validar nas telas em homolog |
 | V2 | Autoadesão B2C (consentimento) + venda de voucher (pagamento) | — | baixa | pendente |
 | Banco: migrations até 025 | — | — | — | 023 consentimento · 024 import histórico · 025 fila import histórico |
 | backlog | Rastreabilidade extra: fabricante/validade lote, conselho profissional, comprovante, idempotência (recomendado) | especialista-backend | baixa/média | pendente |
@@ -221,6 +231,9 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | Paginação por OFFSET lenta em milhões | performance | média | RESOLVIDO: keyset/cursor em elegíveis e tabela verdade (commit 8976e5d) | mitigado |
 | API externa (rede) com escopo mal definido | integração/segurança | alta | Credencial por parceiro, escopo por campanha (RN-009) | aberto |
 | Registro de aplicação sem rastreabilidade (lote/dose) | banco/negócio | alta | RN-004 e RN-010 (imutabilidade + retificação auditada) | aberto |
+| Cabeçalho do CSV importado como registro / colunas lidas por posição | integridade de dados | alta | RESOLVIDO: leitor único com cabeçalho por nome (app/helpers/csv.php + public/assets/csv.js, teste em scripts/testar_csv.php) | mitigado |
+| Lixo já gravado por importações anteriores (linhas "cpf/nome/razao_social" viradas registro) | dados | média | PENDENTE: varrer elegíveis/unidades/clientes/grupos em homolog e produção e remover os registros criados a partir de cabeçalho | aberto |
+| Cabeçalho com nomes totalmente fora do padrão (nenhum sinônimo reconhecido) cai na leitura posicional | importação | baixa | Lista de sinônimos documentada no doc 09 §3.1; ampliar conforme aparecerem arquivos reais de clientes | aberto |
 
 ---
 
@@ -260,6 +273,9 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | .env.example, .gitignore | Config de ambiente e exclusões | preenchido |
 | Dockerfile, docker/apache/vhost.conf, docker/php/php.ini | Imagem PHP+Apache (docroot public/) | escrito, não executado |
 | scripts/migrar.php, scripts/criar_admin.php | Aplicar migrations + criar admin | escrito, não executado |
+| app/helpers/csv.php | Leitor canônico de CSV do backend (cabeçalho por nome) | usado por todas as importações |
+| public/assets/csv.js | Espelho do leitor no frontend (`CSV.parsear(texto, 'elegiveis')`) | usado pelas 6 telas de importação |
+| scripts/testar_csv.php | Teste do leitor de CSV (37 casos, sem banco) | rodar após deploy: `php scripts/testar_csv.php` |
 
 ---
 
@@ -325,7 +341,19 @@ Status do deploy: preparado (Docker + docs/13), aguardando push e configuração
 # 13. Último checkpoint
 
 ```txt
-Última coisa feita: Docker + deploy EasyPanel (Dockerfile, vhost docroot public/, php.ini,
+Última coisa feita (2026-08-05): correção do BUG-001 na leitura de CSV. A 1ª linha passou
+a ser cabeçalho de verdade e as colunas são mapeadas pelo NOME (ordem indiferente), em
+todas as importações: elegíveis (admin/portal/console), vacinados históricos, unidades,
+clientes e grupos. Foram substituídos 8 parsers duplicados por dois: app/helpers/csv.php
+e public/assets/csv.js. Evidência: php scripts/testar_csv.php (37/37) + espelho JS (35/35).
+Pendente: deploy e conferir as 6 telas em homologação; depois varrer a base à procura de
+registros lixo criados por importações antigas (linhas com "cpf"/"nome"/"razao_social").
+
+OBS DE PROCESSO: a pasta protocolos/ não existe no repositório — protocolo-correcao-bug.md
+foi seguido pela lógica descrita no orquestrador.md (seção "Protocolos disponíveis").
+Vale materializar os protocolos como arquivos.
+
+Coisa feita antes: Docker + deploy EasyPanel (Dockerfile, vhost docroot public/, php.ini,
 scripts/migrar.php, docs/13) e Git iniciado (branch main, commit inicial ac5a892).
 
 Estado atual: docs 01-10 + 13, SQL do modelo, backend scaffold e artefatos de deploy prontos.

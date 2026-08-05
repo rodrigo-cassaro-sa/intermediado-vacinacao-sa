@@ -6,6 +6,7 @@
   <title>Grupos empresariais — S&amp;A Imunizações</title>
   <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
   <link rel="stylesheet" href="/assets/marca.css" />
+  <script src="/assets/csv.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
   <style>
@@ -230,7 +231,7 @@
       <div class="dbody">
         <div class="hint">Uma linha por grupo (separador <b>;</b> ou vírgula):<br>
           <b>nome;sigla</b><br>
-          Atualiza pela sigla (ou pelo nome, se a sigla estiver vazia).</div>
+          Com cabeçalho na 1ª linha, a ordem das colunas não importa. Atualiza pela sigla (ou pelo nome, se a sigla estiver vazia).</div>
         <button class="btn sec" style="margin:4px 0 8px" onclick="baixarModelo()"><span class="material-symbols-outlined">download</span> Baixar modelo (CSV)</button>
         <label>Colar linhas (CSV)</label>
         <textarea id="impTexto" rows="7" placeholder="Holding Alfa;ALF"></textarea>
@@ -353,12 +354,12 @@
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'modelo-grupos.csv';
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
+  // A 1ª linha é cabeçalho quando traz os nomes das colunas (em qualquer ordem);
+  // sem cabeçalho, vale a ordem padrão nome, sigla.
   function parseCsv(t) {
-    const limpa = s => (s || '').trim().replace(/^"(.*)"$/, '$1').trim();
-    return t.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
-      const p = (l.includes(';') ? l.split(';') : l.split(',')).map(limpa);
-      return { nome: p[0] || '', sigla: p[1] || '' };
-    }).filter(o => o.nome && o.nome.toLowerCase() !== 'nome');
+    return CSV.parsear(t, 'grupos')
+      .map(g => ({ nome: g.nome || '', sigla: g.sigla || '' }))
+      .filter(g => g.nome !== '');
   }
   async function enviarImport() {
     const msg = document.getElementById('impMsg');

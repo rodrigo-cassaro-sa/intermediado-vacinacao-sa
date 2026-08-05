@@ -6,6 +6,7 @@
   <title>Pacientes Elegíveis — S&amp;A Imunizações</title>
   <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
   <link rel="stylesheet" href="/assets/marca.css" />
+  <script src="/assets/csv.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
   <style>
@@ -344,7 +345,7 @@
 
         <!-- Aba CSV -->
         <div id="abaCsv" class="hide">
-          <div class="hint">Uma linha por pessoa, nesta ordem:<br><b>cpf,nome,data_nascimento,tipo_vinculo,cpf_titular,codigo_lotacao,codigo_rh,identificador</b><br>Ex.: <code>52998224725,Maria Silva,1990-05-10,colaborador,,LOT-01,RH-1001,</code></div>
+          <div class="hint">Uma linha por pessoa. Com cabeçalho na 1ª linha, <b>a ordem das colunas não importa</b> — vale o nome da coluna:<br><b>cpf,nome,data_nascimento,tipo_vinculo,cpf_titular,codigo_lotacao,codigo_rh,identificador</b><br>Ex.: <code>52998224725,Maria Silva,1990-05-10,colaborador,,LOT-01,RH-1001,</code><br>Sem cabeçalho, os campos são lidos nessa mesma ordem.</div>
           <button class="btn sec" style="margin:4px 0 8px" onclick="baixarModelo()"><span class="material-symbols-outlined">download</span> Baixar modelo (CSV)</button>
           <label>Colar linhas (CSV)</label>
           <textarea id="csvTexto" rows="6" placeholder="52998224725,Maria Silva,1990-05-10,colaborador,,LOT-01,RH-1001,"></textarea>
@@ -575,13 +576,10 @@
     document.getElementById('tabCsv').classList.toggle('on', aba === 'csv');
   }
 
-  // Uma linha -> objeto elegível (mesmo formato do portal).
+  // Texto -> lista de elegíveis. A 1ª linha é cabeçalho quando traz os nomes das
+  // colunas (em qualquer ordem); sem cabeçalho, vale a ordem padrão. Ver /assets/csv.js.
   function parseElegiveis(t) {
-    const limpa = s => (s || '').trim().replace(/^"(.*)"$/, '$1').trim();
-    return t.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
-      const p = l.split(/[;,]/).map(limpa);
-      return { cpf: p[0] || '', nome: p[1] || '', data_nascimento: p[2] || null, tipo_vinculo: p[3] || null, cpf_titular: p[4] || null, codigo_lotacao: p[5] || null, codigo_rh: p[6] || null, identificador: p[7] || null };
-    });
+    return CSV.parsear(t, 'elegiveis').map(e => ({ ...e, cpf: e.cpf || '', nome: e.nome || '' }));
   }
 
   function baixarErros() { if (ULTIMA_IMP) window.open('/api/v1/interno/importacoes/' + ULTIMA_IMP + '/erros/exportar', '_blank'); return false; }

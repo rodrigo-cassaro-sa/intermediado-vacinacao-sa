@@ -10,6 +10,7 @@ require_once __DIR__ . '/config/conexao.php';
 
 require_once __DIR__ . '/helpers/resposta.php';
 require_once __DIR__ . '/helpers/validacao.php';
+require_once __DIR__ . '/helpers/csv.php';
 require_once __DIR__ . '/helpers/auditoria.php';
 require_once __DIR__ . '/helpers/idempotencia.php';
 require_once __DIR__ . '/helpers/rate_limit.php';

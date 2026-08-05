@@ -6,6 +6,7 @@
   <title>S&amp;A Imunizações — Console interno</title>
   <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
   <link rel="stylesheet" href="/assets/marca.css" />
+  <script src="/assets/csv.js"></script>
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; font-family: system-ui, Segoe UI, Roboto, sans-serif;
@@ -133,7 +134,7 @@
           <select id="elegCampanha"><option value="">— liste as campanhas —</option></select>
         </div>
       </div>
-      <label>Cole os elegíveis — <span class="muted">cpf,nome,data_nascimento,tipo_vinculo,cpf_titular,codigo_lotacao,codigo_rh,identificador</span> (sem CPF? use identificador/voucher no último campo)</label>
+      <label>Cole os elegíveis — <span class="muted">cpf,nome,data_nascimento,tipo_vinculo,cpf_titular,codigo_lotacao,codigo_rh,identificador — com cabeçalho na 1ª linha a ordem não importa</span> (sem CPF? use identificador/voucher no último campo)</label>
       <textarea id="elegCsv" rows="4" style="width:100%;padding:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;color:var(--txt)"
         placeholder="52998224725,Maria Silva,1990-05-10,colaborador,,LOT-01,RH-1001,&#10;,John Doe,1988-02-10,terceiro,,LOT-01,RH-2002,VOUCHER-123"></textarea>
       <div style="margin-top:12px" class="row">
@@ -347,7 +348,7 @@
           <select id="vhCliente"><option value="">— carregue os clientes (seção 2) —</option></select>
         </div>
       </div>
-      <label>Colar CSV — <span class="muted">cpf,nome,data_nascimento,vacina,dose,lote,aplicado_em,codigo_lotacao,cidade,uf,identificador</span></label>
+      <label>Colar CSV — <span class="muted">cpf,nome,data_nascimento,vacina,dose,lote,aplicado_em,codigo_lotacao,cidade,uf,identificador — com cabeçalho na 1ª linha a ordem não importa</span></label>
       <textarea id="vhCsv" rows="5" style="width:100%;padding:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;color:var(--txt)"
         placeholder="52998224725,Maria Silva,1990-05-10,Gripe,1,LOTE-2023-A,2023-04-15,LOT-01,São Paulo,SP&#10;,John Doe,1988-02-10,Gripe,1,,2022,LOT-02,Campinas,SP,PASS-XYZ"></textarea>
       <p class="muted">Lotes acima de 2.000 linhas são processados em segundo plano (worker); acompanhe pelo status.</p>
@@ -784,18 +785,11 @@ async function verDashboard() {
   }
 }
 
-// Converte texto "cpf,nome,nascimento,tipo_vinculo,cpf_titular" (uma linha por
-// pessoa) em array de objetos. Tolera aspas ao redor dos campos.
+// Converte texto (uma linha por pessoa) em array de objetos. A 1ª linha é
+// cabeçalho quando traz os nomes das colunas (em qualquer ordem); sem cabeçalho,
+// vale a ordem padrão cpf,nome,nascimento,tipo_vinculo,... Ver /assets/csv.js.
 function parseElegiveis(texto) {
-  const limpa = s => (s || '').trim().replace(/^"(.*)"$/, '$1').trim();
-  return texto.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(linha => {
-    const p = linha.split(/[;,](?=(?:[^"]*"[^"]*")*[^"]*$)/).map(limpa);
-    return {
-      cpf: p[0] || '', nome: p[1] || '', data_nascimento: p[2] || null,
-      tipo_vinculo: p[3] || null, cpf_titular: p[4] || null,
-      codigo_lotacao: p[5] || null, codigo_rh: p[6] || null, identificador: p[7] || null,
-    };
-  });
+  return CSV.parsear(texto, 'elegiveis').map(e => ({ ...e, cpf: e.cpf || '', nome: e.nome || '' }));
 }
 
 let ULTIMA_IMPORTACAO = null;

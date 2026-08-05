@@ -6,6 +6,7 @@
   <title>Unidades — S&amp;A Imunizações</title>
   <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
   <link rel="stylesheet" href="/assets/marca.css" />
+  <script src="/assets/csv.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
   <style>
@@ -241,7 +242,7 @@
       <div class="dbody">
         <div class="hint">Unidades do cliente <b id="impCli">—</b>. Uma linha por unidade (separador <b>;</b> ou vírgula):<br>
           <b>nome;codigo_lotacao;cidade;uf</b><br>
-          Atualiza pelo código de lotação (ou pelo nome, se o código estiver vazio).</div>
+          Com cabeçalho na 1ª linha, a ordem das colunas não importa. Atualiza pelo código de lotação (ou pelo nome, se o código estiver vazio).</div>
         <button class="btn sec" style="margin:4px 0 8px" onclick="baixarModelo()"><span class="material-symbols-outlined">download</span> Baixar modelo (CSV)</button>
         <label>Colar linhas (CSV)</label>
         <textarea id="impTexto" rows="7" placeholder="Matriz;LOT-01;Sao Paulo;SP"></textarea>
@@ -399,12 +400,12 @@
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'modelo-unidades.csv';
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
+  // A 1ª linha é cabeçalho quando traz os nomes das colunas (em qualquer ordem);
+  // sem cabeçalho, vale a ordem padrão nome, codigo_lotacao, cidade, uf.
   function parseCsv(t) {
-    const limpa = s => (s || '').trim().replace(/^"(.*)"$/, '$1').trim();
-    return t.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
-      const p = (l.includes(';') ? l.split(';') : l.split(',')).map(limpa);
-      return { nome: p[0] || '', codigo_lotacao: p[1] || '', cidade: p[2] || '', uf: p[3] || '' };
-    }).filter(o => o.nome && o.nome.toLowerCase() !== 'nome');
+    return CSV.parsear(t, 'unidades')
+      .map(u => ({ nome: u.nome || '', codigo_lotacao: u.codigo_lotacao || '', cidade: u.cidade || '', uf: u.uf || '' }))
+      .filter(u => u.nome !== '');
   }
   async function enviarImport() {
     const msg = document.getElementById('impMsg');

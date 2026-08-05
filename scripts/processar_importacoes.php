@@ -10,6 +10,7 @@ require_once __DIR__ . '/../app/config/config.php';
 require_once __DIR__ . '/../app/config/conexao.php';
 require_once __DIR__ . '/../app/helpers/resposta.php';   // request_id (usado por historico/auditoria)
 require_once __DIR__ . '/../app/helpers/validacao.php';
+require_once __DIR__ . '/../app/helpers/csv.php';
 require_once __DIR__ . '/../app/helpers/auditoria.php';
 require_once __DIR__ . '/../app/services/historico.php';
 require_once __DIR__ . '/../app/services/webhooks.php';
