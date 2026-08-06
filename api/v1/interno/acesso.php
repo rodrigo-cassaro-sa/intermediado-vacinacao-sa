@@ -201,8 +201,11 @@ function rota_criar_unidade(array $params): void
     $dados = corpo_json();
     $erros = exigir_campos($dados, ['nome']);
     if ($erros) erro_validacao($erros);
+    // Toda unidade nasce ATIVA. Explícito no INSERT (e não só no DEFAULT da coluna)
+    // para a regra ficar visível em quem lê o código.
     db_executar(
-        "INSERT INTO unidade (cliente_b2b_id, nome, codigo_lotacao, cidade, uf) VALUES (:c, :n, :cod, :cid, :uf)",
+        "INSERT INTO unidade (cliente_b2b_id, nome, codigo_lotacao, cidade, uf, status)
+         VALUES (:c, :n, :cod, :cid, :uf, 'ativa')",
         [':c' => $clienteId, ':n' => trim($dados['nome']), ':cod' => $dados['codigo_lotacao'] ?? null,
          ':cid' => $dados['cidade'] ?? null, ':uf' => isset($dados['uf']) ? strtoupper(substr($dados['uf'], 0, 2)) : null]
     );
@@ -237,10 +240,21 @@ function rota_editar_unidade(array $params): void
     }
     $dados = corpo_json();
     $erros = exigir_campos($dados, ['nome']);
+    // Unidade é substantivo feminino: o status é 'ativa'/'inativa', como vacina,
+    // clinica e campanha (cliente e usuario, masculinos, usam ativo/inativo).
+    // A validação só aceitava a forma masculina enquanto a coluna nasce com
+    // DEFAULT 'ativa' — por isso a unidade recém-criada aparecia como "Inativa" e
+    // sumia do filtro padrão. Aceita as duas grafias e normaliza para a feminina,
+    // p/ não quebrar uma aba aberta com o JS antigo em cache durante o deploy.
     $status = null;
     if (isset($dados['status'])) {
-        $status = (string) $dados['status'];
-        if (!in_array($status, ['ativo', 'inativo'], true)) $erros[] = ['field' => 'status', 'code' => 'STATUS_INVALIDO', 'message' => 'Use ativo ou inativo.'];
+        $mapa = ['ativa' => 'ativa', 'ativo' => 'ativa', 'inativa' => 'inativa', 'inativo' => 'inativa'];
+        $informado = strtolower(trim((string) $dados['status']));
+        if (!isset($mapa[$informado])) {
+            $erros[] = ['field' => 'status', 'code' => 'STATUS_INVALIDO', 'message' => 'Use ativa ou inativa.'];
+        } else {
+            $status = $mapa[$informado];
+        }
     }
     if ($erros) erro_validacao($erros);
     $uf = trim((string) ($dados['uf'] ?? '')); $uf = $uf !== '' ? strtoupper(substr($uf, 0, 2)) : null;
@@ -286,7 +300,10 @@ function rota_importar_unidades(array $params): void
                 [':n' => $nome, ':cod' => $cod, ':cid' => $cid, ':uf' => $uf, ':id' => (int) $exist['id']]);
             $atualizados++;
         } else {
-            db_executar("INSERT INTO unidade (cliente_b2b_id, nome, codigo_lotacao, cidade, uf) VALUES (:c, :n, :cod, :cid, :uf)",
+            // Importada também nasce ATIVA. O UPDATE acima não toca em status de
+            // propósito: reimportar não deve reativar quem foi desativado à mão.
+            db_executar("INSERT INTO unidade (cliente_b2b_id, nome, codigo_lotacao, cidade, uf, status)
+                         VALUES (:c, :n, :cod, :cid, :uf, 'ativa')",
                 [':c' => $clienteId, ':n' => $nome, ':cod' => $cod, ':cid' => $cid, ':uf' => $uf]);
             $inseridos++;
         }

@@ -187,8 +187,8 @@
             <label>Status</label>
             <select id="fStatus" onchange="renderTabela()">
               <option value="">Todos</option>
-              <option value="ativo" selected>Ativas</option>
-              <option value="inativo">Inativas</option>
+              <option value="ativa" selected>Ativas</option>
+              <option value="inativa">Inativas</option>
             </select>
           </div>
         </div>
@@ -224,7 +224,7 @@
           <div><label>UF</label><input id="fUf" maxlength="2" placeholder="SP" /></div>
         </div>
         <div id="statusWrap"><label>Status</label>
-          <select id="fStatusEdit"><option value="ativo">Ativa</option><option value="inativo">Inativa</option></select>
+          <select id="fStatusEdit"><option value="ativa">Ativa</option><option value="inativa">Inativa</option></select>
         </div>
         <div class="msg" id="drawerMsg"></div>
       </div>
@@ -315,7 +315,7 @@
     const fs = document.getElementById('fStatus').value;
     const semCli = !cid();
     const lista = UNIDADES.filter(u => {
-      if (fs && (u.status || 'ativo') !== fs) return false;
+      if (fs && (u.status || 'ativa') !== fs) return false;
       return !q || (u.nome || '').toLowerCase().includes(q)
         || (u.codigo_lotacao || '').toLowerCase().includes(q)
         || (u.cidade || '').toLowerCase().includes(q);
@@ -325,7 +325,7 @@
     vazio.textContent = semCli ? 'Selecione um cliente para ver as unidades.' : 'Nenhuma unidade encontrada.';
     vazio.classList.toggle('hide', lista.length > 0);
     document.getElementById('tbody').innerHTML = lista.map(u => {
-      const chip = (u.status || 'ativo') === 'ativo' ? '<span class="chip on">Ativa</span>' : '<span class="chip off">Inativa</span>';
+      const chip = (u.status || 'ativa') !== 'inativa' ? '<span class="chip on">Ativa</span>' : '<span class="chip off">Inativa</span>';
       const cod = u.codigo_lotacao ? '<span class="cod">' + esc(u.codigo_lotacao) + '</span>' : '<span class="sub">—</span>';
       const local = [u.cidade, u.uf].filter(Boolean).map(esc).join(' / ') || '<span class="sub">—</span>';
       return '<tr>'
@@ -347,7 +347,7 @@
     document.getElementById('fCod').value = u ? (u.codigo_lotacao || '') : '';
     document.getElementById('fCidade').value = u ? (u.cidade || '') : '';
     document.getElementById('fUf').value = u ? (u.uf || '') : '';
-    document.getElementById('fStatusEdit').value = u ? (u.status || 'ativo') : 'ativo';
+    document.getElementById('fStatusEdit').value = u ? ((u.status === 'inativa' || u.status === 'inativo') ? 'inativa' : 'ativa') : 'ativa';
     document.getElementById('statusWrap').classList.toggle('hide', !u); // status só na edição
     const msg = document.getElementById('drawerMsg'); msg.className = 'msg'; msg.textContent = '';
     document.getElementById('drawer').classList.remove('hide');

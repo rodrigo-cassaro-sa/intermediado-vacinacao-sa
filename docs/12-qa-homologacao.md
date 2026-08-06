@@ -103,6 +103,21 @@ nada entrou.
 | Relatório fantasma | Importar OK, depois tentar com arquivo ruim | O relatório verde anterior é limpo a cada tentativa | ok (revisado) |
 | Backend: elegíveis/vacinados | Upload com cabeçalho sem `nome` ou sem `cpf`/`identificador` | 422 `CABECALHO_INVALIDO` com o motivo, antes de processar linha a linha | ok (auto) |
 
+## 2.1f Status da unidade (BUG-005)
+
+Vocabulário do status concorda com o gênero da entidade (doc 17 §2). Unidade é
+feminina: `ativa`/`inativa`.
+
+| Fluxo | Passos | Resultado esperado | Status |
+|---|---|---|---|
+| Unidade nova | Criar pela tela | Nasce `ativa`, aparece no filtro padrão "Ativas", badge verde | ok (auto) |
+| Unidade importada | Importar CSV | Nasce `ativa` | ok (auto) |
+| Editar | Abrir o cadastro de uma unidade ativa | Select abre em "Ativa" — **antes vinha em branco** | ok (auto) |
+| Desativar | Marcar Inativa e salvar | Some do filtro "Ativas", aparece em "Inativas", badge cinza | ok (auto) |
+| Reimportar desativada | Importar CSV com a mesma unidade | Continua inativa — o UPDATE do import não toca em status | ok (revisado) |
+| Migration 032 | Base com `ativo`/`inativo`/vazio | Vira `ativa`/`inativa`/`ativa`; rodar de novo não muda nada | ok (auto, MySQL real) |
+| Legado na tela | Linha ainda com `ativo` | Badge e formulário tratam como ativa (tolerância durante o deploy) | ok (auto) |
+
 ## 2.2 Telas a validar em homologação (manual)
 
 | Tela | Caminho | O que validar |
@@ -132,6 +147,8 @@ nada entrou.
 | Campo `nome` da campanha | Continua sendo gravado, editável e retornado pela API | ok (não alterado) |
 | Importação sem cabeçalho | Arquivo posicional (sem cabeçalho) mantém a 1ª linha como pessoa/registro válido — **não é bloqueado** pela conferência do BUG-004, só recebe aviso | ok (auto — casos 3 e 7 + BUG-004 caso 7) |
 | Modelo oficial | O CSV baixado pelo botão "Baixar modelo" importa sem aviso nenhum (verde) | ok (auto) |
+| Status de grupo e cliente | `grupo_empresarial` e `cliente_b2b` são masculinos e continuam `ativo`/`inativo` — a correção do BUG-005 não os tocou | ok (revisado) |
+| Migration 032 | Não altera nenhuma linha já correta (`ativa`/`inativa`) e é idempotente | ok (auto) |
 | Ingestão assíncrona | `importacao_contar()` desconta o cabeçalho com a mesma regra do parser, senão o lote entra na fila errada | ok (revisado) |
 | Worker de importação | `scripts/processar_importacoes.php` carrega `app/helpers/csv.php` | ok (revisado) |
 | API do parceiro | Ingestão por JSON não passa pelo parser de CSV — contrato inalterado | ok |
@@ -146,7 +163,8 @@ nada entrou.
 | 2026-08-05 | local (php:8.3-cli + Node 22) | automatizado | BUG-001: backend 37/37 e frontend 35/35 casos aprovados; `php -l` limpo nos 7 arquivos PHP tocados |
 | 2026-08-05 | local (mysql:8 + Node 22) | automatizado | BUG-002: 31 migrations aplicadas em banco limpo; as 3 queries alteradas rodaram contra o schema real; 16/16 casos do rótulo da campanha |
 | 2026-08-05 | local (imagem real do projeto + mysql:8) | automatizado | BUG-003: container normal, **sem nenhum cron**, drenou 30.000 elegíveis em **285s** (0 → 29.999 no banco); trava e recuperação de importação travada validadas |
-| 2026-08-06 | local (Node 22 + php:8.3-cli) | automatizado | BUG-004: 25/25 casos de mapeamento de erro e resposta visual. Suíte completa reexecutada: 108 casos (25 + 37 + 16 + 30) |
+| 2026-08-06 | local (Node 22 + mysql:8) | automatizado | BUG-005: 17/17 casos da tela + ciclo de status em MySQL real (migrations 000..032). Suíte completa: 125 casos (17 + 25 + 37 + 16 + 30) |
+| 2026-08-06 | local (Node 22 + php:8.3-cli) | automatizado | BUG-004: 25/25 casos de mapeamento de erro e resposta visual |
 | 2026-08-05 | local (imagem real do projeto + mysql:8) | automatizado | RN-031: 27/27 casos da importação de vacinados (simulação, confirmação, criar elegível, estorno de lote, duplicidade, período, vacina por nome/sigla) |
 |  | homolog (EasyPanel) | pendente | validar as 6 telas da tabela 2.2 após o deploy |
 
@@ -156,6 +174,7 @@ nada entrou.
 
 | Código | Descrição | Gravidade | Status | Evidência |
 |---|---|---|---|---|
+| BUG-005 | Unidades só apareciam no filtro "Todas", eram exibidas como "Inativas" e abriam com o status em branco na edição. Causa: `unidade.status` nasce `'ativa'` (DEFAULT da coluna, gênero feminino como vacina/clinica/campanha), mas a API validava `['ativo','inativo']` e a tela comparava com `'ativo'` — um único descasamento de vocabulário produzindo os três sintomas | média | corrigido | 17 casos sobre as expressões reais da tela + ciclo completo em MySQL real (base suja → migration 032 → idempotência) |
 | BUG-004 | Importação com cabeçalho errado: a tela acusava "Cole ao menos uma linha" para quem tinha colado dezenas (as linhas caíam no `.filter()` do frontend por falta da coluna obrigatória e sumiam sem explicação). Pior, o `msg ok` verde era aplicado mesmo com 0 inseridos, e um cabeçalho irreconhecível virava registro em silêncio — o relatório da tentativa anterior também ficava na tela | alta | corrigido | 25 casos automatizados sobre as funções reais das telas; antes/depois de cada cabeçalho documentado em 2.1e |
 | BUG-003 | Importação acima de ~2000 linhas nunca acontecia: o lote ia para a fila (`pendente`) e o worker `scripts/processar_importacoes.php` dependia de um Cron Job do EasyPanel que nunca foi criado. Abaixo de 2000 funcionava (inline), o que dava a impressão de um "teto" de ~1500 | alta | corrigido | Container normal, sem cron nenhum, drenou 30.000 linhas; `worker.log` linha 1: "Processando importação de elegíveis #1 ... concluída #1" |
 | BUG-002 | Campanha aparecendo `null` no console (tabela, os 5 dropdowns, resumo e carteira). A migration 026 tornou `campanha.nome` opcional e criou `campanha.codigo`; o console.html continuou imprimindo `c.nome` cru, e 4 endpoints ainda entregavam a campanha só pelo nome | média | corrigido | SQL contra o schema real: `campanha_antes = NULL` → `campanha_depois = IFT.2026.IC.GTE.CTE.1`; 16 casos no teste do rótulo |

@@ -56,7 +56,15 @@ Domínio com SSL. Sem framework e sem OO por padrão.
 # 3. Etapa atual
 
 ```txt
-Etapa atual (2026-08-06): BUG-004 — mapeamento de erro e resposta visual das importações.
+Etapa atual (2026-08-06): BUG-005 — status da unidade. A coluna nasce 'ativa' (feminino,
+como vacina/clinica/campanha) mas a API validava 'ativo' e a tela comparava com 'ativo':
+unidade nova sumia do filtro padrão, era pintada como "Inativa" e abria com o campo em
+branco. API e tela passaram a falar 'ativa'/'inativa', o "nasce ativa" ficou explícito nos
+INSERTs e a migration 032 normaliza o que já estava gravado. Evidência: 17/17 na tela +
+ciclo em MySQL real. A tabela de status oficiais do doc 17 estava VAZIA — foi preenchida,
+porque era a lacuna que permitiu o descasamento.
+
+Etapa anterior (2026-08-06): BUG-004 — mapeamento de erro e resposta visual das importações.
 Cabeçalho errado fazia as linhas sumirem no filtro do frontend e a tela dizia "Cole ao menos
 uma linha" para quem tinha colado dezenas; o verde "Concluído" aparecia mesmo com 0 inseridos;
 cabeçalho irreconhecível virava registro em silêncio; e o relatório da tentativa anterior
@@ -138,6 +146,8 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | 2026-07-06 | `public/` como único document root | Esconder código/config/uploads | Deploy aponta docroot p/ public/ | Orquestrador (doc 05) |
 | 2026-08-05 | CSV: cabeçalho na 1ª linha manda; colunas mapeadas por NOME, não por posição | BUG-001: cabeçalho entrava como registro e o BOM do Excel quebrava a detecção | Contrato de importação (doc 09 §3.1); ordem das colunas deixou de importar | Orquestrador |
 | 2026-08-05 | Um leitor de CSV só: `app/helpers/csv.php` + espelho `public/assets/csv.js` | Havia 8 parsers duplicados (2 PHP + 6 JS), cada um com uma regra diferente | Qualquer ajuste futuro de coluna é feito em 2 lugares, não em 8 | Orquestrador |
+| 2026-08-06 | Status concorda em GÊNERO com a entidade: unidade/vacina/clinica/campanha = `ativa`; cliente/usuario/grupo = `ativo` | BUG-005. O banco já estava certo; API e tela é que divergiam. Mudar o banco quebraria dados existentes e as outras entidades femininas | Convenção registrada no doc 17 §2 (a tabela estava vazia) | Orquestrador |
+| 2026-08-06 | API de unidade aceita as duas grafias e normaliza para a feminina | Durante o deploy, aba aberta com o JS antigo em cache ainda envia 'ativo' | Tolerância na entrada, vocabulário único no banco | Orquestrador |
 | 2026-08-06 | Cabeçalho reconhecido sem coluna obrigatória = erro que BLOQUEIA; cabeçalho irreconhecível = só aviso | BUG-004. Bloquear o segundo caso quebraria a leitura posicional que o BUG-001 preservou de propósito e que já está em uso | `CSV.conferir()`/`csv_conferir()` com `obrigatorias` por tipo | Orquestrador |
 | 2026-08-06 | Semáforo da importação: verde só quando algo entrou sem ressalva; amarelo com ressalva; vermelho quando nada entrou | O verde incondicional era o que fazia lixo passar despercebido | Nova classe `.msg.warn` nas 5 telas de importação | Orquestrador |
 | 2026-08-05 | Quem tem acesso aos dados do paciente pode registrar a vacinação dele (com log) | Decisão do usuário. O gate por 'perfil' dava 403 no portal, que exibia o botão mas não executava | Portal passa a vacinar de fato; desfazer segue interno | Usuário |
@@ -169,6 +179,7 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | 2026-07-06 | Scaffold backend PHP | app/*, api/v1/*, public/index.php, .env.example, .gitignore | arquivos gerados | Fundação procedural; health + login; não executado (sem PHP/MySQL) |
 | 2026-07-06 | Docker + deploy EasyPanel + Git | Dockerfile, docker/*, public/.htaccess, .dockerignore, scripts/migrar.php, docs/13 | commit ac5a892 | docroot public/; health em /api/v1/health; repo local (main) |
 | 2026-07-06 | Atualização do checkpoint | controle-projeto.md | este arquivo | — |
+| 2026-08-06 | BUG-005 corrigido: unidade só aparecia no filtro "Todas", exibida como "Inativa" e sem status na edição (banco fala `ativa`, API e tela falavam `ativo`) | api/v1/interno/acesso.php, public/admin/unidades.html, database/migrations/032 (nova), docs/12, docs/17 | 17/17 na tela + ciclo em MySQL real (base suja → 032 → idempotente); suíte 125/125 | Migration 032 normaliza dados já gravados; grupo/cliente (masculinos) não foram tocados |
 | 2026-08-06 | BUG-004 corrigido: mensagem de erro mentia ("cole ao menos uma linha" com dezenas coladas), verde incondicional escondia importação vazia/errada, linhas descartadas em silêncio e relatório fantasma | public/assets/csv.js, app/helpers/csv.php, public/admin/{unidades,clientes,grupos,elegiveis}.html, public/portal/elegiveis.html, api/v1/interno/{elegiveis,importacao_vacinados}.php, docs/09, docs/12 | 25/25 novos casos + suíte completa 108/108; `php -l` limpo; JS das 5 telas validado | Leitura posicional (BUG-001) preservada: recebe aviso, não bloqueio |
 | 2026-08-05 | RN-031: vacinar pelo admin/portal (gate corrigido) + importar vacinados em massa com simulação e estorno de lote | database/migrations/031, app/services/importacao_aplicacoes.php (novo), app/services/aplicacoes.php, api/v1/interno/importacao_vacinados.php (novo), api/v1/interno/aplicacoes.php, api/v1/rotas.php, app/helpers/csv.php, scripts/processar_importacoes.php, public/{admin,portal}/vacinados.html, docs/02/04/09/12 | 27/27 casos contra banco real; `php -l` limpo; JS das 2 telas validado | Migration 031 pendente de deploy |
 | 2026-08-05 | BUG-003 corrigido: importação acima de ~2000 linhas nunca era processada (fila sem worker rodando) | docker/entrypoint.sh, scripts/processar_importacoes.php, public/admin/elegiveis.html, public/portal/elegiveis.html, docs/12, docs/13 | Container normal, sem cron, drenou 30.000 linhas em 285s (0 → 29.999 elegíveis); trava e recuperação validadas | Medições: 30k = 830 ms de parse e 36,6 MB de pico; 100k = 120,7 MB. `max_execution_time` do php.ini não afeta o CLI (é 0) |
@@ -233,7 +244,7 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | BUG-003 | Worker da fila embutido no container + progresso da importação na tela (listas de 20k–30k) | deploy/backend/frontend | alta | feito — exige redeploy e volume em storage/uploads |
 | V2 | Autoadesão B2C (consentimento) + venda de voucher (pagamento) | — | baixa | pendente |
 | RN-031 | Vacinar pelo portal/admin + importar vacinados em massa (simulação obrigatória, estorno de lote) | backend/frontend/QA | alta | feito — exige aplicar a migration 031 |
-| Banco: migrations até 031 | — | — | — | 026 código de campanha · 027..030 · **031 importação de vacinados em massa** |
+| Banco: migrations até 032 | — | — | — | 026 código de campanha · 027..030 · **031 importação de vacinados em massa** · **032 normaliza unidade.status** |
 | Banco: migrations até 025 | — | — | — | 023 consentimento · 024 import histórico · 025 fila import histórico |
 | backlog | Rastreabilidade extra: fabricante/validade lote, conselho profissional, comprovante, idempotência (recomendado) | especialista-backend | baixa/média | pendente |
 | 9 | Telas reais (portal B2B / painel operador) saindo do console de testes | especialista-design/frontend | média | pendente |
@@ -396,7 +407,12 @@ Status do deploy: preparado (Docker + docs/13), aguardando push e configuração
 # 13. Último checkpoint
 
 ```txt
-Última coisa feita (2026-08-06): BUG-004 — mapeamento de erro e resposta visual das
+Última coisa feita (2026-08-06): BUG-005 — status da unidade alinhado ao vocabulário do
+banco (`ativa`/`inativa`), regra "nasce ativa" explícita nos INSERTs e migration 032
+normalizando o que já estava gravado. A tabela de status oficiais do doc 17 §2 foi
+preenchida — estava vazia, e era a lacuna que deixou API e banco divergirem.
+
+Coisa feita antes (2026-08-06): BUG-004 — mapeamento de erro e resposta visual das
 importações (unidades, clientes, grupos, elegíveis e vacinados). A conferência do cabeçalho
 virou regra única (CSV.conferir no frontend, csv_conferir no backend), o semáforo da tela
 passou a ter amarelo, o relatório mostra o que foi descartado e como a 1ª linha foi lida, e

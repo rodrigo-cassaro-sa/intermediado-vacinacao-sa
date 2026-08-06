@@ -16,9 +16,32 @@ Padronizar nomes, termos, status e convenções para evitar inconsistência.
 
 # 2. Status oficiais
 
-| Campo | Status | Significado | Quem pode alterar |
+> **Regra que já custou um bug (BUG-005):** o status concorda em **gênero com o
+> substantivo da entidade**. Entidade masculina usa `ativo/inativo`; feminina usa
+> `ativa/inativa`. `unidade` nasceu no banco como `ativa`, mas a API validava
+> `ativo` e a tela comparava com `ativo` — resultado: unidade recém-criada era
+> pintada como "Inativa", sumia do filtro padrão e abria com o campo em branco.
+>
+> Ao criar tabela nova: **confira o gênero, escreva os valores no comentário da
+> coluna e repita os mesmos literais na API e na tela.**
+
+| Tabela | Valores | Padrão | Gênero |
 |---|---|---|---|
-| status |  |  |  |
+| cliente_b2b | `ativo` \| `inativo` | ativo | masculino |
+| usuario | `ativo` \| `bloqueado` | ativo | masculino |
+| grupo_empresarial | `ativo` \| `inativo` | ativo | masculino |
+| **unidade** | `ativa` \| `inativa` | **ativa** (nasce ativa) | feminino |
+| vacina | `ativa` \| `inativa` | ativa | feminino |
+| clinica_credenciada | `ativa` \| `inativa` | ativa | feminino |
+| campanha | `rascunho` \| `ativa` \| `encerrada` | rascunho | feminino |
+| elegivel | `pendente` \| `aplicado` \| `recusado` \| `inelegivel` \| `ausente` \| `removido` | pendente | masculino |
+| aplicacao | `confirmada` \| `retificada` \| `estornada` | confirmada | feminino |
+| importacao_elegiveis / importacao_historico | `pendente` \| `processando` \| `concluida` \| `falha` | — | feminino |
+| importacao_aplicacoes | `simulando` \| `simulada` \| `pendente` \| `processando` \| `concluida` \| `falha` \| `estornada` | simulando | feminino |
+| webhook_entrega | `pendente` \| `entregue` \| `dead` | pendente | feminino |
+
+Quem altera: o dono da entidade dentro do escopo (doc 04). Estorno e retificação de
+`aplicacao` são exclusivos do interno, com motivo.
 
 ---
 
