@@ -133,6 +133,7 @@
     .tabs button.on { background: var(--card); color: var(--pri); box-shadow: var(--sombra); }
     .drawer .msg { font-size: 12px; min-height: 16px; margin-top: 10px; }
     .drawer .msg a { color: var(--pri); font-weight: 600; }
+    .drawer .msg.warn { color: #a15c00; font-weight: 600; }
     .drawer .msg.err { color: var(--err); } .drawer .msg.ok { color: var(--acc2); font-weight: 600; }
     .drawer .dfoot { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--line); background: var(--surface-2); }
 
@@ -645,8 +646,13 @@
       msgImport(d);
       return;
     }
-    const elegiveis = parseElegiveis(document.getElementById('csvTexto').value);
-    if (!elegiveis.length) { msg.className = 'msg err'; msg.textContent = 'Cole ao menos uma linha ou escolha um arquivo.'; return; }
+    // Confere o cabecalho antes de enviar, com motivo (BUG-004).
+    const textoCsv = document.getElementById('csvTexto').value;
+    const chk = CSV.conferir(textoCsv, 'elegiveis');
+    if (chk.erro) { msg.className = 'msg err'; msg.textContent = chk.erro; return; }
+    const elegiveis = parseElegiveis(textoCsv);
+    if (!elegiveis.length) { msg.className = 'msg err'; msg.textContent = 'Nenhuma das ' + chk.total + ' linha(s) pode ser usada.'; return; }
+    if (chk.aviso) { msg.className = 'msg warn'; msg.textContent = chk.aviso; }
     msgImport(await api('/interno/campanhas/' + c.id + '/elegiveis/' + rota, 'POST', { elegiveis }));
   }
 

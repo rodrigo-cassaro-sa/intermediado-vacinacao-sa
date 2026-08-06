@@ -132,6 +132,66 @@
     return lista;
   }
 
+  /**
+   * Confere o conteúdo ANTES de enviar e explica o que está errado.
+   *
+   * Existe porque a tela dizia "Cole ao menos uma linha" quando o usuário tinha
+   * colado dezenas — só que o cabeçalho não trazia a coluna obrigatória, todas as
+   * linhas caíam no filtro e sumiam sem explicação. Também avisa quando não houve
+   * cabeçalho reconhecido e o arquivo foi lido pela ordem padrão, caso em que a
+   * própria linha de cabeçalho vira registro.
+   *
+   * Devolve { vazio, total, temCabecalho, reconhecidas, faltando, erro, aviso, amostra }.
+   * `erro` preenchido = não envie. `aviso` = envie, mas mostre ao usuário.
+   */
+  function conferir(texto, tipo) {
+    var def = (typeof tipo === 'string') ? MAPAS[tipo] : tipo;
+    if (!def) throw new Error('CSV: mapa desconhecido "' + tipo + '"');
+
+    var limpo = semBom(texto).replace(/^\s+|\s+$/g, '');
+    var r = { vazio: limpo === '', total: 0, temCabecalho: false,
+              reconhecidas: [], faltando: [], erro: null, aviso: null, amostra: null };
+    if (r.vazio) {
+      r.erro = 'Cole ao menos uma linha ou escolha um arquivo.';
+      return r;
+    }
+
+    var linhas = limpo.split(/\r\n|\r|\n/).filter(function (l) { return l.trim() !== ''; });
+    var head = analisarCabecalho(linhas[0], def.alias, delimitador(linhas[0]));
+    r.temCabecalho = head.temCabecalho;
+    r.reconhecidas = Object.keys(head.posicoes);
+    r.total = linhas.length - (head.temCabecalho ? 1 : 0);
+
+    var obrig = def.obrigatorias || [];
+    if (head.temCabecalho) {
+      r.faltando = obrig.filter(function (c) { return head.posicoes[c] === undefined; });
+      if (r.faltando.length) {
+        r.erro = 'O cabeçalho não traz ' + (r.faltando.length > 1 ? 'as colunas' : 'a coluna')
+          + ' ' + r.faltando.map(function (c) { return '"' + c + '"'; }).join(', ')
+          + ', então nenhuma linha pôde ser lida. Reconheci: '
+          + (r.reconhecidas.length ? r.reconhecidas.join(', ') : 'nenhuma coluna')
+          + '. Corrija a 1ª linha do arquivo (ex.: ' + def.ordem.join(';') + ').';
+        return r;
+      }
+    } else {
+      // Sem cabeçalho reconhecido o arquivo é lido pela ORDEM padrão — inclusive a
+      // 1ª linha. Se ela era um cabeçalho fora do padrão, vira registro.
+      r.aviso = 'Não reconheci um cabeçalho: li o arquivo pela ordem padrão '
+        + def.ordem.join(', ') + '. Se a 1ª linha for um cabeçalho, ela vai entrar como registro.';
+    }
+
+    if (r.total === 0) {
+      r.erro = 'O arquivo tem só o cabeçalho, sem nenhuma linha de dados.';
+      return r;
+    }
+
+    // Como a 1ª linha de dados foi interpretada — a conferência que pega coluna
+    // trocada, que nenhuma regra automática detecta.
+    var itens = parsear(limpo, def);
+    r.amostra = itens.length ? itens[0] : null;
+    return r;
+  }
+
   // -------------------------------------------------------------------------
   // Mapas de colunas por tipo de importação.
   // ordem = posição padrão quando o arquivo NÃO tem cabeçalho reconhecível.
@@ -147,6 +207,7 @@
 
   var MAPAS = {
     elegiveis: {
+      obrigatorias: ['nome'],
       ordem: ['cpf', 'nome', 'data_nascimento', 'tipo_vinculo', 'cpf_titular', 'codigo_lotacao', 'codigo_rh', 'identificador'],
       alias: {
         cpf:             ALIAS_PESSOA.cpf,
@@ -160,6 +221,7 @@
       }
     },
     historico: {
+      obrigatorias: ['vacina', 'aplicado_em'],
       ordem: ['cpf', 'nome', 'data_nascimento', 'vacina', 'dose', 'lote', 'aplicado_em', 'codigo_lotacao', 'cidade', 'uf', 'identificador'],
       alias: {
         cpf:             ALIAS_PESSOA.cpf,
@@ -176,6 +238,7 @@
       }
     },
     unidades: {
+      obrigatorias: ['nome'],
       ordem: ['nome', 'codigo_lotacao', 'cidade', 'uf'],
       alias: {
         nome:           ['nome_unidade', 'unidade', 'descricao', 'local'],
@@ -185,6 +248,7 @@
       }
     },
     clientes: {
+      obrigatorias: ['razao_social'],
       ordem: ['razao_social', 'cnpj', 'sigla', 'grupo_sigla'],
       alias: {
         razao_social: ['razao', 'nome', 'empresa', 'cliente', 'nome_empresa'],
@@ -194,6 +258,7 @@
       }
     },
     grupos: {
+      obrigatorias: ['nome'],
       ordem: ['nome', 'sigla'],
       alias: {
         nome:  ['grupo', 'nome_grupo', 'descricao', 'grupo_empresarial'],
@@ -204,6 +269,7 @@
 
   global.CSV = {
     parsear: parsear,
+    conferir: conferir,
     normalizarChave: normalizarChave,
     delimitador: delimitador,
     dividir: dividir,

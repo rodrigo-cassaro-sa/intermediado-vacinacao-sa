@@ -178,6 +178,21 @@ valem os mesmos campos de pessoa mais: `vacina` (imunizante, imunobiologico, pro
 `dose`, `lote`, `aplicado_em` (data_aplicacao, data da aplicação, data_vacinacao, data),
 `cidade` (municipio) e `uf` (estado).
 
+#### Conferência do cabeçalho (BUG-004)
+
+Antes de processar, o upload é conferido e **falha rápido** quando o cabeçalho é reconhecido
+mas não traz uma coluna sem a qual nenhuma linha pode ser lida:
+
+```json
+{ "success": false, "message": "O cabeçalho do arquivo não traz a coluna \"nome\"…",
+  "errors": [{ "field": "arquivo", "code": "CABECALHO_INVALIDO",
+               "message": "…Reconheci: cpf, data_nascimento. Corrija a 1ª linha (ex.: cpf;nome;…)." }] }
+```
+
+Obrigatórias por importação: elegíveis = `nome` + (`cpf` **ou** `identificador`);
+vacinados em massa = (`cpf` **ou** `identificador`). Arquivo **sem** cabeçalho continua
+aceito (leitura posicional) — nesse caso vem um aviso, não um erro.
+
 Implementação: `app/helpers/csv.php` (backend) e `public/assets/csv.js` (telas).
 Teste: `php scripts/testar_csv.php`.
 

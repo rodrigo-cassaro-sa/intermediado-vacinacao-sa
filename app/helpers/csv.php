@@ -155,6 +155,62 @@ function csv_parsear(string $conteudo, array $ordem, array $alias): array
     return $lista;
 }
 
+/**
+ * Confere o conteúdo ANTES de processar e explica o que está errado (BUG-004).
+ *
+ * Sem isso, um cabeçalho sem a coluna obrigatória produzia N linhas rejeitadas
+ * uma a uma, com o mesmo código repetido, sem dizer ao usuário que o problema
+ * estava na 1ª linha do arquivo. Espelha CSV.conferir() do public/assets/csv.js.
+ *
+ * $obrigatorias: colunas que precisam existir quando há cabeçalho.
+ * $umaDe: grupos em que ao menos UMA das colunas precisa existir (ex.: cpf|identificador).
+ *
+ * Devolve ['erro'=>?string, 'aviso'=>?string, 'total'=>int, 'tem_cabecalho'=>bool,
+ *          'reconhecidas'=>string[]].
+ */
+function csv_conferir(string $conteudo, array $ordem, array $alias,
+                      array $obrigatorias = [], array $umaDe = []): array
+{
+    $r = ['erro' => null, 'aviso' => null, 'total' => 0, 'tem_cabecalho' => false, 'reconhecidas' => []];
+
+    $linhas = array_values(array_filter(csv_linhas($conteudo), fn($l) => trim($l) !== ''));
+    if (!$linhas) {
+        $r['erro'] = 'O arquivo está vazio.';
+        return $r;
+    }
+
+    $head = csv_analisar_cabecalho($linhas[0], $alias, csv_delimitador($linhas[0]));
+    $r['tem_cabecalho'] = $head['tem_cabecalho'];
+    $r['reconhecidas'] = array_keys($head['posicoes']);
+    $r['total'] = count($linhas) - ($head['tem_cabecalho'] ? 1 : 0);
+
+    if ($head['tem_cabecalho']) {
+        $faltando = array_values(array_filter($obrigatorias, fn($c) => !isset($head['posicoes'][$c])));
+        foreach ($umaDe as $grupo) {
+            $achou = false;
+            foreach ($grupo as $c) {
+                if (isset($head['posicoes'][$c])) { $achou = true; break; }
+            }
+            if (!$achou) { $faltando[] = implode(' ou ', $grupo); }
+        }
+        if ($faltando) {
+            $r['erro'] = 'O cabeçalho do arquivo não traz ' . (count($faltando) > 1 ? 'as colunas' : 'a coluna')
+                . ' "' . implode('", "', $faltando) . '", então nenhuma linha pôde ser lida. Reconheci: '
+                . ($r['reconhecidas'] ? implode(', ', $r['reconhecidas']) : 'nenhuma coluna')
+                . '. Corrija a 1ª linha (ex.: ' . implode(';', $ordem) . ').';
+            return $r;
+        }
+    } else {
+        $r['aviso'] = 'Nenhum cabeçalho reconhecido: o arquivo foi lido pela ordem padrão ('
+            . implode(', ', $ordem) . '). Se a 1ª linha era um cabeçalho, ela entrou como registro.';
+    }
+
+    if ($r['total'] === 0) {
+        $r['erro'] = 'O arquivo tem só o cabeçalho, sem nenhuma linha de dados.';
+    }
+    return $r;
+}
+
 // ---------------------------------------------------------------------------
 // Mapas de colunas por tipo de importação.
 // Nomes já normalizados por csv_normalizar_chave() na comparação, então

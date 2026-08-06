@@ -56,6 +56,16 @@ function rota_importar_vacinados(array $params): void
         ]);
     }
 
+    // Cabeçalho conferido antes de gastar uma simulação inteira para descobrir que
+    // o arquivo não identifica ninguém (BUG-004).
+    $chk = csv_conferir($conteudo, csv_ordem_vacinacao(), csv_alias_vacinacao(),
+        [], [['cpf', 'identificador']]);
+    if ($chk['erro'] !== null) {
+        responder_erro($chk['erro'], 422, [
+            ['field' => 'arquivo', 'code' => 'CABECALHO_INVALIDO', 'message' => $chk['erro']],
+        ]);
+    }
+
     // Só os campos previstos viram padrão do lote (evita injetar chave estranha no ctx).
     $limpos = [];
     foreach (imp_aplic_campos_padrao() as $campo) {

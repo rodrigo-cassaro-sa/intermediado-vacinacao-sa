@@ -57,6 +57,15 @@ function executar_importacao_interno(array $params, bool $sincronizar): void
         }
         $conteudo = (string) file_get_contents($_FILES['arquivo']['tmp_name']);
         $formato = 'csv';
+        // Falha rápida e explicada: sem isso, um cabeçalho errado virava N linhas
+        // rejeitadas com o mesmo código, sem apontar a 1ª linha do arquivo (BUG-004).
+        $chk = csv_conferir($conteudo, csv_ordem_elegiveis(), csv_alias_elegiveis(),
+            ['nome'], [['cpf', 'identificador']]);
+        if ($chk['erro'] !== null) {
+            responder_erro($chk['erro'], 422, [
+                ['field' => 'arquivo', 'code' => 'CABECALHO_INVALIDO', 'message' => $chk['erro']],
+            ]);
+        }
     } else {
         $dados = corpo_json();
         if (empty($dados['elegiveis'])) {

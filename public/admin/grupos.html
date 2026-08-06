@@ -84,6 +84,7 @@
     .drawer input:focus, .drawer select:focus, .drawer textarea:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
     .drawer .hint { font-size: 12px; color: var(--muted); background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 4px 0; }
     .drawer .msg { font-size: 12px; min-height: 16px; margin-top: 10px; }
+    .drawer .msg.warn { color: #a15c00; font-weight: 600; }
     .drawer .msg.err { color: var(--err); } .drawer .msg.ok { color: var(--acc2); font-weight: 600; }
     .drawer .dfoot { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--line); background: var(--surface-2); }
     .relat { margin-top: 12px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
@@ -363,19 +364,51 @@
   }
   async function enviarImport() {
     const msg = document.getElementById('impMsg');
-    const grupos = parseCsv(document.getElementById('impTexto').value);
-    if (!grupos.length) { msg.className = 'msg err'; msg.textContent = 'Cole ao menos uma linha ou escolha um arquivo.'; return; }
+    const relat = document.getElementById('impRelat');
+    relat.innerHTML = '';   // nunca deixar o relatorio da tentativa anterior na tela
+
+    // Confere o cabecalho ANTES de enviar: antes, uma coluna obrigatoria ausente
+    // fazia todas as linhas sumirem no filtro e a tela acusava "cole ao menos uma
+    // linha" para quem tinha colado dezenas.
+    const texto = document.getElementById('impTexto').value;
+    const chk = CSV.conferir(texto, 'grupos');
+    if (chk.erro) { msg.className = 'msg err'; msg.textContent = chk.erro; return; }
+
+    const grupos = parseCsv(texto);
+    const descartadas = chk.total - grupos.length;
+    if (!grupos.length) {
+      msg.className = 'msg err';
+      msg.textContent = 'Nenhuma das ' + chk.total + ' linha(s) pode ser usada: falta o campo obrigatorio.';
+      return;
+    }
     msg.className = 'msg'; msg.textContent = 'Importando ' + grupos.length + ' linha(s)...';
     const d = await api('/interno/grupos/importar', 'POST', { grupos });
-    if (!d.success) { msg.className = 'msg err'; msg.textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Falha na importação.')); return; }
+    if (!d.success) { msg.className = 'msg err'; msg.textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Falha na importacao.')); return; }
     const x = d.data;
-    msg.className = 'msg ok'; msg.textContent = 'Concluído: ' + x.inseridos + ' novo(s), ' + x.atualizados + ' atualizado(s), ' + (x.erros || []).length + ' aviso(s).';
-    let html = '<div class="relat"><div class="rrow"><span>Inseridos</span><b>' + x.inseridos + '</b></div>'
+
+    // Verde so quando algo realmente entrou; amarelo quando entrou com ressalva.
+    const entraram = (x.inseridos || 0) + (x.atualizados || 0);
+    const ressalvas = (x.erros || []).length + descartadas + (chk.aviso ? 1 : 0);
+    msg.className = 'msg ' + (entraram === 0 ? 'err' : (ressalvas ? 'warn' : 'ok'));
+    msg.textContent = (entraram === 0 ? 'Nada foi importado' : 'Concluido')
+      + ': ' + x.inseridos + ' novo(s), ' + x.atualizados + ' atualizado(s)'
+      + (descartadas ? ', ' + descartadas + ' descartada(s) antes do envio' : '')
+      + ((x.erros || []).length ? ', ' + x.erros.length + ' rejeitada(s)' : '') + '.';
+
+    let html = '<div class="relat">';
+    if (chk.aviso) html += '<div class="erros"><div>' + esc(chk.aviso) + '</div></div>';
+    html += '<div class="rrow"><span>Inseridos</span><b>' + x.inseridos + '</b></div>'
       + '<div class="rrow"><span>Atualizados</span><b>' + x.atualizados + '</b></div>'
-      + '<div class="rrow"><span>Total de linhas</span><b>' + x.total + '</b></div>';
+      + '<div class="rrow"><span>Linhas no arquivo</span><b>' + chk.total + '</b></div>';
+    if (descartadas) html += '<div class="rrow"><span>Descartadas antes do envio (sem o campo obrigatorio)</span><b>' + descartadas + '</b></div>';
+    if (chk.amostra) {
+      html += '<div class="rrow"><span>Como li a 1a linha</span><b style="font-weight:500;text-align:right">'
+        + esc(Object.keys(chk.amostra).map(k => k + '=' + (chk.amostra[k] === null ? '-' : chk.amostra[k])).join(' | '))
+        + '</b></div>';
+    }
     if ((x.erros || []).length) html += '<div class="erros">' + x.erros.map(e => '<div>Linha ' + e.linha + ': ' + esc(e.motivo) + '</div>').join('') + '</div>';
     html += '</div>';
-    document.getElementById('impRelat').innerHTML = html;
+    relat.innerHTML = html;
     await carregar();
   }
 

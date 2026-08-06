@@ -56,7 +56,15 @@ Domínio com SSL. Sem framework e sem OO por padrão.
 # 3. Etapa atual
 
 ```txt
-Etapa atual (2026-08-05): RN-031 — vacinar pelo admin/portal e importar vacinados em massa.
+Etapa atual (2026-08-06): BUG-004 — mapeamento de erro e resposta visual das importações.
+Cabeçalho errado fazia as linhas sumirem no filtro do frontend e a tela dizia "Cole ao menos
+uma linha" para quem tinha colado dezenas; o verde "Concluído" aparecia mesmo com 0 inseridos;
+cabeçalho irreconhecível virava registro em silêncio; e o relatório da tentativa anterior
+ficava na tela. Regra única em CSV.conferir()/csv_conferir(), semáforo verde/amarelo/vermelho
+e relatório mostrando descartadas + como a 1ª linha foi lida. Evidência: 25/25 novos, suíte
+completa 108/108.
+
+Etapa anterior (2026-08-05): RN-031 — vacinar pelo admin/portal e importar vacinados em massa.
 Descoberta: as duas telas JÁ registravam vacinação, mas o backend travava por 'perfil' e dava
 403 no portal (botão existia, ação não funcionava). O gate passou a ser o acesso ao paciente.
 Novo: importação de vacinados por CSV em campanha ativa, com SIMULAÇÃO obrigatória antes de
@@ -130,6 +138,8 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | 2026-07-06 | `public/` como único document root | Esconder código/config/uploads | Deploy aponta docroot p/ public/ | Orquestrador (doc 05) |
 | 2026-08-05 | CSV: cabeçalho na 1ª linha manda; colunas mapeadas por NOME, não por posição | BUG-001: cabeçalho entrava como registro e o BOM do Excel quebrava a detecção | Contrato de importação (doc 09 §3.1); ordem das colunas deixou de importar | Orquestrador |
 | 2026-08-05 | Um leitor de CSV só: `app/helpers/csv.php` + espelho `public/assets/csv.js` | Havia 8 parsers duplicados (2 PHP + 6 JS), cada um com uma regra diferente | Qualquer ajuste futuro de coluna é feito em 2 lugares, não em 8 | Orquestrador |
+| 2026-08-06 | Cabeçalho reconhecido sem coluna obrigatória = erro que BLOQUEIA; cabeçalho irreconhecível = só aviso | BUG-004. Bloquear o segundo caso quebraria a leitura posicional que o BUG-001 preservou de propósito e que já está em uso | `CSV.conferir()`/`csv_conferir()` com `obrigatorias` por tipo | Orquestrador |
+| 2026-08-06 | Semáforo da importação: verde só quando algo entrou sem ressalva; amarelo com ressalva; vermelho quando nada entrou | O verde incondicional era o que fazia lixo passar despercebido | Nova classe `.msg.warn` nas 5 telas de importação | Orquestrador |
 | 2026-08-05 | Quem tem acesso aos dados do paciente pode registrar a vacinação dele (com log) | Decisão do usuário. O gate por 'perfil' dava 403 no portal, que exibia o botão mas não executava | Portal passa a vacinar de fato; desfazer segue interno | Usuário |
 | 2026-08-05 | Importar vacinados em massa SEMPRE simula antes de gravar (RN-031) | Decisão do usuário. Dose aplicada é dose faturada: arquivo errado com 5.000 linhas = fatura errada | Duas etapas na tela e na API (importar -> confirmar) | Usuário |
 | 2026-08-05 | CPF fora da lista: perguntar se cria o elegível; criando, RN-016/RN-018 continuam valendo | Decisão do usuário. Criar sem tipo de vínculo/lotação/matrícula geraria base suja e furaria a regra da lista | Arquivo precisa das colunas quando a opção é marcada; resolve a pendência do "elegível tardio" | Usuário + Orquestrador |
@@ -159,6 +169,7 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | 2026-07-06 | Scaffold backend PHP | app/*, api/v1/*, public/index.php, .env.example, .gitignore | arquivos gerados | Fundação procedural; health + login; não executado (sem PHP/MySQL) |
 | 2026-07-06 | Docker + deploy EasyPanel + Git | Dockerfile, docker/*, public/.htaccess, .dockerignore, scripts/migrar.php, docs/13 | commit ac5a892 | docroot public/; health em /api/v1/health; repo local (main) |
 | 2026-07-06 | Atualização do checkpoint | controle-projeto.md | este arquivo | — |
+| 2026-08-06 | BUG-004 corrigido: mensagem de erro mentia ("cole ao menos uma linha" com dezenas coladas), verde incondicional escondia importação vazia/errada, linhas descartadas em silêncio e relatório fantasma | public/assets/csv.js, app/helpers/csv.php, public/admin/{unidades,clientes,grupos,elegiveis}.html, public/portal/elegiveis.html, api/v1/interno/{elegiveis,importacao_vacinados}.php, docs/09, docs/12 | 25/25 novos casos + suíte completa 108/108; `php -l` limpo; JS das 5 telas validado | Leitura posicional (BUG-001) preservada: recebe aviso, não bloqueio |
 | 2026-08-05 | RN-031: vacinar pelo admin/portal (gate corrigido) + importar vacinados em massa com simulação e estorno de lote | database/migrations/031, app/services/importacao_aplicacoes.php (novo), app/services/aplicacoes.php, api/v1/interno/importacao_vacinados.php (novo), api/v1/interno/aplicacoes.php, api/v1/rotas.php, app/helpers/csv.php, scripts/processar_importacoes.php, public/{admin,portal}/vacinados.html, docs/02/04/09/12 | 27/27 casos contra banco real; `php -l` limpo; JS das 2 telas validado | Migration 031 pendente de deploy |
 | 2026-08-05 | BUG-003 corrigido: importação acima de ~2000 linhas nunca era processada (fila sem worker rodando) | docker/entrypoint.sh, scripts/processar_importacoes.php, public/admin/elegiveis.html, public/portal/elegiveis.html, docs/12, docs/13 | Container normal, sem cron, drenou 30.000 linhas em 285s (0 → 29.999 elegíveis); trava e recuperação validadas | Medições: 30k = 830 ms de parse e 36,6 MB de pico; 100k = 120,7 MB. `max_execution_time` do php.ini não afeta o CLI (é 0) |
 | 2026-08-05 | BUG-002 corrigido: campanha aparecia `null` (console.html usava `nome`, opcional desde a mig 026, em vez de `codigo`) | public/admin/console.html, api/v1/interno/relatorios.php, api/v1/interno/faturamento.php, api/v1/parceiro/consulta.php, docs/09, docs/12 | SQL no schema real: `campanha_antes = NULL` → `campanha_depois = IFT.2026.IC.GTE.CTE.1`; 16/16 no teste do rótulo; `php -l` limpo | Novo helper `rotuloCampanha()` no console; campanhas antigas sem código continuam pelo nome |
@@ -385,7 +396,13 @@ Status do deploy: preparado (Docker + docs/13), aguardando push e configuração
 # 13. Último checkpoint
 
 ```txt
-Última coisa feita (2026-08-05): RN-031 — vacinar pelo admin/portal e importar vacinados em
+Última coisa feita (2026-08-06): BUG-004 — mapeamento de erro e resposta visual das
+importações (unidades, clientes, grupos, elegíveis e vacinados). A conferência do cabeçalho
+virou regra única (CSV.conferir no frontend, csv_conferir no backend), o semáforo da tela
+passou a ter amarelo, o relatório mostra o que foi descartado e como a 1ª linha foi lida, e
+o relatório antigo é limpo a cada tentativa. Nada de banco: só frontend + 2 validações de API.
+
+Coisa feita antes (2026-08-05): RN-031 — vacinar pelo admin/portal e importar vacinados em
 massa. O gate de POST /aplicacoes deixou de ser por 'perfil' (que dava 403 no portal) e passou
 a ser o acesso ao paciente na campanha; desfazer continua interno. Nova importação por CSV em
 campanha ativa: simulação obrigatória, relatório de erros linha a linha, opção de criar o
