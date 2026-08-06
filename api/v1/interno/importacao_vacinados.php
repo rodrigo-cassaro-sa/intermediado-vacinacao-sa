@@ -262,24 +262,8 @@ function imp_vacinados_do_usuario(array $usuario, int $impId): array
     return $imp;
 }
 
-/** Texto amigável do código de erro (relatório ao cliente). */
+/** Texto amigável do código de erro. Catálogo único em app/helpers/mensagens_importacao.php. */
 function motivo_erro_vacinacao(string $codigo): string
 {
-    static $mapa = [
-        'CPF_INVALIDO'             => 'CPF inválido',
-        'SEM_IDENTIDADE'           => 'Sem CPF e sem identificador/voucher',
-        'NOME_OBRIGATORIO'         => 'Nome não informado (necessário para criar o elegível)',
-        'NAO_ELEGIVEL'             => 'Pessoa não está na lista de elegíveis da campanha',
-        'ELEGIVEL_NAO_CRIADO'      => 'Não foi possível criar o elegível (confira CPF, nome e data de nascimento)',
-        'VACINA_OBRIGATORIA'       => 'Vacina não informada na linha nem nos dados do lote',
-        'VACINA_FORA_DA_CAMPANHA'  => 'Vacina não prevista nesta campanha (use o nome ou a sigla do catálogo)',
-        'VACINADO_DUPLICADO'       => 'Esta dose desta vacina já consta para o paciente',
-        'FORA_DO_PERIODO'          => 'Data de aplicação fora do período da campanha',
-        'DATA_INVALIDA'            => 'Data de aplicação inválida (use AAAA-MM-DD)',
-        'CAMPANHA_INATIVA'         => 'A campanha não está ativa',
-        'CAMPO_OBRIGATORIO'        => 'Falta um campo obrigatório (lote, data, profissional, cidade ou UF)',
-        'CPF_PROFISSIONAL_INVALIDO' => 'CPF do profissional que aplicou é inválido',
-        'UF_INVALIDA'              => 'UF deve ter 2 letras',
-    ];
-    return $mapa[$codigo] ?? $codigo;
+    return msg_importacao($codigo);
 }

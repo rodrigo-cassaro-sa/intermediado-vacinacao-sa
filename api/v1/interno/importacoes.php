@@ -93,18 +93,8 @@ function importacao_do_usuario(array $usuario, int $importacaoId): array
     return $imp;
 }
 
-/** Texto amigável para o código de erro (relatório ao cliente). */
+/** Texto amigável do código de erro. Catálogo único em app/helpers/mensagens_importacao.php. */
 function motivo_erro_importacao(string $codigo): string
 {
-    static $mapa = [
-        'CPF_INVALIDO'               => 'CPF inválido',
-        'NOME_OBRIGATORIO'           => 'Nome não informado',
-        'DATA_NASCIMENTO_INVALIDA'   => 'Data de nascimento inválida',
-        'TIPO_VINCULO_INVALIDO'      => 'Tipo de vínculo inválido (use colaborador, dependente ou terceiro)',
-        'CPF_TITULAR_INVALIDO'       => 'CPF do titular inválido (dependente)',
-        'CPF_TITULAR_NAO_ELEGIVEL'   => 'Titular do dependente não é colaborador elegível na campanha',
-        'CODIGO_LOTACAO_OBRIGATORIO' => 'Código de lotação não informado',
-        'CODIGO_RH_OBRIGATORIO'      => 'Código de RH não informado',
-    ];
-    return $mapa[$codigo] ?? $codigo;
+    return msg_importacao($codigo);
 }

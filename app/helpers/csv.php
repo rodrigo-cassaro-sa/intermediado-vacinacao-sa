@@ -15,6 +15,8 @@
 // O espelho em JavaScript é public/assets/csv.js — manter os dois em sincronia.
 // ============================================================================
 
+require_once __DIR__ . '/mensagens_importacao.php';
+
 /** Remove o BOM UTF-8 que o Excel grava no início do arquivo. */
 function csv_sem_bom(string $texto): string
 {
@@ -171,11 +173,13 @@ function csv_parsear(string $conteudo, array $ordem, array $alias): array
 function csv_conferir(string $conteudo, array $ordem, array $alias,
                       array $obrigatorias = [], array $umaDe = []): array
 {
-    $r = ['erro' => null, 'aviso' => null, 'total' => 0, 'tem_cabecalho' => false, 'reconhecidas' => []];
+    $r = ['erro' => null, 'codigo' => null, 'detalhe' => null, 'aviso' => null,
+          'total' => 0, 'tem_cabecalho' => false, 'reconhecidas' => []];
 
     $linhas = array_values(array_filter(csv_linhas($conteudo), fn($l) => trim($l) !== ''));
     if (!$linhas) {
-        $r['erro'] = 'O arquivo está vazio.';
+        $r['codigo'] = 'ARQUIVO_VAZIO';
+        $r['erro'] = msg_importacao('ARQUIVO_VAZIO');
         return $r;
     }
 
@@ -194,19 +198,20 @@ function csv_conferir(string $conteudo, array $ordem, array $alias,
             if (!$achou) { $faltando[] = implode(' ou ', $grupo); }
         }
         if ($faltando) {
-            $r['erro'] = 'O cabeçalho do arquivo não traz ' . (count($faltando) > 1 ? 'as colunas' : 'a coluna')
-                . ' "' . implode('", "', $faltando) . '", então nenhuma linha pôde ser lida. Reconheci: '
-                . ($r['reconhecidas'] ? implode(', ', $r['reconhecidas']) : 'nenhuma coluna')
-                . '. Corrija a 1ª linha (ex.: ' . implode(';', $ordem) . ').';
+            $r['codigo'] = 'COLUNA_OBRIGATORIA_AUSENTE';
+            $r['erro'] = msg_importacao('COLUNA_OBRIGATORIA_AUSENTE', ['colunas' => '"' . implode('", "', $faltando) . '"']);
+            // Detalhe fica separado da mensagem: a frase principal continua curta.
+            $r['detalhe'] = 'Reconheci: ' . ($r['reconhecidas'] ? implode(', ', $r['reconhecidas']) : 'nenhuma coluna')
+                . '. Esperado: ' . implode(';', $ordem) . '.';
             return $r;
         }
     } else {
-        $r['aviso'] = 'Nenhum cabeçalho reconhecido: o arquivo foi lido pela ordem padrão ('
-            . implode(', ', $ordem) . '). Se a 1ª linha era um cabeçalho, ela entrou como registro.';
+        $r['aviso'] = msg_importacao('CABECALHO_NAO_RECONHECIDO', ['ordem' => implode(', ', $ordem)]);
     }
 
     if ($r['total'] === 0) {
-        $r['erro'] = 'O arquivo tem só o cabeçalho, sem nenhuma linha de dados.';
+        $r['codigo'] = 'SEM_LINHAS_DADOS';
+        $r['erro'] = msg_importacao('SEM_LINHAS_DADOS');
     }
     return $r;
 }

@@ -56,7 +56,15 @@ Domínio com SSL. Sem framework e sem OO por padrão.
 # 3. Etapa atual
 
 ```txt
-Etapa atual (2026-08-06): BUG-005 — status da unidade. A coluna nasce 'ativa' (feminino,
+Etapa atual (2026-08-06): BUG-006 — padronização das mensagens de erro das importações.
+As frases estavam longas, cada arquivo tinha a sua versão do mesmo problema e nenhuma dizia
+o que fazer. Agora há UM catálogo (app/helpers/mensagens_importacao.php + public/assets/
+mensagens.js) no padrão "<Problema>. <O que fazer>.", publicado em docs/19 com a tabela
+código -> quando acontece -> mensagem -> ação do usuário. A instrução de cabeçalho das telas
+de unidades/clientes/grupos foi reescrita ("1ª linha = cabeçalho", colunas e obrigatórias).
+Evidência: 12/12 do catálogo, suíte 139/139.
+
+Etapa anterior (2026-08-06): BUG-005 — status da unidade. A coluna nasce 'ativa' (feminino,
 como vacina/clinica/campanha) mas a API validava 'ativo' e a tela comparava com 'ativo':
 unidade nova sumia do filtro padrão, era pintada como "Inativa" e abria com o campo em
 branco. API e tela passaram a falar 'ativa'/'inativa', o "nasce ativa" ficou explícito nos
@@ -146,6 +154,8 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | 2026-07-06 | `public/` como único document root | Esconder código/config/uploads | Deploy aponta docroot p/ public/ | Orquestrador (doc 05) |
 | 2026-08-05 | CSV: cabeçalho na 1ª linha manda; colunas mapeadas por NOME, não por posição | BUG-001: cabeçalho entrava como registro e o BOM do Excel quebrava a detecção | Contrato de importação (doc 09 §3.1); ordem das colunas deixou de importar | Orquestrador |
 | 2026-08-05 | Um leitor de CSV só: `app/helpers/csv.php` + espelho `public/assets/csv.js` | Havia 8 parsers duplicados (2 PHP + 6 JS), cada um com uma regra diferente | Qualquer ajuste futuro de coluna é feito em 2 lugares, não em 8 | Orquestrador |
+| 2026-08-06 | Mensagem de erro tem catálogo único; o CÓDIGO é contrato, a MENSAGEM é reescrevível | BUG-006. Frase montada em cada arquivo produzia três textos para o mesmo problema. Integrações leem o código (vai no CSV de erros), então ele não pode mudar | docs/19 é a fonte oficial; teste falha se PHP, JS e doc divergirem | Orquestrador |
+| 2026-08-06 | Detalhe técnico ("Reconheci… Esperado…") sai da mensagem e vai para o campo `detalhe` | Mantém a frase principal curta sem perder a informação de diagnóstico | `csv_conferir`/`CSV.conferir` devolvem `codigo`, `erro` e `detalhe` | Orquestrador |
 | 2026-08-06 | Status concorda em GÊNERO com a entidade: unidade/vacina/clinica/campanha = `ativa`; cliente/usuario/grupo = `ativo` | BUG-005. O banco já estava certo; API e tela é que divergiam. Mudar o banco quebraria dados existentes e as outras entidades femininas | Convenção registrada no doc 17 §2 (a tabela estava vazia) | Orquestrador |
 | 2026-08-06 | API de unidade aceita as duas grafias e normaliza para a feminina | Durante o deploy, aba aberta com o JS antigo em cache ainda envia 'ativo' | Tolerância na entrada, vocabulário único no banco | Orquestrador |
 | 2026-08-06 | Cabeçalho reconhecido sem coluna obrigatória = erro que BLOQUEIA; cabeçalho irreconhecível = só aviso | BUG-004. Bloquear o segundo caso quebraria a leitura posicional que o BUG-001 preservou de propósito e que já está em uso | `CSV.conferir()`/`csv_conferir()` com `obrigatorias` por tipo | Orquestrador |
@@ -179,6 +189,7 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | 2026-07-06 | Scaffold backend PHP | app/*, api/v1/*, public/index.php, .env.example, .gitignore | arquivos gerados | Fundação procedural; health + login; não executado (sem PHP/MySQL) |
 | 2026-07-06 | Docker + deploy EasyPanel + Git | Dockerfile, docker/*, public/.htaccess, .dockerignore, scripts/migrar.php, docs/13 | commit ac5a892 | docroot public/; health em /api/v1/health; repo local (main) |
 | 2026-07-06 | Atualização do checkpoint | controle-projeto.md | este arquivo | — |
+| 2026-08-06 | BUG-006 corrigido: mensagens de erro das importações padronizadas em catálogo único, com documento oficial | app/helpers/mensagens_importacao.php (novo), public/assets/mensagens.js (novo), docs/19 (novo), app/helpers/csv.php, public/assets/csv.js, api/v1/interno/{importacoes,importacao_vacinados}.php, 6 telas, docs/README, docs/12 | 12/12 do catálogo; suíte 139/139 | Instrução de cabeçalho reescrita em unidades/clientes/grupos |
 | 2026-08-06 | BUG-005 corrigido: unidade só aparecia no filtro "Todas", exibida como "Inativa" e sem status na edição (banco fala `ativa`, API e tela falavam `ativo`) | api/v1/interno/acesso.php, public/admin/unidades.html, database/migrations/032 (nova), docs/12, docs/17 | 17/17 na tela + ciclo em MySQL real (base suja → 032 → idempotente); suíte 125/125 | Migration 032 normaliza dados já gravados; grupo/cliente (masculinos) não foram tocados |
 | 2026-08-06 | BUG-004 corrigido: mensagem de erro mentia ("cole ao menos uma linha" com dezenas coladas), verde incondicional escondia importação vazia/errada, linhas descartadas em silêncio e relatório fantasma | public/assets/csv.js, app/helpers/csv.php, public/admin/{unidades,clientes,grupos,elegiveis}.html, public/portal/elegiveis.html, api/v1/interno/{elegiveis,importacao_vacinados}.php, docs/09, docs/12 | 25/25 novos casos + suíte completa 108/108; `php -l` limpo; JS das 5 telas validado | Leitura posicional (BUG-001) preservada: recebe aviso, não bloqueio |
 | 2026-08-05 | RN-031: vacinar pelo admin/portal (gate corrigido) + importar vacinados em massa com simulação e estorno de lote | database/migrations/031, app/services/importacao_aplicacoes.php (novo), app/services/aplicacoes.php, api/v1/interno/importacao_vacinados.php (novo), api/v1/interno/aplicacoes.php, api/v1/rotas.php, app/helpers/csv.php, scripts/processar_importacoes.php, public/{admin,portal}/vacinados.html, docs/02/04/09/12 | 27/27 casos contra banco real; `php -l` limpo; JS das 2 telas validado | Migration 031 pendente de deploy |
@@ -407,7 +418,15 @@ Status do deploy: preparado (Docker + docs/13), aguardando push e configuração
 # 13. Último checkpoint
 
 ```txt
-Última coisa feita (2026-08-06): BUG-005 — status da unidade alinhado ao vocabulário do
+Última coisa feita (2026-08-06): BUG-006 — catálogo único das mensagens de erro das
+importações, publicado em docs/19 (código -> quando acontece -> mensagem -> ação). Padrão
+"<Problema>. <O que fazer>.", até 120 caracteres, sem jargão. O detalhe técnico saiu da
+frase e virou campo `detalhe`. A instrução de cabeçalho das telas foi reescrita.
+OBS: sobre "erro na importação de unidade", testei os cabeçalhos (modelo, sinônimos, BOM,
+linha em branco no início, sem cabeçalho) e todos passam — o que estava ruim ali era o
+TEXTO da instrução, não o parser. Se reaparecer, pedir o arquivo exato ao usuário.
+
+Coisa feita antes (2026-08-06): BUG-005 — status da unidade alinhado ao vocabulário do
 banco (`ativa`/`inativa`), regra "nasce ativa" explícita nos INSERTs e migration 032
 normalizando o que já estava gravado. A tabela de status oficiais do doc 17 §2 foi
 preenchida — estava vazia, e era a lacuna que deixou API e banco divergirem.

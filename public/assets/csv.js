@@ -69,6 +69,17 @@
     return out.map(function (s) { return s.trim(); });
   }
 
+  /**
+   * Texto do catálogo (public/assets/mensagens.js), resolvido na hora do uso.
+   * Se o catálogo não tiver carregado, devolve o próprio código em vez de estourar:
+   * um arquivo faltando não pode derrubar a importação inteira.
+   */
+  function msg(codigo, ctx) {
+    var cat = (typeof window !== 'undefined' && window.MSG) ? window.MSG
+            : ((typeof globalThis !== 'undefined' && globalThis.MSG) ? globalThis.MSG : null);
+    return cat ? cat.texto(codigo, ctx) : codigo;
+  }
+
   /** Índice normalizado alias -> campo canônico. */
   function indiceAlias(alias) {
     var idx = {};
@@ -149,10 +160,11 @@
     if (!def) throw new Error('CSV: mapa desconhecido "' + tipo + '"');
 
     var limpo = semBom(texto).replace(/^\s+|\s+$/g, '');
-    var r = { vazio: limpo === '', total: 0, temCabecalho: false,
-              reconhecidas: [], faltando: [], erro: null, aviso: null, amostra: null };
+    var r = { vazio: limpo === '', total: 0, temCabecalho: false, reconhecidas: [],
+              faltando: [], codigo: null, erro: null, detalhe: null, aviso: null, amostra: null };
     if (r.vazio) {
-      r.erro = 'Cole ao menos uma linha ou escolha um arquivo.';
+      r.codigo = 'ARQUIVO_VAZIO';
+      r.erro = msg('ARQUIVO_VAZIO');
       return r;
     }
 
@@ -166,22 +178,24 @@
     if (head.temCabecalho) {
       r.faltando = obrig.filter(function (c) { return head.posicoes[c] === undefined; });
       if (r.faltando.length) {
-        r.erro = 'O cabeçalho não traz ' + (r.faltando.length > 1 ? 'as colunas' : 'a coluna')
-          + ' ' + r.faltando.map(function (c) { return '"' + c + '"'; }).join(', ')
-          + ', então nenhuma linha pôde ser lida. Reconheci: '
-          + (r.reconhecidas.length ? r.reconhecidas.join(', ') : 'nenhuma coluna')
-          + '. Corrija a 1ª linha do arquivo (ex.: ' + def.ordem.join(';') + ').';
+        r.codigo = 'COLUNA_OBRIGATORIA_AUSENTE';
+        r.erro = msg('COLUNA_OBRIGATORIA_AUSENTE', {
+          colunas: r.faltando.map(function (c) { return '"' + c + '"'; }).join(', ')
+        });
+        // Detalhe separado da mensagem: a frase principal continua curta.
+        r.detalhe = 'Reconheci: ' + (r.reconhecidas.length ? r.reconhecidas.join(', ') : 'nenhuma coluna')
+          + '. Esperado: ' + def.ordem.join(';') + '.';
         return r;
       }
     } else {
       // Sem cabeçalho reconhecido o arquivo é lido pela ORDEM padrão — inclusive a
       // 1ª linha. Se ela era um cabeçalho fora do padrão, vira registro.
-      r.aviso = 'Não reconheci um cabeçalho: li o arquivo pela ordem padrão '
-        + def.ordem.join(', ') + '. Se a 1ª linha for um cabeçalho, ela vai entrar como registro.';
+      r.aviso = msg('CABECALHO_NAO_RECONHECIDO', { ordem: def.ordem.join(', ') });
     }
 
     if (r.total === 0) {
-      r.erro = 'O arquivo tem só o cabeçalho, sem nenhuma linha de dados.';
+      r.codigo = 'SEM_LINHAS_DADOS';
+      r.erro = msg('SEM_LINHAS_DADOS');
       return r;
     }
 

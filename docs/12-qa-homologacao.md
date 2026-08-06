@@ -118,6 +118,19 @@ feminina: `ativa`/`inativa`.
 | Migration 032 | Base com `ativo`/`inativo`/vazio | Vira `ativa`/`inativa`/`ativa`; rodar de novo não muda nada | ok (auto, MySQL real) |
 | Legado na tela | Linha ainda com `ativo` | Badge e formulário tratam como ativa (tolerância durante o deploy) | ok (auto) |
 
+## 2.1g Catálogo de mensagens de erro (BUG-006)
+
+Código estável + mensagem única, nos dois lados. Tabela oficial em **docs/19**.
+
+| Fluxo | Passos | Resultado esperado | Status |
+|---|---|---|---|
+| PHP e JS não divergem | Comparar os dois catálogos | Mesmos códigos e mesmos textos | ok (auto) |
+| Padrão da mensagem | Todas as entradas do catálogo | Até 120 caracteres, terminam em ponto, sem jargão (`null`, `parser`, `ctx`) | ok (auto) |
+| Documentação em dia | Cada código do catálogo | Aparece na tabela do doc 19 | ok (auto) |
+| Sem código órfão | Códigos emitidos por `csv.php`, `importacao_aplicacoes.php`, `elegiveis.php` e as rotas | Todos existem no catálogo (17 conferidos) — senão o usuário veria a sigla crua | ok (auto) |
+| Catálogo ausente | `mensagens.js` não carrega (404/cache) | `CSV.conferir` devolve o código em vez de estourar `ReferenceError` | ok (auto) |
+| Detalhe separado | Cabeçalho sem coluna obrigatória | Mensagem curta + `detalhe` com "Reconheci… / Esperado…" | ok (auto) |
+
 ## 2.2 Telas a validar em homologação (manual)
 
 | Tela | Caminho | O que validar |
@@ -163,7 +176,8 @@ feminina: `ativa`/`inativa`.
 | 2026-08-05 | local (php:8.3-cli + Node 22) | automatizado | BUG-001: backend 37/37 e frontend 35/35 casos aprovados; `php -l` limpo nos 7 arquivos PHP tocados |
 | 2026-08-05 | local (mysql:8 + Node 22) | automatizado | BUG-002: 31 migrations aplicadas em banco limpo; as 3 queries alteradas rodaram contra o schema real; 16/16 casos do rótulo da campanha |
 | 2026-08-05 | local (imagem real do projeto + mysql:8) | automatizado | BUG-003: container normal, **sem nenhum cron**, drenou 30.000 elegíveis em **285s** (0 → 29.999 no banco); trava e recuperação de importação travada validadas |
-| 2026-08-06 | local (Node 22 + mysql:8) | automatizado | BUG-005: 17/17 casos da tela + ciclo de status em MySQL real (migrations 000..032). Suíte completa: 125 casos (17 + 25 + 37 + 16 + 30) |
+| 2026-08-06 | local (Node 22 + php:8.3-cli) | automatizado | BUG-006: 12/12 do catálogo de mensagens. Suíte completa: 139 casos (12 + 27 + 17 + 16 + 37 + 30) |
+| 2026-08-06 | local (Node 22 + mysql:8) | automatizado | BUG-005: 17/17 casos da tela + ciclo de status em MySQL real (migrations 000..032) |
 | 2026-08-06 | local (Node 22 + php:8.3-cli) | automatizado | BUG-004: 25/25 casos de mapeamento de erro e resposta visual |
 | 2026-08-05 | local (imagem real do projeto + mysql:8) | automatizado | RN-031: 27/27 casos da importação de vacinados (simulação, confirmação, criar elegível, estorno de lote, duplicidade, período, vacina por nome/sigla) |
 |  | homolog (EasyPanel) | pendente | validar as 6 telas da tabela 2.2 após o deploy |
@@ -174,6 +188,7 @@ feminina: `ativa`/`inativa`.
 
 | Código | Descrição | Gravidade | Status | Evidência |
 |---|---|---|---|---|
+| BUG-006 | Mensagens de erro das importações escritas como frases longas, cada arquivo com a sua versão do mesmo problema, sem dizer o que fazer | média | corrigido | Catálogo único (PHP + JS) + docs/19; 12 casos garantem que os dois lados e o doc não divergem |
 | BUG-005 | Unidades só apareciam no filtro "Todas", eram exibidas como "Inativas" e abriam com o status em branco na edição. Causa: `unidade.status` nasce `'ativa'` (DEFAULT da coluna, gênero feminino como vacina/clinica/campanha), mas a API validava `['ativo','inativo']` e a tela comparava com `'ativo'` — um único descasamento de vocabulário produzindo os três sintomas | média | corrigido | 17 casos sobre as expressões reais da tela + ciclo completo em MySQL real (base suja → migration 032 → idempotência) |
 | BUG-004 | Importação com cabeçalho errado: a tela acusava "Cole ao menos uma linha" para quem tinha colado dezenas (as linhas caíam no `.filter()` do frontend por falta da coluna obrigatória e sumiam sem explicação). Pior, o `msg ok` verde era aplicado mesmo com 0 inseridos, e um cabeçalho irreconhecível virava registro em silêncio — o relatório da tentativa anterior também ficava na tela | alta | corrigido | 25 casos automatizados sobre as funções reais das telas; antes/depois de cada cabeçalho documentado em 2.1e |
 | BUG-003 | Importação acima de ~2000 linhas nunca acontecia: o lote ia para a fila (`pendente`) e o worker `scripts/processar_importacoes.php` dependia de um Cron Job do EasyPanel que nunca foi criado. Abaixo de 2000 funcionava (inline), o que dava a impressão de um "teto" de ~1500 | alta | corrigido | Container normal, sem cron nenhum, drenou 30.000 linhas; `worker.log` linha 1: "Processando importação de elegíveis #1 ... concluída #1" |

@@ -7,6 +7,7 @@
   <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
   <link rel="stylesheet" href="/assets/marca.css" />
   <script src="/assets/csv.js"></script>
+  <script src="/assets/mensagens.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
   <style>
@@ -649,7 +650,7 @@
     // Confere o cabecalho antes de enviar, com motivo (BUG-004).
     const textoCsv = document.getElementById('csvTexto').value;
     const chk = CSV.conferir(textoCsv, 'elegiveis');
-    if (chk.erro) { msg.className = 'msg err'; msg.textContent = chk.erro; return; }
+    if (chk.erro) { msg.className = 'msg err'; msg.textContent = chk.erro + (chk.detalhe ? ' ' + chk.detalhe : ''); return; }
     const elegiveis = parseElegiveis(textoCsv);
     if (!elegiveis.length) { msg.className = 'msg err'; msg.textContent = 'Nenhuma das ' + chk.total + ' linha(s) pode ser usada.'; return; }
     if (chk.aviso) { msg.className = 'msg warn'; msg.textContent = chk.aviso; }

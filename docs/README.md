@@ -98,6 +98,7 @@ documento da área afetada dentro de doc/
 16-handoff-proxima-ia-programador.md
 17-glossario-padroes-projeto.md
 18-incidentes-pos-mortem.md
+19-mensagens-erro-importacao.md
 ```
 
 ## Regra final

@@ -7,6 +7,7 @@
   <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
   <link rel="stylesheet" href="/assets/marca.css" />
   <script src="/assets/csv.js"></script>
+  <script src="/assets/mensagens.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
   <style>
@@ -241,9 +242,10 @@
     <div class="box">
       <div class="dhead"><h3>Importar unidades (CSV)</h3><button class="x" onclick="fecharImport()"><span class="material-symbols-outlined">close</span></button></div>
       <div class="dbody">
-        <div class="hint">Unidades do cliente <b id="impCli">—</b>. Uma linha por unidade (separador <b>;</b> ou vírgula):<br>
-          <b>nome;codigo_lotacao;cidade;uf</b><br>
-          Com cabeçalho na 1ª linha, a ordem das colunas não importa. Atualiza pelo código de lotação (ou pelo nome, se o código estiver vazio).</div>
+        <div class="hint">Unidades do cliente <b id="impCli">—</b>. Separador <b>;</b> ou vírgula.<br>
+          <b>1ª linha = cabeçalho</b> com os nomes das colunas. Com ele, a ordem não importa.<br>
+          Colunas: <b>nome;codigo_lotacao;cidade;uf</b> — obrigatória: <b>nome</b>.<br>
+          Sem cabeçalho, as colunas são lidas nessa ordem. Atualiza pelo código de lotação (ou pelo nome, se o código estiver vazio).</div>
         <button class="btn sec" style="margin:4px 0 8px" onclick="baixarModelo()"><span class="material-symbols-outlined">download</span> Baixar modelo (CSV)</button>
         <label>Colar linhas (CSV)</label>
         <textarea id="impTexto" rows="7" placeholder="Matriz;LOT-01;Sao Paulo;SP"></textarea>
@@ -418,7 +420,7 @@
     // linha" para quem tinha colado dezenas.
     const texto = document.getElementById('impTexto').value;
     const chk = CSV.conferir(texto, 'unidades');
-    if (chk.erro) { msg.className = 'msg err'; msg.textContent = chk.erro; return; }
+    if (chk.erro) { msg.className = 'msg err'; msg.textContent = chk.erro + (chk.detalhe ? ' ' + chk.detalhe : ''); return; }
 
     const unidades = parseCsv(texto);
     const descartadas = chk.total - unidades.length;
