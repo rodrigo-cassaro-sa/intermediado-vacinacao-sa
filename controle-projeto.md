@@ -56,6 +56,14 @@ Domínio com SSL. Sem framework e sem OO por padrão.
 # 3. Etapa atual
 
 ```txt
+ESTADO DO DEPLOY (verificado em 2026-08-07 pelo /health e pelos assets servidos):
+homologação está com TUDO até o commit 3a89b3b (BUG-007). Migrations 031 e 032 APLICADAS.
+Confirmado no ar: /assets/mensagens.js responde 200, /interno/importacoes-vacinados dá 401
+(rota existe) e o csv.js servido já bloqueia cabeçalho não reconhecido.
+NÃO está no ar: TL-205 (commit 56445a8) — /interno/elegiveis/vacinacao ainda dá 404.
+Pendência de rastreabilidade: APP_VERSION não está configurada no painel, então o /health
+responde "versao: dev" e não dá para saber qual commit está rodando sem sondar rotas.
+
 Etapa atual (2026-08-07): TL-205 — vacinação individual (atendimento no posto). O fluxo das
 telas exigia escolher a campanha e achar a pessoa na lista; no posto é o contrário: a pessoa
 chega e o CPF resolve. Novo GET /interno/elegiveis/vacinacao busca por CPF/voucher/matrícula/
@@ -271,12 +279,12 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | MARCA | Identidade visual "S&A Imunizações" (tema claro azul+verde; public/assets/marca.css + favicon; portal e admin) | frontend | média | feito |
 | HIST-IMPORT | Importar vacinados de anos anteriores (RN-027, mig 024): auto-cria campanha modalidade 'historico' por cliente/vacina/ano; app/services/historico_import.php; POST /interno/clientes/{id}/vacinados-historico/importar (interno-only, tolera lote/prof/cidade ausentes, aceita data AAAA-MM-DD ou só o ano); console admin §10b | backend/frontend | média | feito |
 | HIST-IMPORT+ | Ajustes: (a) auto-cria vacina no catálogo se não existir (nome normalizado) — retorna vacinas_criadas; (b) ASSÍNCRONO p/ lotes >2000 (mig 025 importacao_historico + worker em processar_importacoes.php) com status GET /interno/importacoes-historico/{id}; inline p/ lotes pequenos | backend/frontend | média | feito |
-| BUG-001 | CSV: 1ª linha = cabeçalho e mapeamento por nome da coluna em todas as importações (leitor único csv.php/csv.js) | QA/backend/frontend | alta | feito — falta validar nas telas em homolog |
-| BUG-002 | Campanha identificada pelo `codigo` no console e nos endpoints de carteira/resumo/faturamento | QA/frontend/backend | média | feito — falta validar nas telas em homolog |
-| BUG-003 | Worker da fila embutido no container + progresso da importação na tela (listas de 20k–30k) | deploy/backend/frontend | alta | feito — exige redeploy e volume em storage/uploads |
+| BUG-001 | CSV: 1ª linha = cabeçalho e mapeamento por nome da coluna em todas as importações (leitor único csv.php/csv.js) | QA/backend/frontend | alta | feito e NO AR |
+| BUG-002 | Campanha identificada pelo `codigo` no console e nos endpoints de carteira/resumo/faturamento | QA/frontend/backend | média | feito e NO AR |
+| BUG-003 | Worker da fila embutido no container + progresso da importação na tela (listas de 20k–30k) | deploy/backend/frontend | alta | feito e NO AR — confirmar que storage/uploads é volume persistente |
 | V2 | Autoadesão B2C (consentimento) + venda de voucher (pagamento) | — | baixa | pendente |
-| RN-031 | Vacinar pelo portal/admin + importar vacinados em massa (simulação obrigatória, estorno de lote) | backend/frontend/QA | alta | feito — exige aplicar a migration 031 |
-| Banco: migrations até 032 | — | — | — | 026 código de campanha · 027..030 · **031 importação de vacinados em massa** · **032 normaliza unidade.status** |
+| RN-031 | Vacinar pelo portal/admin + importar vacinados em massa (simulação obrigatória, estorno de lote) | backend/frontend/QA | alta | feito e NO AR (migration 031 aplicada) — falta validar nas telas |
+| Banco: migrations até 032 | — | — | — | **031 e 032 APLICADAS em homologação (2026-08-07)**. 026 código de campanha · 027..030 · 031 importação de vacinados em massa · 032 normaliza unidade.status |
 | Banco: migrations até 025 | — | — | — | 023 consentimento · 024 import histórico · 025 fila import histórico |
 | backlog | Rastreabilidade extra: fabricante/validade lote, conselho profissional, comprovante, idempotência (recomendado) | especialista-backend | baixa/média | pendente |
 | 9 | Telas reais (portal B2B / painel operador) saindo do console de testes | especialista-design/frontend | média | pendente |
@@ -327,6 +335,7 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | Lixo já gravado por importações anteriores (linhas "cpf/nome/razao_social" viradas registro) | dados | média | PENDENTE: varrer elegíveis/unidades/clientes/grupos em homolog e produção e remover os registros criados a partir de cabeçalho | aberto |
 | Fila de importação dependendo de Cron Job criado à mão no painel | operação | alta | RESOLVIDO: worker embutido no `docker/entrypoint.sh`, com lock e recuperação de importação travada (BUG-003) | mitigado |
 | `AUTO_MIGRAR=false` no `.env` NÃO trava migration automática | deploy/banco | média | O entrypoint é shell e não lê o `.env` (lido pelo PHP). Se em produção alguém confiar nisso, a migration roda assim mesmo no deploy. Documentado no `.env.example` §2 e no doc 13 §3.1 — precisa ser definida no painel do EasyPanel | mitigado (documentado) |
+| APP_VERSION não configurada: /health responde "versao: dev" e não identifica o commit publicado | operação/rastreabilidade | média | PENDENTE: definir APP_VERSION no EasyPanel a cada deploy. Hoje só dá para saber o que está no ar sondando rotas e assets | aberto |
 | `storage/uploads` sem volume persistente derruba importação grande na fila | operação/dados | alta | PENDENTE DE CONFIRMAÇÃO: o arquivo do lote mora lá; redeploy no meio do processamento faz a importação virar `falha`. Checklist reforçado no doc 13 §6 | aberto |
 | Importação de vacinados errada gera faturamento errado | financeiro | alta | MITIGADO: simulação obrigatória + estorno do lote por `importacao_aplicacoes_id` + histórico dos lotes na tela, para o interno achar e desfazer o que o cliente importou. Decisão: estornar é só do interno; o cliente confere mas não desfaz | mitigado |
 | Ingestão linha a linha: 30k levou 285s (~105 linhas/s) | performance | baixa | Aceitável em segundo plano com progresso na tela. Se um dia precisar de 100k+ em minutos, avaliar INSERT em lote / dedup por consulta única antes do loop | aberto |
@@ -439,6 +448,11 @@ Status do deploy: preparado (Docker + docs/13), aguardando push e configuração
 # 13. Último checkpoint
 
 ```txt
+DEPLOY: homologação está no commit 3a89b3b (BUG-007), com as migrations 031 e 032 já
+aplicadas. Só a TL-205 (56445a8) ainda não subiu. Verificação feita por sondagem de rotas e
+assets porque APP_VERSION não está configurada — configure-a no painel para o /health passar
+a dizer o commit publicado (rastreabilidade de produção, orquestrador §10).
+
 Última coisa feita (2026-08-07): TL-205 — vacinação individual. Popup de atendimento nas
 telas de vacinados do admin e do portal: digita CPF/voucher/matrícula/nome, o sistema acha a
 pessoa em todas as campanhas do escopo, diz o que ela pode tomar (e por que não, quando for o
