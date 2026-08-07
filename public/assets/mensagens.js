@@ -23,7 +23,7 @@
     ARQUIVO_VAZIO:              'Nenhuma linha para importar. Cole as linhas ou escolha um arquivo.',
     SEM_LINHAS_DADOS:           'O arquivo tem só o cabeçalho. Inclua ao menos uma linha de dados.',
     COLUNA_OBRIGATORIA_AUSENTE: 'Falta a coluna {colunas} no cabeçalho. Corrija a 1ª linha do arquivo.',
-    CABECALHO_NAO_RECONHECIDO:  'Sem cabeçalho reconhecido. As colunas foram lidas nesta ordem: {ordem}.',
+    CABECALHO_NAO_RECONHECIDO:  'Nomes de coluna não reconhecidos na 1ª linha. Use: {ordem}.',
     NENHUMA_LINHA_UTIL:         'Nenhuma das {total} linha(s) pôde ser usada. Confira as colunas obrigatórias.',
     ARQUIVO_GRANDE:             'Arquivo muito grande. Envie até 20 MB.',
     ARQUIVO_INVALIDO:           'Formato não aceito. Envie um arquivo .csv.',

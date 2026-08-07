@@ -150,12 +150,14 @@ Autenticação: sessão + CSRF. Content-Type: multipart/form-data (arquivo).
 #### Leitura do CSV (vale para TODAS as importações do sistema)
 
 ```txt
-1ª linha  = CABEÇALHO sempre que trouxer nomes de coluna reconhecidos.
-            Nesse caso o mapeamento é POR NOME e a ORDEM das colunas não importa;
-            colunas desconhecidas são ignoradas e coluna ausente vira null.
-Sem cabeçalho reconhecível, vale a ordem posicional padrão:
-            cpf, nome, data_nascimento, tipo_vinculo, cpf_titular,
-            codigo_lotacao, codigo_rh, identificador
+1ª linha = CABEÇALHO, SEMPRE. O mapeamento é POR NOME, então a ORDEM das
+           colunas não importa; coluna desconhecida é ignorada e coluna ausente
+           vira null.
+Nomes não reconhecidos = 422 CABECALHO_NAO_RECONHECIDO. NÃO existe leitura
+           posicional: adivinhar a ordem fazia a própria linha de cabeçalho
+           entrar como registro quando o usuário errava um nome de coluna.
+Esperado: cpf, nome, data_nascimento, tipo_vinculo, cpf_titular, codigo_lotacao,
+           codigo_rh, identificador (sinônimos na tabela abaixo).
 Delimitador: ; , TAB ou | (detectado pela 1ª linha).
 BOM UTF-8 (Excel), acentos, maiúsculas/minúsculas e aspas são normalizados.
 ```
@@ -190,8 +192,14 @@ mas não traz uma coluna sem a qual nenhuma linha pode ser lida:
 ```
 
 Obrigatórias por importação: elegíveis = `nome` + (`cpf` **ou** `identificador`);
-vacinados em massa = (`cpf` **ou** `identificador`). Arquivo **sem** cabeçalho continua
-aceito (leitura posicional) — nesse caso vem um aviso, não um erro.
+vacinados em massa = (`cpf` **ou** `identificador`).
+
+> **Mudança de contrato (2026-08-07).** Antes, um CSV sem cabeçalho reconhecível era lido
+> pela ordem posicional. Isso fazia a própria linha de cabeçalho entrar como registro quando
+> os nomes das colunas vinham errados. Agora a 1ª linha é **sempre** o cabeçalho e nomes não
+> reconhecidos devolvem 422 `CABECALHO_NAO_RECONHECIDO`, com a 1ª linha lida no detalhe.
+> Nenhuma integração é afetada: a API do parceiro recebe **JSON**, nunca CSV — o CSV só
+> chega por upload humano nas telas, e todos os modelos gerados já trazem cabeçalho.
 
 Implementação: `app/helpers/csv.php` (backend) e `public/assets/csv.js` (telas).
 Teste: `php scripts/testar_csv.php`.

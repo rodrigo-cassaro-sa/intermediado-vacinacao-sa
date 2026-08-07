@@ -541,8 +541,8 @@
     document.getElementById('tabCsv').classList.toggle('on', aba === 'csv');
   }
 
-  // Texto -> lista de elegíveis. A 1ª linha é cabeçalho quando traz os nomes das
-  // colunas (em qualquer ordem); sem cabeçalho, vale a ordem padrão. Ver /assets/csv.js.
+  // Texto -> lista de elegíveis. A 1ª linha é SEMPRE o cabeçalho (a ordem não
+  // importa); nome não reconhecido para a importação. Ver /assets/csv.js.
   function parseElegiveis(t) {
     return CSV.parsear(t, 'elegiveis').map(e => ({ ...e, cpf: e.cpf || '', nome: e.nome || '' }));
   }

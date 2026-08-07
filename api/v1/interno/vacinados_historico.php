@@ -36,6 +36,16 @@ function rota_importar_vacinados_historico(array $params): void
         ]);
     }
 
+    // Mesma porta de entrada das demais importações: a 1ª linha tem de ser um
+    // cabeçalho reconhecível, senão ela entraria como registro (BUG-007).
+    $chk = csv_conferir($csv, csv_ordem_historico(), csv_alias_historico(),
+        ['vacina', 'aplicado_em'], [['cpf', 'identificador']]);
+    if ($chk['erro'] !== null) {
+        responder_erro($chk['erro'], 422, [
+            ['field' => 'csv', 'code' => $chk['codigo'], 'message' => $chk['erro'] . ($chk['detalhe'] ? ' ' . $chk['detalhe'] : '')],
+        ]);
+    }
+
     $res = historico_import_iniciar($tenantId, $csv, ator_usuario($usuario));
 
     if ($res['status'] === 'concluida') {

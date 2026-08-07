@@ -56,7 +56,15 @@ Domínio com SSL. Sem framework e sem OO por padrão.
 # 3. Etapa atual
 
 ```txt
-Etapa atual (2026-08-06): BUG-006 — padronização das mensagens de erro das importações.
+Etapa atual (2026-08-07): BUG-007 — a 1ª linha é SEMPRE o cabeçalho. Com nome de coluna
+errado, a importação caía na leitura posicional e a própria linha de cabeçalho entrava como
+registro. REVERTE a decisão que tomei no BUG-004 (avisar em vez de bloquear, para preservar
+o import sem cabeçalho): fui verificar a premissa e ela era falsa — a API do parceiro só
+aceita JSON, todo CSV vem de upload humano e todo modelo gerado já traz cabeçalho. A
+compatibilidade que eu protegia não tinha usuário. Agora bloqueia, com a 1ª linha lida no
+detalhe. Evidência: 20/20, suíte 159/159.
+
+Etapa anterior (2026-08-06): BUG-006 — padronização das mensagens de erro das importações.
 As frases estavam longas, cada arquivo tinha a sua versão do mesmo problema e nenhuma dizia
 o que fazer. Agora há UM catálogo (app/helpers/mensagens_importacao.php + public/assets/
 mensagens.js) no padrão "<Problema>. <O que fazer>.", publicado em docs/19 com a tabela
@@ -154,6 +162,8 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | 2026-07-06 | `public/` como único document root | Esconder código/config/uploads | Deploy aponta docroot p/ public/ | Orquestrador (doc 05) |
 | 2026-08-05 | CSV: cabeçalho na 1ª linha manda; colunas mapeadas por NOME, não por posição | BUG-001: cabeçalho entrava como registro e o BOM do Excel quebrava a detecção | Contrato de importação (doc 09 §3.1); ordem das colunas deixou de importar | Orquestrador |
 | 2026-08-05 | Um leitor de CSV só: `app/helpers/csv.php` + espelho `public/assets/csv.js` | Havia 8 parsers duplicados (2 PHP + 6 JS), cada um com uma regra diferente | Qualquer ajuste futuro de coluna é feito em 2 lugares, não em 8 | Orquestrador |
+| 2026-08-07 | A 1ª linha é SEMPRE o cabeçalho; nome de coluna não reconhecido BLOQUEIA a importação | BUG-007, decisão do usuário. Reverte o BUG-004, onde eu escolhi avisar para não quebrar o import posicional — premissa que se mostrou falsa (parceiro só manda JSON; CSV é sempre upload humano com modelo cabeçalhado) | Contrato do doc 09 alterado; `csv_parsear` mantém o fallback, mas nenhum ponto de entrada o alcança | Usuário |
+| 2026-08-07 | A regra é garantida por teste que enumera os pontos de entrada de CSV | Regra centralizada só vale se não houver porta lateral; havia duas (histórico e console) | 9 pontos conferidos automaticamente | Orquestrador |
 | 2026-08-06 | Mensagem de erro tem catálogo único; o CÓDIGO é contrato, a MENSAGEM é reescrevível | BUG-006. Frase montada em cada arquivo produzia três textos para o mesmo problema. Integrações leem o código (vai no CSV de erros), então ele não pode mudar | docs/19 é a fonte oficial; teste falha se PHP, JS e doc divergirem | Orquestrador |
 | 2026-08-06 | Detalhe técnico ("Reconheci… Esperado…") sai da mensagem e vai para o campo `detalhe` | Mantém a frase principal curta sem perder a informação de diagnóstico | `csv_conferir`/`CSV.conferir` devolvem `codigo`, `erro` e `detalhe` | Orquestrador |
 | 2026-08-06 | Status concorda em GÊNERO com a entidade: unidade/vacina/clinica/campanha = `ativa`; cliente/usuario/grupo = `ativo` | BUG-005. O banco já estava certo; API e tela é que divergiam. Mudar o banco quebraria dados existentes e as outras entidades femininas | Convenção registrada no doc 17 §2 (a tabela estava vazia) | Orquestrador |
@@ -189,6 +199,7 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | 2026-07-06 | Scaffold backend PHP | app/*, api/v1/*, public/index.php, .env.example, .gitignore | arquivos gerados | Fundação procedural; health + login; não executado (sem PHP/MySQL) |
 | 2026-07-06 | Docker + deploy EasyPanel + Git | Dockerfile, docker/*, public/.htaccess, .dockerignore, scripts/migrar.php, docs/13 | commit ac5a892 | docroot public/; health em /api/v1/health; repo local (main) |
 | 2026-07-06 | Atualização do checkpoint | controle-projeto.md | este arquivo | — |
+| 2026-08-07 | BUG-007 corrigido: cabeçalho com nomes errados entrava como registro | public/assets/csv.js, app/helpers/csv.php, os 2 catálogos, api/v1/interno/vacinados_historico.php, public/admin/console.html, 5 telas (comentários), docs/09, docs/12, docs/19 | 20/20 + suíte 159/159; teste prova que os 9 pontos de entrada conferem | Sem migration. Mudança de contrato documentada no doc 09 |
 | 2026-08-06 | BUG-006 corrigido: mensagens de erro das importações padronizadas em catálogo único, com documento oficial | app/helpers/mensagens_importacao.php (novo), public/assets/mensagens.js (novo), docs/19 (novo), app/helpers/csv.php, public/assets/csv.js, api/v1/interno/{importacoes,importacao_vacinados}.php, 6 telas, docs/README, docs/12 | 12/12 do catálogo; suíte 139/139 | Instrução de cabeçalho reescrita em unidades/clientes/grupos |
 | 2026-08-06 | BUG-005 corrigido: unidade só aparecia no filtro "Todas", exibida como "Inativa" e sem status na edição (banco fala `ativa`, API e tela falavam `ativo`) | api/v1/interno/acesso.php, public/admin/unidades.html, database/migrations/032 (nova), docs/12, docs/17 | 17/17 na tela + ciclo em MySQL real (base suja → 032 → idempotente); suíte 125/125 | Migration 032 normaliza dados já gravados; grupo/cliente (masculinos) não foram tocados |
 | 2026-08-06 | BUG-004 corrigido: mensagem de erro mentia ("cole ao menos uma linha" com dezenas coladas), verde incondicional escondia importação vazia/errada, linhas descartadas em silêncio e relatório fantasma | public/assets/csv.js, app/helpers/csv.php, public/admin/{unidades,clientes,grupos,elegiveis}.html, public/portal/elegiveis.html, api/v1/interno/{elegiveis,importacao_vacinados}.php, docs/09, docs/12 | 25/25 novos casos + suíte completa 108/108; `php -l` limpo; JS das 5 telas validado | Leitura posicional (BUG-001) preservada: recebe aviso, não bloqueio |
@@ -418,7 +429,13 @@ Status do deploy: preparado (Docker + docs/13), aguardando push e configuração
 # 13. Último checkpoint
 
 ```txt
-Última coisa feita (2026-08-06): BUG-006 — catálogo único das mensagens de erro das
+Última coisa feita (2026-08-07): BUG-007 — cabeçalho obrigatório na 1ª linha de toda
+importação. Fechadas duas portas laterais que liam CSV sem conferência (histórico e console).
+ATENÇÃO: mudança de contrato — CSV sem cabeçalho, antes aceito, agora é recusado. Nenhuma
+integração afetada (parceiro usa JSON), mas se alguém tiver rotina que sobe arquivo sem
+cabeçalho, ela para de funcionar.
+
+Coisa feita antes (2026-08-06): BUG-006 — catálogo único das mensagens de erro das
 importações, publicado em docs/19 (código -> quando acontece -> mensagem -> ação). Padrão
 "<Problema>. <O que fazer>.", até 120 caracteres, sem jargão. O detalhe técnico saiu da
 frase e virou campo `detalhe`. A instrução de cabeçalho das telas foi reescrita.

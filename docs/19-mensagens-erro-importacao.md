@@ -43,14 +43,18 @@ linha. Bloqueiam a importação, exceto onde indicado.
 | `ARQUIVO_VAZIO` | Nada colado e nenhum arquivo escolhido | Nenhuma linha para importar. Cole as linhas ou escolha um arquivo. | Cola o conteúdo ou anexa o CSV |
 | `SEM_LINHAS_DADOS` | Só o cabeçalho, sem dados | O arquivo tem só o cabeçalho. Inclua ao menos uma linha de dados. | Adiciona as linhas |
 | `COLUNA_OBRIGATORIA_AUSENTE` | Cabeçalho reconhecido, mas sem uma coluna sem a qual nenhuma linha pode ser lida | Falta a coluna {colunas} no cabeçalho. Corrija a 1ª linha do arquivo. | Corrige o nome da coluna na 1ª linha |
-| `CABECALHO_NAO_RECONHECIDO` | Nenhum nome de coluna reconhecido — o arquivo é lido pela ordem padrão | Sem cabeçalho reconhecido. As colunas foram lidas nesta ordem: {ordem}. | Confere se a ordem bate (**aviso, não bloqueia**) |
+| `CABECALHO_NAO_RECONHECIDO` | Nenhum nome de coluna reconhecido na 1ª linha | Nomes de coluna não reconhecidos na 1ª linha. Use: {ordem}. | Corrige os nomes na 1ª linha (o `detalhe` mostra o que foi lido) |
 | `NENHUMA_LINHA_UTIL` | Cabeçalho ok, mas nenhuma linha tem o campo obrigatório preenchido | Nenhuma das {total} linha(s) pôde ser usada. Confira as colunas obrigatórias. | Preenche o campo obrigatório |
 | `ARQUIVO_GRANDE` | Upload acima de 20 MB | Arquivo muito grande. Envie até 20 MB. | Divide o arquivo |
 | `ARQUIVO_INVALIDO` | Extensão diferente de .csv/.txt | Formato não aceito. Envie um arquivo .csv. | Salva como CSV |
 
+> **A 1ª linha é sempre o cabeçalho.** Não existe leitura posicional: se os nomes não forem
+> reconhecidos, a importação para. Adivinhar a ordem fazia a própria linha de cabeçalho
+> entrar como registro quando o usuário errava um nome de coluna.
+
 ## Colunas obrigatórias por importação
 
-| Importação | Obrigatórias | Ordem padrão (quando não há cabeçalho) |
+| Importação | Obrigatórias | Nomes canônicos das colunas |
 |---|---|---|
 | Elegíveis | `nome` + (`cpf` **ou** `identificador`) | cpf, nome, data_nascimento, tipo_vinculo, cpf_titular, codigo_lotacao, codigo_rh, identificador |
 | Vacinados em massa | `cpf` **ou** `identificador` | cpf, nome, vacina, dose, lote, aplicado_em, profissional_nome, profissional_cpf, cidade, uf, unidade, … |

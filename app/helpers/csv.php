@@ -206,7 +206,13 @@ function csv_conferir(string $conteudo, array $ordem, array $alias,
             return $r;
         }
     } else {
-        $r['aviso'] = msg_importacao('CABECALHO_NAO_RECONHECIDO', ['ordem' => implode(', ', $ordem)]);
+        // A 1ª linha é SEMPRE o cabeçalho. Antes, sem nomes reconhecidos, o arquivo
+        // era lido pela ordem posicional e a linha de cabeçalho virava registro.
+        // Nome de coluna errado agora é erro: não se adivinha o que o usuário quis.
+        $r['codigo'] = 'CABECALHO_NAO_RECONHECIDO';
+        $r['erro'] = msg_importacao('CABECALHO_NAO_RECONHECIDO', ['ordem' => implode(';', $ordem)]);
+        $r['detalhe'] = '1ª linha lida: ' . implode(' | ', str_getcsv($linhas[0], csv_delimitador($linhas[0]))) . '.';
+        return $r;
     }
 
     if ($r['total'] === 0) {

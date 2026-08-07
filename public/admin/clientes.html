@@ -426,8 +426,8 @@
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'modelo-clientes.csv';
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
-  // Cada linha -> {razao_social,cnpj,sigla,grupo_sigla}. A 1ª linha é cabeçalho
-  // quando traz os nomes das colunas (em qualquer ordem); senão vale a ordem padrão.
+  // Cada linha -> {razao_social,cnpj,sigla,grupo_sigla}. A 1ª linha é SEMPRE o
+  // cabeçalho (a ordem não importa); nome não reconhecido para a importação.
   function parseCsv(t) {
     return CSV.parsear(t, 'clientes')
       .map(c => ({ razao_social: c.razao_social || '', cnpj: c.cnpj || '', sigla: c.sigla || '', grupo_sigla: c.grupo_sigla || '' }))

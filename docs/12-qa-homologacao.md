@@ -12,7 +12,8 @@ Documentar critérios de aceite, testes funcionais, regressão, homologação e 
 |---|---|---|---|
 | CA-001 | Toda importação de CSV trata a 1ª linha como cabeçalho quando ela traz os nomes das colunas | `php scripts/testar_csv.php` + importar pelas telas | atendido |
 | CA-002 | Com cabeçalho, a ORDEM das colunas não altera o resultado da importação | Importar o mesmo arquivo com as colunas embaralhadas | atendido |
-| CA-003 | Arquivo SEM cabeçalho continua sendo importado pela ordem padrão, sem perder a 1ª linha | `scripts/testar_csv.php` casos 3 e 7 | atendido |
+| CA-003 | ~~Arquivo SEM cabeçalho é importado pela ordem padrão~~ **REVOGADO no BUG-007**: a 1ª linha é sempre o cabeçalho | — | revogado |
+| CA-008 | Nome de coluna errado na 1ª linha bloqueia a importação, em vez de virar registro | `testar_cabecalho_obrigatorio.js` | atendido |
 | CA-004 | Toda referência a campanha na tela mostra o CÓDIGO, nunca `null` | Listar campanhas no console e abrir os 5 dropdowns | atendido |
 | CA-006 | Lista de 20.000 a 30.000 elegíveis é importada por completo, sem cron externo | Subir o container e acompanhar a fila drenar | atendido |
 | CA-007 | O usuário vê o progresso da importação grande até concluir, em vez de "processando em segundo plano" para sempre | Importar >2000 linhas pela tela de elegíveis | atendido (falta validar em homolog) |
@@ -92,10 +93,10 @@ nada entrou.
 
 | Fluxo | Passos | Resultado esperado | Status |
 |---|---|---|---|
-| Cabeçalho sem a coluna obrigatória | `Filial;Codigo;Cidade;UF` em Unidades | 🔴 "O cabeçalho não traz a coluna *nome*… Reconheci: codigo_lotacao, cidade, uf" — **não envia** | ok (auto) |
-| Nada colado | Campo vazio | 🔴 "Cole ao menos uma linha ou escolha um arquivo" | ok (auto) |
-| Só o cabeçalho | Arquivo sem linhas de dados | 🔴 "só o cabeçalho, sem nenhuma linha de dados" | ok (auto) |
-| Cabeçalho irreconhecível | `aaa;bbb;ccc;ddd` | Envia (leitura posicional), mas 🟡 com aviso "li pela ordem padrão; a 1ª linha entrou como registro" | ok (auto) |
+| Cabeçalho sem a coluna obrigatória | `Filial;Codigo;Cidade;UF` em Unidades | 🔴 "Falta a coluna *nome* no cabeçalho. Corrija a 1ª linha do arquivo." + detalhe "Reconheci: codigo_lotacao, cidade, uf" — **não envia** | ok (auto) |
+| Nada colado | Campo vazio | 🔴 "Nenhuma linha para importar. Cole as linhas ou escolha um arquivo." | ok (auto) |
+| Só o cabeçalho | Arquivo sem linhas de dados | 🔴 "O arquivo tem só o cabeçalho. Inclua ao menos uma linha de dados." | ok (auto) |
+| Cabeçalho irreconhecível | `aaa;bbb;ccc;ddd` | 🔴 bloqueia — **regra revista no BUG-007** (antes enviava em 🟡 e o cabeçalho virava registro) | ok (auto) |
 | Backend rejeitou tudo | 0 inseridos, 0 atualizados | 🔴 "Nada foi importado" — **antes ficava verde "Concluído"** | ok (auto) |
 | Entrou em parte | 1 de 2 linhas | 🟡 com a contagem de rejeitadas | ok (auto) |
 | Coluna trocada | Cabeçalho de elegíveis na tela de unidades | Envia (não há regra que detecte), mas o relatório mostra **"Como li a 1ª linha: nome=LOT-01 …"** para conferência humana | ok (auto) |
@@ -131,6 +132,22 @@ Código estável + mensagem única, nos dois lados. Tabela oficial em **docs/19*
 | Catálogo ausente | `mensagens.js` não carrega (404/cache) | `CSV.conferir` devolve o código em vez de estourar `ReferenceError` | ok (auto) |
 | Detalhe separado | Cabeçalho sem coluna obrigatória | Mensagem curta + `detalhe` com "Reconheci… / Esperado…" | ok (auto) |
 
+## 2.1h Cabeçalho obrigatório na 1ª linha (BUG-007)
+
+Regra revista: **a 1ª linha é sempre o cabeçalho.** Nome de coluna errado bloqueia a
+importação — não existe mais leitura posicional. Reverte a decisão do BUG-004, que
+avisava em vez de bloquear.
+
+| Fluxo | Passos | Resultado esperado | Status |
+|---|---|---|---|
+| O bug | `aaa;bbb;ccc;ddd` + 2 linhas em Unidades | 🔴 `CABECALHO_NAO_RECONHECIDO` — **antes criava 3 unidades, a 1ª chamada "aaa"** | ok (auto) |
+| Detalhe ajuda a corrigir | idem | "1ª linha lida: aaa \| bbb \| ccc \| ddd." | ok (auto) |
+| Arquivo sem cabeçalho | Só linhas de dados | 🔴 bloqueia (mudança deliberada de comportamento) | ok (auto) |
+| Cabeçalho certo | Modelo oficial, com BOM, sinônimos, fora de ordem, vírgula | Passa em todos | ok (auto) |
+| Distinção de códigos | Cabeçalho reconhecido mas sem coluna obrigatória | `COLUNA_OBRIGATORIA_AUSENTE`, não `CABECALHO_NAO_RECONHECIDO` | ok (auto) |
+| Vale para todos os tipos | unidades, clientes, grupos, elegíveis, histórico | Todos bloqueiam | ok (auto) |
+| Sem porta lateral | 9 pontos de entrada de CSV | Todos chamam `csv_conferir`/`CSV.conferir` | ok (auto) |
+
 ## 2.2 Telas a validar em homologação (manual)
 
 | Tela | Caminho | O que validar |
@@ -158,7 +175,7 @@ Código estável + mensagem única, nos dois lados. Tabela oficial em **docs/19*
 | Contrato `/parceiro/carteira` | Campo `campanha` continua existindo (agora preenchido com o código em vez de null) | ok (SQL) |
 | Dropdown de clínicas | `carregarClinicas()` usa `c.nome` de propósito — `clinica.nome` não é opcional | ok (não alterado) |
 | Campo `nome` da campanha | Continua sendo gravado, editável e retornado pela API | ok (não alterado) |
-| Importação sem cabeçalho | Arquivo posicional (sem cabeçalho) mantém a 1ª linha como pessoa/registro válido — **não é bloqueado** pela conferência do BUG-004, só recebe aviso | ok (auto — casos 3 e 7 + BUG-004 caso 7) |
+| Importação sem cabeçalho | **Regra revertida no BUG-007**: agora bloqueia. `csv_parsear`/`CSV.parsear` mantêm o fallback posicional (37 casos do BUG-001 seguem válidos), mas nenhum ponto de entrada chega lá sem passar pela conferência | ok (auto — BUG-007 casos 2 e 6) |
 | Modelo oficial | O CSV baixado pelo botão "Baixar modelo" importa sem aviso nenhum (verde) | ok (auto) |
 | Status de grupo e cliente | `grupo_empresarial` e `cliente_b2b` são masculinos e continuam `ativo`/`inativo` — a correção do BUG-005 não os tocou | ok (revisado) |
 | Migration 032 | Não altera nenhuma linha já correta (`ativa`/`inativa`) e é idempotente | ok (auto) |
@@ -176,7 +193,8 @@ Código estável + mensagem única, nos dois lados. Tabela oficial em **docs/19*
 | 2026-08-05 | local (php:8.3-cli + Node 22) | automatizado | BUG-001: backend 37/37 e frontend 35/35 casos aprovados; `php -l` limpo nos 7 arquivos PHP tocados |
 | 2026-08-05 | local (mysql:8 + Node 22) | automatizado | BUG-002: 31 migrations aplicadas em banco limpo; as 3 queries alteradas rodaram contra o schema real; 16/16 casos do rótulo da campanha |
 | 2026-08-05 | local (imagem real do projeto + mysql:8) | automatizado | BUG-003: container normal, **sem nenhum cron**, drenou 30.000 elegíveis em **285s** (0 → 29.999 no banco); trava e recuperação de importação travada validadas |
-| 2026-08-06 | local (Node 22 + php:8.3-cli) | automatizado | BUG-006: 12/12 do catálogo de mensagens. Suíte completa: 139 casos (12 + 27 + 17 + 16 + 37 + 30) |
+| 2026-08-07 | local (Node 22 + php:8.3-cli) | automatizado | BUG-007: 20/20 do cabeçalho obrigatório. Suíte completa: 159 casos (20 + 12 + 27 + 17 + 16 + 37 + 30) |
+| 2026-08-06 | local (Node 22 + php:8.3-cli) | automatizado | BUG-006: 12/12 do catálogo de mensagens |
 | 2026-08-06 | local (Node 22 + mysql:8) | automatizado | BUG-005: 17/17 casos da tela + ciclo de status em MySQL real (migrations 000..032) |
 | 2026-08-06 | local (Node 22 + php:8.3-cli) | automatizado | BUG-004: 25/25 casos de mapeamento de erro e resposta visual |
 | 2026-08-05 | local (imagem real do projeto + mysql:8) | automatizado | RN-031: 27/27 casos da importação de vacinados (simulação, confirmação, criar elegível, estorno de lote, duplicidade, período, vacina por nome/sigla) |
@@ -188,6 +206,7 @@ Código estável + mensagem única, nos dois lados. Tabela oficial em **docs/19*
 
 | Código | Descrição | Gravidade | Status | Evidência |
 |---|---|---|---|---|
+| BUG-007 | Com os nomes das colunas errados, a importação caía na leitura posicional e a **própria linha de cabeçalho entrava como registro** (em amarelo, parecendo sucesso). Era consequência direta da decisão tomada no BUG-004 de avisar em vez de bloquear, para preservar o import sem cabeçalho — compatibilidade que, verificada, **não tinha usuário real**: a API do parceiro só aceita JSON, e todo CSV vem de upload humano | alta | corrigido | 20 casos, incluindo a checagem de que os 9 pontos de entrada de CSV passam pela conferência |
 | BUG-006 | Mensagens de erro das importações escritas como frases longas, cada arquivo com a sua versão do mesmo problema, sem dizer o que fazer | média | corrigido | Catálogo único (PHP + JS) + docs/19; 12 casos garantem que os dois lados e o doc não divergem |
 | BUG-005 | Unidades só apareciam no filtro "Todas", eram exibidas como "Inativas" e abriam com o status em branco na edição. Causa: `unidade.status` nasce `'ativa'` (DEFAULT da coluna, gênero feminino como vacina/clinica/campanha), mas a API validava `['ativo','inativo']` e a tela comparava com `'ativo'` — um único descasamento de vocabulário produzindo os três sintomas | média | corrigido | 17 casos sobre as expressões reais da tela + ciclo completo em MySQL real (base suja → migration 032 → idempotência) |
 | BUG-004 | Importação com cabeçalho errado: a tela acusava "Cole ao menos uma linha" para quem tinha colado dezenas (as linhas caíam no `.filter()` do frontend por falta da coluna obrigatória e sumiam sem explicação). Pior, o `msg ok` verde era aplicado mesmo com 0 inseridos, e um cabeçalho irreconhecível virava registro em silêncio — o relatório da tentativa anterior também ficava na tela | alta | corrigido | 25 casos automatizados sobre as funções reais das telas; antes/depois de cada cabeçalho documentado em 2.1e |

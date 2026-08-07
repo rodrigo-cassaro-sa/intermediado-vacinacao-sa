@@ -403,8 +403,8 @@
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'modelo-unidades.csv';
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
-  // A 1ª linha é cabeçalho quando traz os nomes das colunas (em qualquer ordem);
-  // sem cabeçalho, vale a ordem padrão nome, codigo_lotacao, cidade, uf.
+  // A 1ª linha é SEMPRE o cabeçalho (a ordem das colunas não importa). Nome de
+  // coluna não reconhecido para a importação — não há leitura posicional.
   function parseCsv(t) {
     return CSV.parsear(t, 'unidades')
       .map(u => ({ nome: u.nome || '', codigo_lotacao: u.codigo_lotacao || '', cidade: u.cidade || '', uf: u.uf || '' }))

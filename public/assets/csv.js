@@ -188,9 +188,14 @@
         return r;
       }
     } else {
-      // Sem cabeçalho reconhecido o arquivo é lido pela ORDEM padrão — inclusive a
-      // 1ª linha. Se ela era um cabeçalho fora do padrão, vira registro.
-      r.aviso = msg('CABECALHO_NAO_RECONHECIDO', { ordem: def.ordem.join(', ') });
+      // A 1ª linha é SEMPRE o cabeçalho. Antes, quando os nomes não eram
+      // reconhecidos, o arquivo caía na leitura posicional e a própria linha de
+      // cabeçalho entrava como registro — em amarelo, parecendo que deu certo.
+      // Nome de coluna errado agora é erro: não se adivinha o que o usuário quis.
+      r.codigo = 'CABECALHO_NAO_RECONHECIDO';
+      r.erro = msg('CABECALHO_NAO_RECONHECIDO', { ordem: def.ordem.join(';') });
+      r.detalhe = '1ª linha lida: ' + dividir(linhas[0], delimitador(linhas[0])).join(' | ') + '.';
+      return r;
     }
 
     if (r.total === 0) {
