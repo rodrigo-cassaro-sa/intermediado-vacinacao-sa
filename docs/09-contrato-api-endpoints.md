@@ -370,6 +370,48 @@ Erros: `APLICACAO_NAO_ENCONTRADA`, `MOTIVO_OBRIGATORIO`.
 
 ---
 
+## GET /api/v1/interno/elegiveis/vacinacao  (vacinação individual)
+
+```txt
+Objetivo: achar quem está sendo atendido e dizer o que essa pessoa pode tomar agora.
+Permissão: escopo do usuário (doc 04 §4.1) — as mesmas campanhas que ele já enxerga.
+Autenticação: sessão. Consulta a dado de saúde é AUDITADA (docs/10).
+Query: ?termo=  (CPF com ou sem máscara, voucher, matrícula ou parte do nome; mín. 3)
+```
+
+Devolve até 30 combinações **pessoa × campanha**, campanhas ativas primeiro:
+
+```json
+{
+  "success": true,
+  "data": { "itens": [ {
+    "elegivel_id": 12,
+    "nome": "Maria Silva", "cpf": "529***.**-25", "identificador": null,
+    "data_nascimento": "1990-05-10", "unidade": "Matriz", "clinica": null,
+    "status_elegivel": "pendente",
+    "campanha": { "id": 1, "codigo": "IF3.2026.IC.GTE.CTE.1", "cliente": "Acme",
+                  "status": "ativa", "modalidade": "in_company",
+                  "periodo_inicio": "2026-01-01", "periodo_fim": "2026-12-31" },
+    "pode_vacinar": true, "impedimento": null, "impedimento_texto": null,
+    "vacinas": [ { "vacina_id": 1, "nome": "Influenza", "sigla": "IF3",
+                   "doses_previstas": 1, "doses_aplicadas": 0, "proxima_dose": 1,
+                   "pode": true, "motivo": null, "motivo_texto": null } ]
+  } ] }
+}
+```
+
+Casos **bloqueados também vêm na resposta**, com o motivo — sem isso o operador digita
+o CPF, não acha e não sabe por quê. Códigos usados (catálogo do doc 19):
+`CAMPANHA_INATIVA` · `FORA_DO_PERIODO` · `VACINADO_DUPLICADO`.
+
+> **A busca orienta, o POST decide.** `pode_vacinar` existe para guiar a tela; quem
+> valida de fato é `POST /interno/aplicacoes` (`validar_aplicacao`). As regras de
+> negócio não são duplicadas aqui.
+
+Erros: `TERMO_CURTO` (menos de 3 caracteres). Elegível `removido` nunca aparece.
+
+---
+
 ## POST /api/v1/interno/campanhas/{id}/vacinados/importar  (RN-031)
 
 ```txt

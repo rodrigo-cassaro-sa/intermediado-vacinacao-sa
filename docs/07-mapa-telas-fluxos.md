@@ -123,6 +123,58 @@ Status: rascunho
 
 ---
 
+## TL-205 — Vacinação individual (atendimento no posto)
+
+```txt
+Objetivo: a pessoa chega, o operador digita o CPF e o sistema resolve o resto.
+Perfis: quem tem acesso aos dados do paciente na campanha (RN-031 / doc 04).
+URL/rota: popup em /admin/vacinados.html e /portal/vacinados.html
+Status: implementado (2026-08-07)
+```
+
+Existe porque o fluxo da lista é o inverso do atendimento real: escolher a campanha,
+achar a pessoa entre milhares, clicar na linha. No posto o operador tem a pessoa na
+frente e o que ele sabe é o CPF.
+
+### Fluxo
+
+```txt
+1. Botão "Vacinação individual" abre o popup, com o campo já focado.
+2. Operador digita CPF, voucher, matrícula ou parte do nome (mín. 3 caracteres) e Enter.
+3. O sistema procura em TODAS as campanhas do escopo do usuário e devolve um cartão
+   por (pessoa × campanha), com os botões das vacinas que ela pode tomar agora e a
+   dose seguinte já calculada.
+4. Casos bloqueados aparecem com o motivo (campanha encerrada, fora do período, dose
+   já tomada) — sem isso o operador não entende por que a pessoa "não aparece".
+5. Clicar na vacina abre o MESMO formulário de registro, já contextualizado.
+6. Salvou: volta ao campo de busca com o texto selecionado, pronto para o próximo.
+```
+
+### Dados exibidos
+| Dado | Origem | Observação |
+|---|---|---|
+| Nome, CPF/voucher, nascimento, unidade | elegível + paciente | CPF mascarado conforme LGPD (`cpf_para_usuario`) |
+| Campanha (código, cliente, modalidade) | campanha | identificada pelo código (BUG-002) |
+| Vacinas com a próxima dose, ou o motivo do bloqueio | campanha_vacina + aplicações confirmadas | orientação de tela |
+
+### Ações
+| Ação | Endpoint | Permissão | Log? |
+|---|---|---|---|
+| Buscar quem atender | GET /api/v1/interno/elegiveis/vacinacao | escopo do usuário | sim (consulta a dado de saúde) |
+| Registrar a dose | POST /api/v1/interno/aplicacoes | idem RN-031 | sim (crítico) |
+
+> **A busca orienta, o POST decide.** O cálculo de "pode vacinar" existe para guiar o
+> operador; a validação que vale continua sendo `validar_aplicacao` no registro. As
+> regras não são duplicadas no caminho da busca.
+
+### Estados da tela
+```md
+- [x] Vazio (nada digitado).  - [x] Sem resultado (com o termo no texto).  - [x] Erro.
+- [x] Resultado com bloqueio explicado.  - [x] Sucesso + volta para o próximo atendimento.
+```
+
+---
+
 # 3. Fluxos principais
 
 ```txt

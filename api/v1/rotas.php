@@ -110,6 +110,11 @@ return [
     'GET  /api/v1/interno/campanhas/{id}/importacoes'        => ['arquivo' => 'interno/importacoes.php', 'funcao' => 'rota_listar_importacoes'],
     'GET  /api/v1/interno/importacoes/{id}'                  => ['arquivo' => 'interno/importacoes.php', 'funcao' => 'rota_status_importacao'],
     'GET  /api/v1/interno/importacoes/{id}/erros/exportar'   => ['arquivo' => 'interno/importacoes.php', 'funcao' => 'rota_exportar_erros_importacao'],
+    // Atendimento no posto: acha a pessoa pelo CPF/voucher/nome e diz o que ela
+    // pode tomar agora. Precede /aplicacoes, que é quem valida de fato.
+    // ATENÇÃO à ordem: rota literal tem de vir antes das que usam {id}, senão
+    // o {id} casa com "vacinacao" (o roteador devolve o primeiro match).
+    'GET  /api/v1/interno/elegiveis/vacinacao'               => ['arquivo' => 'interno/vacinacao_individual.php', 'funcao' => 'rota_buscar_para_vacinacao'],
     'POST /api/v1/interno/elegiveis/situacao-lote'           => ['arquivo' => 'interno/elegiveis.php', 'funcao' => 'rota_definir_situacao_elegiveis_lote'],
     'POST /api/v1/interno/elegiveis/{id}/situacao'           => ['arquivo' => 'interno/elegiveis.php', 'funcao' => 'rota_definir_situacao_elegivel'],
     'PUT  /api/v1/interno/elegiveis/{id}'                    => ['arquivo' => 'interno/elegivel_edicao.php', 'funcao' => 'rota_editar_elegivel'],

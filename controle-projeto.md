@@ -56,7 +56,14 @@ Domínio com SSL. Sem framework e sem OO por padrão.
 # 3. Etapa atual
 
 ```txt
-Etapa atual (2026-08-07): BUG-007 — a 1ª linha é SEMPRE o cabeçalho. Com nome de coluna
+Etapa atual (2026-08-07): TL-205 — vacinação individual (atendimento no posto). O fluxo das
+telas exigia escolher a campanha e achar a pessoa na lista; no posto é o contrário: a pessoa
+chega e o CPF resolve. Novo GET /interno/elegiveis/vacinacao busca por CPF/voucher/matrícula/
+nome em todas as campanhas do escopo e devolve o que a pessoa pode tomar AGORA, mostrando
+também os bloqueados com o motivo. O popup reaproveita o formulário de registro que já
+existia. Evidência: 19/19 contra banco real; suíte 178/178.
+
+Etapa anterior (2026-08-07): BUG-007 — a 1ª linha é SEMPRE o cabeçalho. Com nome de coluna
 errado, a importação caía na leitura posicional e a própria linha de cabeçalho entrava como
 registro. REVERTE a decisão que tomei no BUG-004 (avisar em vez de bloquear, para preservar
 o import sem cabeçalho): fui verificar a premissa e ela era falsa — a API do parceiro só
@@ -162,6 +169,8 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | 2026-07-06 | `public/` como único document root | Esconder código/config/uploads | Deploy aponta docroot p/ public/ | Orquestrador (doc 05) |
 | 2026-08-05 | CSV: cabeçalho na 1ª linha manda; colunas mapeadas por NOME, não por posição | BUG-001: cabeçalho entrava como registro e o BOM do Excel quebrava a detecção | Contrato de importação (doc 09 §3.1); ordem das colunas deixou de importar | Orquestrador |
 | 2026-08-05 | Um leitor de CSV só: `app/helpers/csv.php` + espelho `public/assets/csv.js` | Havia 8 parsers duplicados (2 PHP + 6 JS), cada um com uma regra diferente | Qualquer ajuste futuro de coluna é feito em 2 lugares, não em 8 | Orquestrador |
+| 2026-08-07 | A busca da vacinação individual ORIENTA; quem valida a dose continua sendo POST /aplicacoes | Duplicar RN-003/013/019 no caminho da busca criaria duas fontes da mesma regra, que divergem com o tempo | `pode_vacinar` é dica de tela; `validar_aplicacao` decide | Orquestrador |
+| 2026-08-07 | Resultado mostra também quem NÃO pode ser vacinado, com o motivo | Sumir com a pessoa faz o operador achar que ela não está cadastrada e abrir chamado | Usa os códigos do catálogo do doc 19 | Orquestrador |
 | 2026-08-07 | A 1ª linha é SEMPRE o cabeçalho; nome de coluna não reconhecido BLOQUEIA a importação | BUG-007, decisão do usuário. Reverte o BUG-004, onde eu escolhi avisar para não quebrar o import posicional — premissa que se mostrou falsa (parceiro só manda JSON; CSV é sempre upload humano com modelo cabeçalhado) | Contrato do doc 09 alterado; `csv_parsear` mantém o fallback, mas nenhum ponto de entrada o alcança | Usuário |
 | 2026-08-07 | A regra é garantida por teste que enumera os pontos de entrada de CSV | Regra centralizada só vale se não houver porta lateral; havia duas (histórico e console) | 9 pontos conferidos automaticamente | Orquestrador |
 | 2026-08-06 | Mensagem de erro tem catálogo único; o CÓDIGO é contrato, a MENSAGEM é reescrevível | BUG-006. Frase montada em cada arquivo produzia três textos para o mesmo problema. Integrações leem o código (vai no CSV de erros), então ele não pode mudar | docs/19 é a fonte oficial; teste falha se PHP, JS e doc divergirem | Orquestrador |
@@ -199,6 +208,7 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | 2026-07-06 | Scaffold backend PHP | app/*, api/v1/*, public/index.php, .env.example, .gitignore | arquivos gerados | Fundação procedural; health + login; não executado (sem PHP/MySQL) |
 | 2026-07-06 | Docker + deploy EasyPanel + Git | Dockerfile, docker/*, public/.htaccess, .dockerignore, scripts/migrar.php, docs/13 | commit ac5a892 | docroot public/; health em /api/v1/health; repo local (main) |
 | 2026-07-06 | Atualização do checkpoint | controle-projeto.md | este arquivo | — |
+| 2026-08-07 | TL-205: vacinação individual por busca de CPF/voucher/nome, com popup e formulário contextualizado | api/v1/interno/vacinacao_individual.php (novo), api/v1/rotas.php, public/{admin,portal}/vacinados.html, docs/07, docs/09, docs/12 | 19/19 contra banco real; suíte 178/178 | Sem migration. Rota literal posicionada antes das que usam {id} |
 | 2026-08-07 | BUG-007 corrigido: cabeçalho com nomes errados entrava como registro | public/assets/csv.js, app/helpers/csv.php, os 2 catálogos, api/v1/interno/vacinados_historico.php, public/admin/console.html, 5 telas (comentários), docs/09, docs/12, docs/19 | 20/20 + suíte 159/159; teste prova que os 9 pontos de entrada conferem | Sem migration. Mudança de contrato documentada no doc 09 |
 | 2026-08-06 | BUG-006 corrigido: mensagens de erro das importações padronizadas em catálogo único, com documento oficial | app/helpers/mensagens_importacao.php (novo), public/assets/mensagens.js (novo), docs/19 (novo), app/helpers/csv.php, public/assets/csv.js, api/v1/interno/{importacoes,importacao_vacinados}.php, 6 telas, docs/README, docs/12 | 12/12 do catálogo; suíte 139/139 | Instrução de cabeçalho reescrita em unidades/clientes/grupos |
 | 2026-08-06 | BUG-005 corrigido: unidade só aparecia no filtro "Todas", exibida como "Inativa" e sem status na edição (banco fala `ativa`, API e tela falavam `ativo`) | api/v1/interno/acesso.php, public/admin/unidades.html, database/migrations/032 (nova), docs/12, docs/17 | 17/17 na tela + ciclo em MySQL real (base suja → 032 → idempotente); suíte 125/125 | Migration 032 normaliza dados já gravados; grupo/cliente (masculinos) não foram tocados |
@@ -429,7 +439,12 @@ Status do deploy: preparado (Docker + docs/13), aguardando push e configuração
 # 13. Último checkpoint
 
 ```txt
-Última coisa feita (2026-08-07): BUG-007 — cabeçalho obrigatório na 1ª linha de toda
+Última coisa feita (2026-08-07): TL-205 — vacinação individual. Popup de atendimento nas
+telas de vacinados do admin e do portal: digita CPF/voucher/matrícula/nome, o sistema acha a
+pessoa em todas as campanhas do escopo, diz o que ela pode tomar (e por que não, quando for o
+caso) e abre o formulário já contextualizado. Depois de salvar volta para a fila.
+
+Coisa feita antes (2026-08-07): BUG-007 — cabeçalho obrigatório na 1ª linha de toda
 importação. Fechadas duas portas laterais que liam CSV sem conferência (histórico e console).
 ATENÇÃO: mudança de contrato — CSV sem cabeçalho, antes aceito, agora é recusado. Nenhuma
 integração afetada (parceiro usa JSON), mas se alguém tiver rotina que sobe arquivo sem

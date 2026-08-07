@@ -14,6 +14,8 @@ Documentar critérios de aceite, testes funcionais, regressão, homologação e 
 | CA-002 | Com cabeçalho, a ORDEM das colunas não altera o resultado da importação | Importar o mesmo arquivo com as colunas embaralhadas | atendido |
 | CA-003 | ~~Arquivo SEM cabeçalho é importado pela ordem padrão~~ **REVOGADO no BUG-007**: a 1ª linha é sempre o cabeçalho | — | revogado |
 | CA-008 | Nome de coluna errado na 1ª linha bloqueia a importação, em vez de virar registro | `testar_cabecalho_obrigatorio.js` | atendido |
+| CA-009 | O operador vacina digitando só o CPF, sem precisar escolher a campanha antes | Popup "Vacinação individual" nas telas de vacinados | atendido |
+| CA-010 | Quem não pode ser vacinado aparece na busca **com o motivo**, em vez de sumir | Casos de campanha encerrada, fora do período e dose já tomada | atendido |
 | CA-004 | Toda referência a campanha na tela mostra o CÓDIGO, nunca `null` | Listar campanhas no console e abrir os 5 dropdowns | atendido |
 | CA-006 | Lista de 20.000 a 30.000 elegíveis é importada por completo, sem cron externo | Subir o container e acompanhar a fila drenar | atendido |
 | CA-007 | O usuário vê o progresso da importação grande até concluir, em vez de "processando em segundo plano" para sempre | Importar >2000 linhas pela tela de elegíveis | atendido (falta validar em homolog) |
@@ -148,6 +150,25 @@ avisava em vez de bloquear.
 | Vale para todos os tipos | unidades, clientes, grupos, elegíveis, histórico | Todos bloqueiam | ok (auto) |
 | Sem porta lateral | 9 pontos de entrada de CSV | Todos chamam `csv_conferir`/`CSV.conferir` | ok (auto) |
 
+## 2.1i Vacinação individual — atendimento no posto (TL-205)
+
+Busca por CPF/voucher/matrícula/nome em todas as campanhas do escopo, com o que a
+pessoa pode tomar agora. 19 casos contra banco real (migrations 000..032).
+
+| Fluxo | Passos | Resultado esperado | Status |
+|---|---|---|---|
+| Acha pelo CPF | Digitar o CPF de quem está atendendo | 1 resultado, `pode_vacinar: true`, próxima dose = 1 | ok (auto) |
+| Acha por nome parcial | "Maria" | Encontra | ok (auto) |
+| Acha por voucher | Estrangeiro sem CPF (`VCH-9001`) | Encontra pelo identificador | ok (auto) |
+| Dose já tomada some | Registrar a dose e buscar de novo | `pode_vacinar: false`, motivo `VACINADO_DUPLICADO` (RN-013) | ok (auto) |
+| Campanha encerrada | Pessoa só existe em campanha encerrada | **Aparece** com `CAMPANHA_INATIVA` — não some sem explicação | ok (auto) |
+| Fora do período | Campanha ativa com janela no futuro | `FORA_DO_PERIODO` | ok (auto) |
+| Elegível removido | Status `removido` | Não aparece | ok (auto) |
+| Sem resultado | CPF inexistente | Lista vazia + mensagem com o termo buscado | ok (auto) |
+| Pessoa em 2 campanhas | Mesmo CPF em duas campanhas ativas | 2 cartões, ambos vacináveis | ok (auto) |
+| Formulário contextualizado | Clicar na vacina do resultado | Abre o formulário com vacina e próxima dose já preenchidas | pendente (homolog) |
+| Volta para a fila | Salvar a vacinação vinda da busca | Fecha o formulário e devolve o foco ao campo de busca | pendente (homolog) |
+
 ## 2.2 Telas a validar em homologação (manual)
 
 | Tela | Caminho | O que validar |
@@ -193,7 +214,8 @@ avisava em vez de bloquear.
 | 2026-08-05 | local (php:8.3-cli + Node 22) | automatizado | BUG-001: backend 37/37 e frontend 35/35 casos aprovados; `php -l` limpo nos 7 arquivos PHP tocados |
 | 2026-08-05 | local (mysql:8 + Node 22) | automatizado | BUG-002: 31 migrations aplicadas em banco limpo; as 3 queries alteradas rodaram contra o schema real; 16/16 casos do rótulo da campanha |
 | 2026-08-05 | local (imagem real do projeto + mysql:8) | automatizado | BUG-003: container normal, **sem nenhum cron**, drenou 30.000 elegíveis em **285s** (0 → 29.999 no banco); trava e recuperação de importação travada validadas |
-| 2026-08-07 | local (Node 22 + php:8.3-cli) | automatizado | BUG-007: 20/20 do cabeçalho obrigatório. Suíte completa: 159 casos (20 + 12 + 27 + 17 + 16 + 37 + 30) |
+| 2026-08-07 | local (imagem do projeto + mysql:8) | automatizado | TL-205 (vacinação individual): 19/19 contra banco real. Suíte completa: **178 casos** |
+| 2026-08-07 | local (Node 22 + php:8.3-cli) | automatizado | BUG-007: 20/20 do cabeçalho obrigatório |
 | 2026-08-06 | local (Node 22 + php:8.3-cli) | automatizado | BUG-006: 12/12 do catálogo de mensagens |
 | 2026-08-06 | local (Node 22 + mysql:8) | automatizado | BUG-005: 17/17 casos da tela + ciclo de status em MySQL real (migrations 000..032) |
 | 2026-08-06 | local (Node 22 + php:8.3-cli) | automatizado | BUG-004: 25/25 casos de mapeamento de erro e resposta visual |

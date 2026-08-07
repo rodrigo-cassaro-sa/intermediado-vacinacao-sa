@@ -206,6 +206,7 @@
         <div class="actions">
           <span class="who">Olá, <b id="quem">—</b></span>
           <select class="sel" id="campSel" onchange="trocarCampanha()"><option value="">— selecione a campanha —</option></select>
+          <button class="btn primary" onclick="abrirBusca()"><span class="material-symbols-outlined">person_search</span> Vacinação individual</button>
           <button class="btn sec" onclick="abrirImp()"><span class="material-symbols-outlined">upload_file</span> Importar vacinados</button>
           <button class="btn sec" onclick="exportar()"><span class="material-symbols-outlined">download</span> Exportar</button>
           <button class="btn sec" onclick="sair()"><span class="material-symbols-outlined">logout</span> Sair</button>
@@ -277,6 +278,28 @@
           <span class="cnt" id="contagem">—</span>
           <button class="btn sec hide" id="btnMais" onclick="carregarMais()">Carregar mais</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Popup: vacinação individual (atendimento no posto) -->
+  <div class="drawer hide" id="drawerBusca">
+    <div class="backdrop" onclick="fecharBusca()"></div>
+    <div class="box">
+      <div class="dhead"><h3>Vacinação individual</h3><button class="x" onclick="fecharBusca()"><span class="material-symbols-outlined">close</span></button></div>
+      <div class="dbody">
+        <div class="hint">Digite o <b>CPF</b>, o <b>voucher</b>, a <b>matrícula</b> ou parte do <b>nome</b>.
+          O sistema procura em todas as campanhas que você acessa e mostra o que a pessoa pode tomar agora.</div>
+        <label>Quem está sendo atendido</label>
+        <div style="display:flex;gap:8px">
+          <input id="buscaTermo" placeholder="CPF, voucher, matrícula ou nome" onkeydown="if(event.key==='Enter')buscarParaVacinar()" style="flex:1" />
+          <button class="btn primary" onclick="buscarParaVacinar()"><span class="material-symbols-outlined">search</span></button>
+        </div>
+        <div class="msg" id="buscaMsg"></div>
+        <div id="buscaResultado"></div>
+      </div>
+      <div class="dfoot">
+        <button class="btn sec" onclick="fecharBusca()">Fechar</button>
       </div>
     </div>
   </div>
@@ -577,12 +600,97 @@
   function abrirReg(id) {
     const e = ITENS.find(x => x.id === id); if (!e) return;
     if (!CAMP_VACINAS.length) { alert('A campanha não tem vacina cadastrada.'); return; }
+    // A busca individual repovoa este select com as vacinas de OUTRA campanha;
+    // ao voltar pela lista, restaura as da campanha selecionada no cabeçalho.
+    BUSCA_CTX = null;
+    document.getElementById('regVacina').innerHTML = CAMP_VACINAS
+      .map(v => '<option value="' + v.vacina_id + '">' + esc(v.nome) + '</option>').join('');
     REG_BULK = false; REG_ELEG = id;
     document.getElementById('regTitulo').textContent = 'Registrar vacinação';
     document.getElementById('regAlvoLbl').textContent = 'Paciente';
     document.getElementById('regNome').textContent = e.nome || ('#' + id);
     prepReg();
   }
+  // ---- Vacinação individual: busca -> escolhe a vacina -> formulário --------
+  // O fluxo da lista exige escolher a campanha antes. No atendimento é o
+  // contrário: a pessoa chega e o CPF resolve o resto.
+  let BUSCA_CTX = null;   // {elegivel_id, campanha} quando o registro veio da busca
+
+  function abrirBusca() {
+    BUSCA_CTX = null;
+    document.getElementById('buscaTermo').value = '';
+    document.getElementById('buscaResultado').innerHTML = '';
+    const m = document.getElementById('buscaMsg'); m.className = 'msg'; m.textContent = '';
+    document.getElementById('drawerBusca').classList.remove('hide');
+    setTimeout(() => document.getElementById('buscaTermo').focus(), 50);
+  }
+  function fecharBusca() { document.getElementById('drawerBusca').classList.add('hide'); }
+
+  async function buscarParaVacinar() {
+    const termo = document.getElementById('buscaTermo').value.trim();
+    const msg = document.getElementById('buscaMsg');
+    const box = document.getElementById('buscaResultado');
+    box.innerHTML = '';
+    if (termo.length < 3) { msg.className = 'msg err'; msg.textContent = 'Digite ao menos 3 caracteres.'; return; }
+    msg.className = 'msg'; msg.textContent = 'Procurando...';
+
+    const d = await api('/interno/elegiveis/vacinacao?termo=' + encodeURIComponent(termo));
+    if (!d.success) { msg.className = 'msg err'; msg.textContent = (d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Falha na busca.')); return; }
+    const itens = d.data.itens || [];
+    if (!itens.length) {
+      msg.className = 'msg err';
+      msg.textContent = 'Ninguém encontrado com "' + termo + '" nas campanhas que você acessa.';
+      return;
+    }
+    msg.className = 'msg'; msg.textContent = itens.length + ' resultado(s).';
+    box.innerHTML = itens.map((it, i) => cartaoBusca(it, i)).join('');
+    BUSCA_ITENS = itens;
+  }
+
+  let BUSCA_ITENS = [];
+
+  function cartaoBusca(it, i) {
+    const c = it.campanha;
+    const chips = (it.vacinas || []).map((v, j) => v.pode
+      ? '<button class="btn primary" style="padding:6px 12px;font-size:13px" onclick="vacinarDaBusca(' + i + ',' + j + ')">'
+        + '<span class="material-symbols-outlined" style="font-size:16px">vaccines</span> '
+        + esc(v.nome) + ' · ' + v.proxima_dose + 'ª dose</button>'
+      : '<span class="chip off" title="' + esc(v.motivo_texto || '') + '">' + esc(v.nome) + ' — ' + esc(v.motivo_texto || 'indisponível') + '</span>'
+    ).join(' ');
+
+    return '<div class="relat" style="margin-top:10px">'
+      + '<div class="rrow"><span><b>' + esc(it.nome || '—') + '</b>'
+      + '<div class="sub">' + esc(it.cpf || it.identificador || '—')
+      + (it.data_nascimento ? ' · ' + ddmm(it.data_nascimento) : '')
+      + (it.unidade ? ' · ' + esc(it.unidade) : '') + '</div></span>'
+      + '<span style="text-align:right"><b>' + esc(c.codigo || c.nome || ('#' + c.id)) + '</b>'
+      + '<div class="sub">' + esc(c.cliente || '') + ' · ' + (MOD[c.modalidade] || c.modalidade) + '</div></span></div>'
+      + (it.impedimento
+          ? '<div class="erros"><div>' + esc(it.impedimento_texto) + '</div></div>'
+          : '')
+      + '<div class="rrow" style="flex-wrap:wrap;gap:6px">' + (chips || '<span class="sub">Campanha sem vacina cadastrada.</span>') + '</div>'
+      + '</div>';
+  }
+
+  // Abre o MESMO formulário de registro, já contextualizado pela busca.
+  function vacinarDaBusca(i, j) {
+    const it = BUSCA_ITENS[i];
+    const v = it.vacinas[j];
+    BUSCA_CTX = { elegivel_id: it.elegivel_id, campanha: it.campanha };
+    REG_BULK = false; REG_ELEG = it.elegivel_id;
+
+    document.getElementById('regTitulo').textContent = 'Vacinação individual';
+    document.getElementById('regAlvoLbl').textContent = 'Paciente';
+    document.getElementById('regNome').textContent = (it.nome || '#' + it.elegivel_id)
+      + ' — ' + (it.campanha.codigo || it.campanha.nome || '#' + it.campanha.id);
+    // As vacinas vêm da campanha ENCONTRADA, não da selecionada no cabeçalho.
+    document.getElementById('regVacina').innerHTML = it.vacinas
+      .map(x => '<option value="' + x.vacina_id + '">' + esc(x.nome) + '</option>').join('');
+    prepReg();
+    document.getElementById('regVacina').value = String(v.vacina_id);
+    document.getElementById('regDose').value = v.proxima_dose;
+  }
+
   function abrirRegBulk() {
     if (!CAMP_VACINAS.length) { alert('A campanha não tem vacina cadastrada.'); return; }
     const alvos = ITENS.filter(e => SELECIONADOS.has(e.id) && e.status !== 'aplicado');
@@ -630,6 +738,15 @@
     const d = await api('/interno/aplicacoes', 'POST', { elegivel_id: REG_ELEG, ...base });
     if (!d.success) return falhaReg(d.errors && d.errors[0] ? d.errors[0].message : (d.message || 'Erro.'));
     msg.className = 'msg ok'; msg.textContent = 'Vacinação registrada!';
+    // Veio da busca: fecha o formulário, atualiza o resultado (a dose registrada
+    // some da lista) e devolve o foco ao campo — é uma fila de atendimento.
+    if (BUSCA_CTX) {
+      setTimeout(() => {
+        fecharReg(); recarregar();
+        buscarParaVacinar().then(() => document.getElementById('buscaTermo').select());
+      }, 700);
+      return;
+    }
     setTimeout(() => { fecharReg(); recarregar(); }, 600);
   }
 
