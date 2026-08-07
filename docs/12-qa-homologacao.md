@@ -169,6 +169,17 @@ pessoa pode tomar agora. 19 casos contra banco real (migrations 000..032).
 | Formulário contextualizado | Clicar na vacina do resultado | Abre o formulário com vacina e próxima dose já preenchidas | pendente (homolog) |
 | Volta para a fila | Salvar a vacinação vinda da busca | Fecha o formulário e devolve o foco ao campo de busca | pendente (homolog) |
 
+## 2.1j RN-018 revista: lotação e matrícula opcionais
+
+| Fluxo | Passos | Resultado esperado | Status |
+|---|---|---|---|
+| Importar sem lotação e sem matrícula | Linha só com CPF, nome e tipo_vinculo | **Aceita** — antes era rejeitada | ok (auto) |
+| Campo ausente grava NULL | idem | `codigo_lotacao` e `codigo_rh` = `NULL`, não string vazia | ok (auto) |
+| Consequência do sem-lotação | idem | Elegível fica com `unidade_id = NULL` → **não aparece para escopo `local`** | ok (auto) |
+| Com lotação conhecida | `codigo_lotacao = LOT-01` (unidade existente) | Vincula à unidade e grava a matrícula | ok (auto) |
+| O que continua obrigatório | Linhas sem tipo_vinculo / sem identidade / sem nome | `TIPO_VINCULO_INVALIDO`, `SEM_IDENTIDADE`, `NOME_OBRIGATORIO` | ok (auto) |
+| Códigos legados | Relatório de erro antigo com `CODIGO_LOTACAO_OBRIGATORIO` | Continua legível (mantido no catálogo) | ok (revisado) |
+
 ## 2.2 Telas a validar em homologação (manual)
 
 | Tela | Caminho | O que validar |
@@ -214,7 +225,8 @@ pessoa pode tomar agora. 19 casos contra banco real (migrations 000..032).
 | 2026-08-05 | local (php:8.3-cli + Node 22) | automatizado | BUG-001: backend 37/37 e frontend 35/35 casos aprovados; `php -l` limpo nos 7 arquivos PHP tocados |
 | 2026-08-05 | local (mysql:8 + Node 22) | automatizado | BUG-002: 31 migrations aplicadas em banco limpo; as 3 queries alteradas rodaram contra o schema real; 16/16 casos do rótulo da campanha |
 | 2026-08-05 | local (imagem real do projeto + mysql:8) | automatizado | BUG-003: container normal, **sem nenhum cron**, drenou 30.000 elegíveis em **285s** (0 → 29.999 no banco); trava e recuperação de importação travada validadas |
-| 2026-08-07 | local (imagem do projeto + mysql:8) | automatizado | TL-205 (vacinação individual): 19/19 contra banco real. Suíte completa: **178 casos** |
+| 2026-08-07 | local (imagem do projeto + mysql:8) | automatizado | RN-018 revista (lotação/matrícula opcionais): 10 casos novos. Suíte completa: **188 casos** |
+| 2026-08-07 | local (imagem do projeto + mysql:8) | automatizado | TL-205 (vacinação individual): 19/19 contra banco real |
 | 2026-08-07 | local (Node 22 + php:8.3-cli) | automatizado | BUG-007: 20/20 do cabeçalho obrigatório |
 | 2026-08-06 | local (Node 22 + php:8.3-cli) | automatizado | BUG-006: 12/12 do catálogo de mensagens |
 | 2026-08-06 | local (Node 22 + mysql:8) | automatizado | BUG-005: 17/17 casos da tela + ciclo de status em MySQL real (migrations 000..032) |

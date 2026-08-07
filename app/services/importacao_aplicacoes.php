@@ -101,12 +101,8 @@ function imp_aplic_erro_novo_elegivel(array $item): ?string
     if ($tipo === 'dependente' && !validar_cpf(so_digitos($item['cpf_titular'] ?? ''))) {
         return 'CPF_TITULAR_INVALIDO';
     }
-    if (trim((string) ($item['codigo_lotacao'] ?? '')) === '') {
-        return 'CODIGO_LOTACAO_OBRIGATORIO';
-    }
-    if (trim((string) ($item['codigo_rh'] ?? '')) === '') {
-        return 'CODIGO_RH_OBRIGATORIO';
-    }
+    // codigo_lotacao e codigo_rh não entram aqui: viraram opcionais na RN-018
+    // revista (2026-08-07). Continuam sendo gravados quando o arquivo os traz.
     $nasc = trim((string) ($item['data_nascimento'] ?? ''));
     if ($nasc !== '' && !validar_data($nasc)) {
         return 'DATA_NASCIMENTO_INVALIDA';

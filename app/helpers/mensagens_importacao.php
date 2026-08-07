@@ -44,6 +44,9 @@ function mensagens_importacao(): array
         'TIPO_VINCULO_INVALIDO'      => 'Tipo de vínculo inválido. Use colaborador, dependente ou terceiro.',
         'CPF_TITULAR_INVALIDO'       => 'CPF do titular inválido.',
         'CPF_TITULAR_NAO_ELEGIVEL'   => 'O titular não é colaborador elegível nesta campanha.',
+        // LEGADO: não são mais emitidos (RN-018 revista em 2026-08-07 tornou os dois
+        // opcionais). Ficam no catálogo porque relatórios de erro antigos já gravados
+        // guardam esses códigos e precisam continuar legíveis.
         'CODIGO_LOTACAO_OBRIGATORIO' => 'Código de lotação não informado.',
         'CODIGO_RH_OBRIGATORIO'      => 'Matrícula não informada.',
 

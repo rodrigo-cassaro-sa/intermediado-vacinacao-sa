@@ -82,8 +82,8 @@ linha. Bloqueiam a importação, exceto onde indicado.
 | `TIPO_VINCULO_INVALIDO` | Vínculo fora da lista (RN-016) | Tipo de vínculo inválido. Use colaborador, dependente ou terceiro. |
 | `CPF_TITULAR_INVALIDO` | Dependente com CPF de titular inválido (RN-017) | CPF do titular inválido. |
 | `CPF_TITULAR_NAO_ELEGIVEL` | Titular não é colaborador elegível na campanha | O titular não é colaborador elegível nesta campanha. |
-| `CODIGO_LOTACAO_OBRIGATORIO` | Lotação em branco (RN-018) | Código de lotação não informado. |
-| `CODIGO_RH_OBRIGATORIO` | Matrícula em branco (RN-018) | Matrícula não informada. |
+| `CODIGO_LOTACAO_OBRIGATORIO` | **LEGADO** — não é mais emitido (RN-018 revista em 2026-08-07 tornou a lotação opcional). Mantido para os relatórios antigos continuarem legíveis | Código de lotação não informado. |
+| `CODIGO_RH_OBRIGATORIO` | **LEGADO** — idem, matrícula passou a ser opcional | Matrícula não informada. |
 
 ---
 

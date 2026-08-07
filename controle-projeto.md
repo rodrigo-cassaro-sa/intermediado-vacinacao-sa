@@ -64,7 +64,15 @@ NÃO está no ar: TL-205 (commit 56445a8) — /interno/elegiveis/vacinacao ainda
 Pendência de rastreabilidade: APP_VERSION não está configurada no painel, então o /health
 responde "versao: dev" e não dá para saber qual commit está rodando sem sondar rotas.
 
-Etapa atual (2026-08-07): TL-205 — vacinação individual (atendimento no posto). O fluxo das
+Etapa atual (2026-08-07): RN-018 revista — codigo_lotacao e codigo_rh (matrícula) passaram a
+ser OPCIONAIS na ingestão de elegíveis (decisão do usuário). Campo ausente grava NULL, não
+string vazia. O identificador já era opcional (a regra é CPF OU identificador, RN-028) e foi
+mantida. Corrigida de quebra uma contradição no doc 02: a RN-016 dizia que data de nascimento
+era obrigatória, mas o código e a RN-018 sempre a trataram como opcional.
+CONSEQUÊNCIA A ACOMPANHAR: elegível sem lotação fica sem unidade_id e não aparece para usuário
+de escopo 'local'. Evidência: 10 casos novos; suíte 188/188.
+
+Etapa anterior (2026-08-07): TL-205 — vacinação individual (atendimento no posto). O fluxo das
 telas exigia escolher a campanha e achar a pessoa na lista; no posto é o contrário: a pessoa
 chega e o CPF resolve. Novo GET /interno/elegiveis/vacinacao busca por CPF/voucher/matrícula/
 nome em todas as campanhas do escopo e devolve o que a pessoa pode tomar AGORA, mostrando
@@ -177,6 +185,8 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | 2026-07-06 | `public/` como único document root | Esconder código/config/uploads | Deploy aponta docroot p/ public/ | Orquestrador (doc 05) |
 | 2026-08-05 | CSV: cabeçalho na 1ª linha manda; colunas mapeadas por NOME, não por posição | BUG-001: cabeçalho entrava como registro e o BOM do Excel quebrava a detecção | Contrato de importação (doc 09 §3.1); ordem das colunas deixou de importar | Orquestrador |
 | 2026-08-05 | Um leitor de CSV só: `app/helpers/csv.php` + espelho `public/assets/csv.js` | Havia 8 parsers duplicados (2 PHP + 6 JS), cada um com uma regra diferente | Qualquer ajuste futuro de coluna é feito em 2 lugares, não em 8 | Orquestrador |
+| 2026-08-07 | `codigo_lotacao` e `codigo_rh` viram OPCIONAIS (RN-018 revista) | Decisão do usuário: nem todo cliente envia esses códigos, e rejeitar a linha impedia a pessoa de ser vacinada | Elegível sem lotação fica sem `unidade_id` e some para escopo `local` — registrado como risco | Usuário |
+| 2026-08-07 | Campo opcional ausente grava NULL, não `''` | Com string vazia um relatório de "quem está sem lotação" (`IS NULL`) não acharia ninguém | `$codLotacaoBd`/`$codRhBd` em ingerir_elegiveis | Orquestrador |
 | 2026-08-07 | A busca da vacinação individual ORIENTA; quem valida a dose continua sendo POST /aplicacoes | Duplicar RN-003/013/019 no caminho da busca criaria duas fontes da mesma regra, que divergem com o tempo | `pode_vacinar` é dica de tela; `validar_aplicacao` decide | Orquestrador |
 | 2026-08-07 | Resultado mostra também quem NÃO pode ser vacinado, com o motivo | Sumir com a pessoa faz o operador achar que ela não está cadastrada e abrir chamado | Usa os códigos do catálogo do doc 19 | Orquestrador |
 | 2026-08-07 | A 1ª linha é SEMPRE o cabeçalho; nome de coluna não reconhecido BLOQUEIA a importação | BUG-007, decisão do usuário. Reverte o BUG-004, onde eu escolhi avisar para não quebrar o import posicional — premissa que se mostrou falsa (parceiro só manda JSON; CSV é sempre upload humano com modelo cabeçalhado) | Contrato do doc 09 alterado; `csv_parsear` mantém o fallback, mas nenhum ponto de entrada o alcança | Usuário |
@@ -216,6 +226,7 @@ Skills principais: skill-briefing.md, skill-perfis-permissoes.md, skill-arquitet
 | 2026-07-06 | Scaffold backend PHP | app/*, api/v1/*, public/index.php, .env.example, .gitignore | arquivos gerados | Fundação procedural; health + login; não executado (sem PHP/MySQL) |
 | 2026-07-06 | Docker + deploy EasyPanel + Git | Dockerfile, docker/*, public/.htaccess, .dockerignore, scripts/migrar.php, docs/13 | commit ac5a892 | docroot public/; health em /api/v1/health; repo local (main) |
 | 2026-07-06 | Atualização do checkpoint | controle-projeto.md | este arquivo | — |
+| 2026-08-07 | RN-018 revista: lotação e matrícula opcionais na ingestão e no criar-elegível da RN-031 | app/services/elegiveis.php, app/services/importacao_aplicacoes.php, os 2 catálogos (códigos marcados como legado), telas de vacinados, docs/02 (RN-016 e RN-018), docs/09, docs/12, docs/19 | 10 casos novos contra banco real; suíte 188/188 | Sem migration (colunas já eram NULL) |
 | 2026-08-07 | TL-205: vacinação individual por busca de CPF/voucher/nome, com popup e formulário contextualizado | api/v1/interno/vacinacao_individual.php (novo), api/v1/rotas.php, public/{admin,portal}/vacinados.html, docs/07, docs/09, docs/12 | 19/19 contra banco real; suíte 178/178 | Sem migration. Rota literal posicionada antes das que usam {id} |
 | 2026-08-07 | BUG-007 corrigido: cabeçalho com nomes errados entrava como registro | public/assets/csv.js, app/helpers/csv.php, os 2 catálogos, api/v1/interno/vacinados_historico.php, public/admin/console.html, 5 telas (comentários), docs/09, docs/12, docs/19 | 20/20 + suíte 159/159; teste prova que os 9 pontos de entrada conferem | Sem migration. Mudança de contrato documentada no doc 09 |
 | 2026-08-06 | BUG-006 corrigido: mensagens de erro das importações padronizadas em catálogo único, com documento oficial | app/helpers/mensagens_importacao.php (novo), public/assets/mensagens.js (novo), docs/19 (novo), app/helpers/csv.php, public/assets/csv.js, api/v1/interno/{importacoes,importacao_vacinados}.php, 6 telas, docs/README, docs/12 | 12/12 do catálogo; suíte 139/139 | Instrução de cabeçalho reescrita em unidades/clientes/grupos |
@@ -335,6 +346,7 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | Lixo já gravado por importações anteriores (linhas "cpf/nome/razao_social" viradas registro) | dados | média | PENDENTE: varrer elegíveis/unidades/clientes/grupos em homolog e produção e remover os registros criados a partir de cabeçalho | aberto |
 | Fila de importação dependendo de Cron Job criado à mão no painel | operação | alta | RESOLVIDO: worker embutido no `docker/entrypoint.sh`, com lock e recuperação de importação travada (BUG-003) | mitigado |
 | `AUTO_MIGRAR=false` no `.env` NÃO trava migration automática | deploy/banco | média | O entrypoint é shell e não lê o `.env` (lido pelo PHP). Se em produção alguém confiar nisso, a migration roda assim mesmo no deploy. Documentado no `.env.example` §2 e no doc 13 §3.1 — precisa ser definida no painel do EasyPanel | mitigado (documentado) |
+| Elegível sem lotação não aparece para usuário de escopo `local` | operação/visibilidade | média | ACEITO com a RN-018 revista: `unidade_id` fica NULL e o filtro por unidade não o alcança. Se virar problema, opções são um "sem unidade" visível ao nível negócio ou tornar a lotação obrigatória por cliente | aberto |
 | APP_VERSION não configurada: /health responde "versao: dev" e não identifica o commit publicado | operação/rastreabilidade | média | PENDENTE: definir APP_VERSION no EasyPanel a cada deploy. Hoje só dá para saber o que está no ar sondando rotas e assets | aberto |
 | `storage/uploads` sem volume persistente derruba importação grande na fila | operação/dados | alta | PENDENTE DE CONFIRMAÇÃO: o arquivo do lote mora lá; redeploy no meio do processamento faz a importação virar `falha`. Checklist reforçado no doc 13 §6 | aberto |
 | Importação de vacinados errada gera faturamento errado | financeiro | alta | MITIGADO: simulação obrigatória + estorno do lote por `importacao_aplicacoes_id` + histórico dos lotes na tela, para o interno achar e desfazer o que o cliente importou. Decisão: estornar é só do interno; o cliente confere mas não desfaz | mitigado |
@@ -453,7 +465,9 @@ aplicadas. Só a TL-205 (56445a8) ainda não subiu. Verificação feita por sond
 assets porque APP_VERSION não está configurada — configure-a no painel para o /health passar
 a dizer o commit publicado (rastreabilidade de produção, orquestrador §10).
 
-Última coisa feita (2026-08-07): TL-205 — vacinação individual. Popup de atendimento nas
+Última coisa feita (2026-08-07): RN-018 revista — lotação e matrícula opcionais.
+
+Coisa feita antes (2026-08-07): TL-205 — vacinação individual. Popup de atendimento nas
 telas de vacinados do admin e do portal: digita CPF/voucher/matrícula/nome, o sistema acha a
 pessoa em todas as campanhas do escopo, diz o que ela pode tomar (e por que não, quando for o
 caso) e abre o formulário já contextualizado. Depois de salvar volta para a fila.

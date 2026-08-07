@@ -191,7 +191,8 @@ mas não traz uma coluna sem a qual nenhuma linha pode ser lida:
                "message": "…Reconheci: cpf, data_nascimento. Corrija a 1ª linha (ex.: cpf;nome;…)." }] }
 ```
 
-Obrigatórias por importação: elegíveis = `nome` + (`cpf` **ou** `identificador`);
+Obrigatórias por importação: elegíveis = `nome` + (`cpf` **ou** `identificador`) + `tipo_vinculo`;
+`codigo_lotacao` e `codigo_rh` são **opcionais** (RN-018 revista em 2026-08-07);
 vacinados em massa = (`cpf` **ou** `identificador`).
 
 > **Mudança de contrato (2026-08-07).** Antes, um CSV sem cabeçalho reconhecível era lido

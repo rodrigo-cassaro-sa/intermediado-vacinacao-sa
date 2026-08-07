@@ -332,8 +332,9 @@
 
         <label style="margin-top:12px"><input type="checkbox" id="impCriar" /> Criar o elegível quando o CPF não estiver na lista</label>
         <div class="hint">Sem isso, quem não está na lista da campanha é rejeitado. Marcando, o arquivo
-          também precisa trazer <b>tipo_vinculo</b>, <b>codigo_lotacao</b> e <b>matricula</b> — as regras da
-          lista de elegíveis continuam valendo.</div>
+          precisa trazer o <b>tipo_vinculo</b> (colaborador, dependente ou terceiro).
+          <b>codigo_lotacao</b> e <b>matricula</b> são opcionais — mas sem lotação o elegível fica sem
+          unidade e não aparece para quem só enxerga a própria unidade.</div>
 
         <div class="msg" id="impMsg"></div>
         <div id="impRelat"></div>

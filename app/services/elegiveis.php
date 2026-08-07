@@ -93,12 +93,21 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
         } else {
             $cpfTitular = null;
         }
-        // RN-018: códigos do cliente obrigatórios.
-        if ($codLotacao === '') { $rejeita($linha, $idErro, $nome, 'CODIGO_LOTACAO_OBRIGATORIO'); continue; }
-        if ($codRh === '')      { $rejeita($linha, $idErro, $nome, 'CODIGO_RH_OBRIGATORIO'); continue; }
-
-        // Portal D2: vincula à unidade (local de vacinação) pelo código de lotação, se existir.
+        // RN-018 (revista em 2026-08-07): codigo_lotacao e codigo_rh passaram a ser
+        // OPCIONAIS — nem todo cliente manda esses códigos, e rejeitar a linha por
+        // causa deles impedia a pessoa de ser vacinada. Continuam gravados quando
+        // vêm, porque são o lastro de conciliação com o cliente.
+        //
+        // CONSEQUÊNCIA de importar sem lotação: o elegível fica sem unidade_id e,
+        // por isso, NÃO aparece para usuário de escopo 'local' (doc 04 §4.1), que
+        // filtra justamente por unidade. Ele existe e é vacinável — só não é
+        // enxergado por quem só vê a própria unidade.
         $unidadeId = unidade_por_lotacao($tenantId, $codLotacao);
+
+        // Agora que são opcionais, "não informado" grava NULL — e não string vazia.
+        // Com '' um relatório de "quem está sem lotação" (IS NULL) não acharia nada.
+        $codLotacaoBd = $codLotacao !== '' ? $codLotacao : null;
+        $codRhBd      = $codRh !== '' ? $codRh : null;
 
         // Identidade global: por CPF (RN-008) ou por identificador/voucher (RN-028).
         if ($temCpf) {
@@ -135,8 +144,8 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
                     ':origem'   => $origem,
                     ':tipo'     => $tipo,
                     ':titular'  => $cpfTitular,
-                    ':lotacao'  => $codLotacao,
-                    ':rh'       => $codRh,
+                    ':lotacao'  => $codLotacaoBd,
+                    ':rh'       => $codRhBd,
                     ':imp'      => $importacaoId,
                     ':sync'     => $sincronizarEm,
                 ]
@@ -152,7 +161,7 @@ function ingerir_elegiveis(int $campanhaId, int $tenantId, array $lista, string 
         } else {
             // Já elegível nesta campanha (dedup) — atualiza dados sem duplicar.
             $bindUpd = [':enome' => $nome, ':enasc' => $nasc, ':tipo' => $tipo, ':titular' => $cpfTitular,
-                        ':lotacao' => $codLotacao, ':rh' => $codRh, ':unidade' => $unidadeId, ':id' => (int) $eleg['id']];
+                        ':lotacao' => $codLotacaoBd, ':rh' => $codRhBd, ':unidade' => $unidadeId, ':id' => (int) $eleg['id']];
             $setSync = '';
             if ($sincronizarEm !== null) {
                 $setSync = ', sincronizado_em = :sync';
