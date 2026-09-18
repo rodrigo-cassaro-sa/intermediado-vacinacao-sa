@@ -180,6 +180,56 @@ pessoa pode tomar agora. 19 casos contra banco real (migrations 000..032).
 | O que continua obrigatório | Linhas sem tipo_vinculo / sem identidade / sem nome | `TIPO_VINCULO_INVALIDO`, `SEM_IDENTIDADE`, `NOME_OBRIGATORIO` | ok (auto) |
 | Códigos legados | Relatório de erro antigo com `CODIGO_LOTACAO_OBRIGATORIO` | Continua legível (mantido no catálogo) | ok (revisado) |
 
+## 2.1k Redefinição de senha (RN-032)
+
+| # | Caso | Esperado | Status |
+|---|---|---|---|
+| 1 | Pedir link para e-mail **cadastrado** | 200 com a mensagem genérica; e-mail chega | ✅ |
+| 2 | Pedir link para e-mail **inexistente** | Resposta **byte a byte igual** à do caso 1 | ✅ |
+| 3 | Pedir link para usuário **bloqueado** | Mesma resposta; nenhum link é gerado | ✅ |
+| 4 | Abrir o link | Tela cumprimenta pelo primeiro nome | ✅ |
+| 5 | Redefinir e entrar com a senha nova | Login 200 | ✅ |
+| 6 | Entrar com a senha **antiga** | Login 401 | ✅ |
+| 7 | Reusar o **mesmo** link | 400 `TOKEN_INVALIDO` | ✅ |
+| 8 | Pedir um link novo e usar o **anterior** | 400 `TOKEN_INVALIDO` | ✅ |
+| 9 | Link expirado (`expira_em` no passado) | 400 `TOKEN_INVALIDO` | ✅ |
+| 10 | Token forjado / malformado | 400, sem consultar o banco | ✅ |
+| 11 | Senha com 7 caracteres | 400 `SENHA_CURTA` | ✅ |
+| 12 | 4 pedidos do mesmo e-mail no mesmo minuto | 4º devolve 429 | ✅ |
+| 13 | Outro e-mail no mesmo minuto | 200 (o limite é por endereço) | ✅ |
+| 14 | Token na trilha de auditoria | **0 ocorrências** | ✅ |
+| 15 | Origem `admin` leva de volta para `/admin/` | `destino` = `/admin/` | ✅ |
+
+## 2.1z Como rodar as suítes localmente (Docker)
+
+```sh
+# 1. Banco descartável
+docker network create imz-teste
+docker run -d --name imz-mysql-teste --network imz-teste   -e MYSQL_ROOT_PASSWORD=teste123 -e MYSQL_DATABASE=imunizacao mysql:8
+
+# 2. Imagem do projeto
+docker build -t imz-app-teste .
+
+# 3. Migrations e testes
+#    ATENÇÃO ao --entrypoint php: sem ele o ENTRYPOINT do Dockerfile ignora o
+#    comando, sobe o Apache e o container parece "travado".
+DB="--network imz-teste -e DB_HOST=imz-mysql-teste -e DB_NOME=imunizacao -e DB_USUARIO=root -e DB_SENHA=teste123"
+docker run --rm --entrypoint php $DB imz-app-teste scripts/migrar.php
+docker run --rm --entrypoint php $DB imz-app-teste scripts/testar_senha.php --banco
+docker run --rm --entrypoint php imz-app-teste scripts/testar_csv.php
+
+# 4. Subir a app para testar por HTTP (porta 8099)
+docker run -d --name imz-app-http $DB -p 8099:80   -e APP_URL=http://localhost:8099 -e AUTO_MIGRAR=false -e WORKERS_EMBUTIDOS=false imz-app-teste
+# Sem provedor de e-mail, o link de redefinição sai no log:
+docker logs imz-app-http 2>&1 | grep "link de teste"
+
+# 5. Limpar
+docker rm -f imz-app-http imz-mysql-teste && docker network rm imz-teste
+```
+
+Montar o código local por cima (`-v "$PWD":/var/www/html`) evita rebuild a cada
+edição.
+
 ## 2.2 Telas a validar em homologação (manual)
 
 | Tela | Caminho | O que validar |
