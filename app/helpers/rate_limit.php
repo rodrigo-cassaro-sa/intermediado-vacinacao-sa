@@ -6,6 +6,27 @@
 // ============================================================================
 
 /**
+ * Encaixa a chave no VARCHAR(80) da coluna.
+ *
+ * Por que isto existe: `rate_limite.chave` é VARCHAR(80) e o INSERT de uma chave
+ * maior falha com "Data too long". Como esta função é fail-open, a falha era
+ * SILENCIOSA — o limite simplesmente não valia, e nada na tela denunciava.
+ * Aconteceu com `senha_esqueci_email:<sha256>` (85 caracteres).
+ *
+ * Truncar seria pior: duas chaves longas com o mesmo começo virariam a mesma e
+ * dividiriam o contador. Por isso o excesso é comprimido num hash, mantendo o
+ * prefixo legível para quem for ler a tabela.
+ */
+function rate_limit_chave(string $chave): string
+{
+    if (strlen($chave) <= 80) {
+        return $chave;
+    }
+    $resumo = substr(sha1($chave), 0, 40);
+    return substr($chave, 0, 39) . '~' . $resumo;   // 39 + 1 + 40 = 80
+}
+
+/**
  * Incrementa o contador da chave na janela atual e responde 429 se exceder o limite.
  * $limite = requisições permitidas por janela (por minuto por padrão).
  */
@@ -14,6 +35,7 @@ function rate_limit_ou_429(string $chave, int $limite, int $janelaSeg = 60): voi
     if ($limite <= 0) {
         return; // 0/negativo = sem limite
     }
+    $chave = rate_limit_chave($chave);
     $bucket = intdiv(time(), $janelaSeg);
     try {
         db_executar(

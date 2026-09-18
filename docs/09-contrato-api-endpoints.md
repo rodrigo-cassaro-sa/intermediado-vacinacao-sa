@@ -79,6 +79,9 @@ Códigos HTTP:
 |---|---|---|---|---|
 | POST | /auth/login | Autenticar usuário | público | sim |
 | POST | /auth/logout | Encerrar sessão | autenticado | sim |
+| POST | /auth/senha/esqueci | Pedir link de redefinição de senha | **público** | não |
+| GET | /auth/senha/validar | O link ainda vale? (tela pergunta antes do formulário) | **público** | não |
+| POST | /auth/senha/redefinir | Gravar a senha nova usando o link | **público** (o token é a credencial) | não |
 | GET | /clientes | Listar clientes B2B | operador_interno+ | não |
 | POST | /clientes | Criar cliente B2B | operador_interno+ | sim |
 | GET | /campanhas | Listar campanhas (do tenant/escopo) | operador / cliente_b2b | não |
@@ -503,6 +506,77 @@ Permissão: operador / cliente_b2b (própria campanha). Filtra por tenant_id + c
 ```
 
 ---
+
+## POST /api/v1/interno/auth/senha/esqueci  (esqueci minha senha)
+
+Público por natureza: quem esqueceu a senha não consegue autenticar. Sem CSRF —
+não há sessão para amarrar o token a.
+
+```json
+{ "email": "pessoa@empresa.com.br", "origem": "portal" }
+```
+
+`origem` é `portal` (padrão) ou `admin`, e decide só para onde a pessoa volta
+depois de redefinir. Não muda permissão nenhuma.
+
+**A resposta é SEMPRE a mesma**, exista o e-mail ou não, esteja o usuário ativo
+ou bloqueado, tenha o envio funcionado ou falhado:
+
+```json
+{ "success": true,
+  "message": "Se houver uma conta com esse e-mail, o link de redefinição foi enviado.",
+  "data": { "validade_minutos": 60 } }
+```
+
+Isso não é preciosismo. Um endpoint que responde "e-mail não cadastrado" entrega
+a lista de quem tem conta na plataforma para qualquer um que queira sondar — e
+aqui a lista de contas é, na prática, a lista de clientes da empresa. O que
+aconteceu de verdade fica na auditoria (`senha.reset_solicitado` ou
+`senha.reset_solicitado_invalido`) e no log do container.
+
+Só dois erros chegam ao cliente: `EMAIL_INVALIDO` (400, endereço malformado) e
+`RATE_LIMIT` (429).
+
+Limites: `RATE_LIMIT_SENHA_IP` pedidos por IP/min (padrão 10) e
+`RATE_LIMIT_SENHA_EMAIL` por endereço/min (padrão 3) — o segundo existe para a
+caixa de entrada de alguém não virar alvo de flood a partir de vários IPs.
+
+## GET /api/v1/interno/auth/senha/validar?token=...
+
+Serve para a tela dizer "link expirado" **antes** de a pessoa digitar a senha
+nova. Devolve só o primeiro nome (para cumprimentar), a origem e o prazo — nunca
+e-mail ou id.
+
+```json
+{ "success": true, "data": { "valido": true, "nome": "Rodrigo",
+  "origem": "portal", "expira_em": "2026-09-18 15:30:00" } }
+```
+
+Token inexistente, usado, invalidado, expirado, ou de usuário bloqueado/excluído
+→ 400 `TOKEN_INVALIDO`. A resposta é idêntica nos cinco casos: dizer qual deles
+foi ajudaria quem está sondando.
+
+## POST /api/v1/interno/auth/senha/redefinir
+
+```json
+{ "token": "<64 hex>", "senha": "a nova senha" }
+```
+
+Erros: `TOKEN_INVALIDO` (400), `SENHA_CURTA` (< 8), `SENHA_LONGA` (> 200),
+`RATE_LIMIT` (429).
+
+Sucesso devolve `{ "destino": "/portal/" }` (ou `/admin/`), que é para onde a
+tela manda a pessoa entrar.
+
+Efeitos: grava `senha_hash` novo, marca o token como usado e **invalida todos os
+outros links pendentes do mesmo usuário** — tudo numa transação. Auditoria:
+`senha.redefinida`.
+
+**Limitação conhecida:** sessões já abertas em outros navegadores continuam
+válidas depois da troca. As sessões são arquivos do PHP, sem registro central que
+permita derrubá-las por usuário. Se isso virar requisito (é o comportamento que
+um banco teria), o caminho é uma tabela de sessões ou um `sessoes_validas_apos`
+em `usuario` conferido no `exigir_login()`.
 
 # 3.9 API EXTERNA (parceiros/integrações) — contrato público v1
 

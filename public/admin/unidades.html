@@ -127,6 +127,10 @@
       <input id="senha" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')entrar()" />
       <div class="msg" id="loginMsg"></div>
       <button class="btn primary" style="width:100%;justify-content:center;margin-top:12px" onclick="entrar()">Entrar</button>
+      <a href="/esqueci-senha.html?origem=admin"
+         style="display:block;text-align:center;margin-top:14px;font-size:13px;color:var(--muted);text-decoration:none"
+         onmouseover="this.style.color='var(--pri)'" onmouseout="this.style.color='var(--muted)'"
+         onclick="const e=document.getElementById('email').value.trim();if(e)this.href+='&email='+encodeURIComponent(e)">Esqueci minha senha</a>
     </div>
   </div>
 

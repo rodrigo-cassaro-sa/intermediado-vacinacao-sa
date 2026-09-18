@@ -89,6 +89,38 @@ webhook_entrega    (id, assinatura_id, evento, payload JSON, status, tentativas,
 
 > Notificações a usuários (e-mail/WhatsApp) ficam para depois dos webhooks (V2 de engajamento).
 
+## 4.1 E-mail transacional (IMPLEMENTADO)
+
+Primeiro e único e-mail que o sistema envia hoje: o link de redefinição de senha.
+`app/helpers/email.php` é o único ponto de saída — qualquer e-mail futuro passa
+por ele.
+
+| Variável | O que é |
+|---|---|
+| `EMAIL_PROVEDOR` | `resend`, `brevo` ou `sendgrid`. **Vazio = não envia.** |
+| `EMAIL_API_KEY` | chave da API do provedor |
+| `EMAIL_REMETENTE` | endereço remetente, em domínio **verificado** no provedor |
+| `EMAIL_REMETENTE_NOME` | nome exibido |
+| `EMAIL_TIMEOUT` | segundos de espera pela API (padrão 10) |
+
+**Por que API HTTP e não SMTP:** o projeto não tem Composer nem `vendor/`, então
+não há PHPMailer, e falar SMTP na mão exigiria implementar STARTTLS + AUTH + o
+diálogo inteiro. Os três provedores são um POST JSON; o que muda é o endpoint, o
+cabeçalho de autenticação e o formato do corpo.
+
+**Por que streams e não cURL:** o Dockerfile instala o *binário* curl (para o
+healthcheck), não a extensão `curl` do PHP. `file_get_contents` com contexto HTTP
+resolve sem mexer na imagem.
+
+**Sem provedor configurado o sistema não quebra:** gera o link e escreve no log do
+container (`[senha] EMAIL NAO CONFIGURADO — link de teste: ...`). Foi assim que o
+fluxo foi validado ponta a ponta em teste antes de existir provedor.
+
+**Antes de ligar:** `APP_URL` precisa apontar para o domínio real — é ela que monta
+o link do e-mail; com `APP_URL` errada, o e-mail sai com um link que não abre. E o
+domínio de `EMAIL_REMETENTE` tem de estar verificado no provedor (SPF/DKIM no DNS),
+senão o e-mail é recusado ou vai direto para spam.
+
 ---
 
 # 5. Regras

@@ -48,6 +48,47 @@ Máquinas (rede credenciada, ingestão B2B):
   padrão 20/min). Contadores em `rate_limite` (janela de 60s), limpos pelo cron diário.
 ```
 
+## 2.1 Recuperação de senha (IMPLEMENTADO)
+
+A senha é guardada com `password_hash` (bcrypt) e **não tem volta** — isso é
+proposital, não uma limitação. Recuperar a senha original seria um defeito num
+sistema que guarda dado de saúde. O que existe é redefinição.
+
+```txt
+Fluxo: pede pelo e-mail -> recebe link -> escolhe senha nova.
+Token:      32 bytes de random_bytes (CSPRNG) em hex (64 caracteres).
+No banco:   só sha256(token), em `senha_redefinicao.token_hash` (UNIQUE).
+            Um dump ou backup não permite redefinir a senha de ninguém.
+Prazo:      SENHA_RESET_MINUTOS (padrão 60). 0 ou negativo cai no padrão —
+            link sem prazo seria falha de segurança.
+Uso único:  usar um link marca `usado_em` e invalida todos os outros do usuário.
+            Pedir um link novo invalida os anteriores.
+Bloqueio:   usuário bloqueado ou excluído tem o link recusado, mesmo dentro do prazo.
+Rate limit: RATE_LIMIT_SENHA_IP por IP/min (padrão 10) e RATE_LIMIT_SENHA_EMAIL
+            por endereço/min (padrão 3). O segundo existe para a caixa de entrada
+            de alguém não virar alvo a partir de vários IPs.
+Auditoria:  senha.reset_solicitado, senha.reset_solicitado_invalido,
+            senha.reset_token_recusado, senha.redefinida. O token NUNCA é gravado.
+```
+
+**Não vazar quem tem conta.** `POST /auth/senha/esqueci` responde exatamente a
+mesma coisa para e-mail existente, inexistente, bloqueado ou com falha de envio.
+Aqui a lista de contas é, na prática, a lista de clientes da empresa; um endpoint
+que confirmasse endereços a entregaria a qualquer um que sondasse.
+
+**Armadilha registrada (encontrada em teste, 2026-09-18):** `rate_limite.chave` é
+`VARCHAR(80)` e `rate_limit_ou_429()` é *fail-open*. Uma chave maior que 80 faz o
+INSERT falhar e **o limite simplesmente não vale, em silêncio** — nada na tela
+denuncia. Foi o que aconteceu com `senha_esqueci_email:<sha256>` (85 caracteres).
+Hoje `rate_limit_chave()` comprime o excesso num hash, e `scripts/testar_senha.php`
+mede o tamanho de toda chave nova. Os outros dois pontos que usam rate limit
+foram conferidos e cabem: `cred:<id>` (~15) e `login:<ip>` (≤ 51 com IPv6).
+
+**Limitação conhecida:** trocar a senha **não** derruba sessões já abertas em
+outros navegadores. As sessões são arquivos do PHP, sem registro central. Se
+virar requisito, o caminho é uma tabela de sessões ou um campo
+`sessoes_validas_apos` em `usuario` conferido no `exigir_login()`.
+
 ---
 
 # 3. Permissões críticas

@@ -66,7 +66,29 @@ LICAO: sem APP_VERSION o checkpoint envelhece em silencio e passa a mentir. APP_
 continua NAO configurada (o /health diz "versao: dev"), entao a unica forma de saber o que
 esta publicado e sondar rota por rota. Resolver isso no painel e barato e para de custar caro.
 
-Etapa atual (2026-09-18): BUG-008 - a raiz do dominio devolvia o 404 JSON da API.
+Etapa atual (2026-09-18): RN-032 - "esqueci minha senha" por e-mail.
+Nao existia NENHUM fluxo de senha no produto: nem trocar a propria, nem um admin
+redefinir a de outro. Toda redefinicao exigia alguem abrir terminal no container e rodar
+scripts/criar_admin.php - o que nao escala quando o portal tiver clientes de verdade.
+Entregue: migration 033 (senha_redefinicao), app/helpers/email.php (Resend/Brevo/SendGrid
+por variavel), app/services/senha.php, 3 rotas publicas, telas /esqueci-senha.html e
+/redefinir-senha.html, e o link "Esqueci minha senha" nas 20 telas de login.
+Token: 32 bytes de random_bytes; o banco guarda so o sha256; 60 min; uso unico; pedir de
+novo invalida o anterior. A resposta de /esqueci e IDENTICA para e-mail existente,
+inexistente, bloqueado ou com falha de envio - aqui a lista de contas e a lista de
+clientes da empresa.
+ACHADO EM TESTE: rate_limite.chave e VARCHAR(80) e rate_limit_ou_429 e fail-open, entao a
+chave de 85 caracteres que eu criei fazia o limite NAO VALER, em silencio. Corrigido na
+raiz (rate_limit_chave comprime o excesso) e travado por teste.
+Evidencia: 53/53 em scripts/testar_senha.php (incluindo ciclo completo contra MySQL 8.4
+real em container) + ponta a ponta por HTTP: pedir link -> validar -> redefinir -> senha
+antiga da 401 -> senha nova entra -> link nao serve de novo -> rate limit 429 no 4o pedido
+-> token com 0 ocorrencias na auditoria.
+PENDENTE PARA FUNCIONAR DE VERDADE: criar a conta no provedor, verificar o dominio no DNS
+(SPF/DKIM) e preencher EMAIL_PROVEDOR/EMAIL_API_KEY/APP_URL no EasyPanel. Sem isso o
+sistema nao quebra - grava o link no log do container.
+
+Etapa anterior (2026-09-18): BUG-008 - a raiz do dominio devolvia o 404 JSON da API.
 Quem digitava https://imu.saimunizacoes.com.br/ recebia
 {"success":false,"message":"Rota nao encontrada."...} em vez de uma pagina. Causa: public/
 index.php e o front controller E era o DirectoryIndex da pasta public/; ele so trata caminhos
@@ -308,6 +330,8 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | BUG-001 | CSV: 1ª linha = cabeçalho e mapeamento por nome da coluna em todas as importações (leitor único csv.php/csv.js) | QA/backend/frontend | alta | feito e NO AR |
 | BUG-002 | Campanha identificada pelo `codigo` no console e nos endpoints de carteira/resumo/faturamento | QA/frontend/backend | média | feito e NO AR |
 | BUG-003 | Worker da fila embutido no container + progresso da importação na tela (listas de 20k–30k) | deploy/backend/frontend | alta | feito e NO AR — confirmar que storage/uploads é volume persistente |
+| RN-032 | "Esqueci minha senha": token de uso unico por e-mail (mig 033, 3 rotas publicas, 2 telas, link nas 20 telas de login) + `app/helpers/email.php` | backend/frontend/seguranca | alta | feito, 53/53 — falta configurar o provedor de e-mail |
+| RL-001 | `rate_limit_chave()`: chave > 80 fazia o limite falhar em silencio (fail-open) | seguranca | alta | feito (achado no teste da RN-032) |
 | BUG-008 | Raiz do domínio devolvia o 404 JSON da API: página de entrada em `public/index.html` + `DirectoryIndex` explícito no `.htaccess` | frontend/deploy | alta | feito — falta redeploy e sondar `GET /` |
 | V2 | Autoadesão B2C (consentimento) + venda de voucher (pagamento) | — | baixa | pendente |
 | RN-031 | Vacinar pelo portal/admin + importar vacinados em massa (simulação obrigatória, estorno de lote) | backend/frontend/QA | alta | feito e NO AR (migration 031 aplicada) — falta validar nas telas |
@@ -483,7 +507,27 @@ Houve redeploy depois de 07/08 sem atualizar este arquivo. APP_VERSION continua 
 (/health diz "versao: dev"), então o commit publicado segue sem ser identificável a não ser
 sondando rotas — configure-a no painel (rastreabilidade, orquestrador §10).
 
-Última coisa feita (2026-09-18): BUG-008 — a raiz do domínio devolvia o 404 JSON da API para
+Última coisa feita (2026-09-18): RN-032 — fluxo "esqueci minha senha" por e-mail, de
+ponta a ponta. Migration 033 (`senha_redefinicao`), helper de e-mail transacional com três
+provedores por variável (Resend/Brevo/SendGrid), serviço, três rotas públicas, duas telas
+novas e o link em todas as 20 telas de login. O token nunca é gravado: o banco guarda o
+sha256 dele.
+
+DE QUEBRA, um bug de segurança pré-existente: `rate_limite.chave` é VARCHAR(80) e
+`rate_limit_ou_429()` é fail-open, então qualquer chave maior fazia o limite não valer
+**em silêncio**. Corrigido em `rate_limit_chave()`, que comprime o excesso num hash em vez
+de truncar (truncar faria chaves distintas colidirem). Varri os outros dois pontos que usam
+rate limit e ambos cabem: `cred:<id>` (~15 caracteres) e `login:<ip>` (no máximo 51, com
+IPv6). O problema era só da chave nova.
+
+AÇÃO NECESSÁRIA NO DEPLOY:
+  1. Redeploy (a migration 033 sobe sozinha pelo AUTO_MIGRAR).
+  2. No EasyPanel, definir: EMAIL_PROVEDOR, EMAIL_API_KEY, EMAIL_REMETENTE e APP_URL.
+     APP_URL é quem monta o link do e-mail — errada, o e-mail sai com link que não abre.
+  3. Verificar o domínio do remetente no provedor (SPF/DKIM no DNS), senão vai para spam.
+  Enquanto isso não for feito o sistema NÃO quebra: grava o link no log do container.
+
+Coisa feita antes (2026-09-18): BUG-008 — a raiz do domínio devolvia o 404 JSON da API para
 um visitante humano. public/index.php acumulava dois papéis (front controller da API e
 DirectoryIndex da pasta public/) e recusa tudo que não comece com /api/. Agora existe
 public/index.html — página de entrada com as duas portas (portal do cliente e acesso interno)

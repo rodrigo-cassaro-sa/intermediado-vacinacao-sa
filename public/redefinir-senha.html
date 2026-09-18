@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- noindex + no-referrer: o token está na URL e não pode vazar para buscadores
+       nem no cabeçalho Referer de nenhum recurso externo carregado aqui. -->
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="referrer" content="no-referrer" />
+  <title>Redefinir senha — S&amp;A Imunizações</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+  <link rel="stylesheet" href="/assets/marca.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/senha.css" />
+</head>
+<body>
+  <main class="box">
+    <div class="marca">
+      <div class="logo"><svg width="26" height="26" viewBox="0 0 32 32"><path d="M13.5 7h5v6.5H25v5h-6.5V25h-5v-6.5H7v-5h6.5z" fill="#fff"/></svg></div>
+      <div>
+        <div class="nome">S&amp;A <b>Imunizações</b></div>
+        <div class="tag">Redefinição de senha</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <!-- Enquanto validamos o token -->
+      <div id="passoCarregando">
+        <h1>Verificando o link…</h1>
+        <p class="sub">Um instante.</p>
+      </div>
+
+      <!-- Token válido: formulário -->
+      <div id="passoForm" class="hide">
+        <h1 id="titulo">Criar senha nova</h1>
+        <p class="sub" id="subtitulo">Escolha uma senha que você não usa em outro lugar.</p>
+
+        <label for="senha">Senha nova</label>
+        <input id="senha" type="password" autocomplete="new-password" />
+
+        <label for="senha2">Repita a senha</label>
+        <input id="senha2" type="password" autocomplete="new-password" />
+
+        <ul class="regras">
+          <li id="r-tam">Pelo menos 8 caracteres</li>
+          <li id="r-igual">As duas senhas coincidem</li>
+        </ul>
+
+        <div class="msg" id="msg"></div>
+
+        <button class="btn" id="btnSalvar" disabled>Salvar senha nova</button>
+      </div>
+
+      <!-- Token inválido/expirado -->
+      <div id="passoInvalido" class="hide">
+        <div class="falha-ico">!</div>
+        <h1>Link inválido ou expirado</h1>
+        <p class="sub" id="invalidoTexto">
+          Este link já foi usado ou passou do prazo. Peça um novo — leva alguns segundos.
+        </p>
+        <a class="btn linkbtn" id="linkNovo" href="/esqueci-senha.html">Pedir um link novo</a>
+        <a class="voltar" id="linkVoltar" href="/">Voltar ao início</a>
+      </div>
+
+      <!-- Sucesso -->
+      <div id="passoPronto" class="hide">
+        <div class="ok-ico">✓</div>
+        <h1>Senha redefinida</h1>
+        <p class="sub">Tudo certo. Já pode entrar com a senha nova.</p>
+        <a class="btn linkbtn" id="linkEntrar" href="/portal/">Ir para o acesso</a>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const TOKEN = new URLSearchParams(location.search).get('token') || '';
+    let DESTINO = '/portal/';
+
+    const el = (id) => document.getElementById(id);
+    const mostrar = (id) => {
+      ['passoCarregando', 'passoForm', 'passoInvalido', 'passoPronto']
+        .forEach((p) => el(p).classList.toggle('hide', p !== id));
+    };
+
+    // Apaga o token da barra de endereços assim que a página carrega: evita que
+    // ele fique no histórico do navegador ou seja copiado sem querer.
+    function limparUrl() {
+      try { history.replaceState(null, '', location.pathname); } catch (e) { /* sem drama */ }
+    }
+
+    async function validar() {
+      if (!TOKEN) { mostrar('passoInvalido'); return; }
+
+      try {
+        const r = await fetch('/api/v1/interno/auth/senha/validar?token=' + encodeURIComponent(TOKEN));
+        const d = await r.json();
+        limparUrl();
+
+        if (!d.success) { mostrar('passoInvalido'); return; }
+
+        if (d.data.origem === 'admin') {
+          DESTINO = '/admin/';
+          el('linkNovo').href = '/esqueci-senha.html?origem=admin';
+        }
+        el('linkEntrar').href = DESTINO;
+
+        if (d.data.nome) {
+          el('titulo').textContent = `Olá, ${d.data.nome}`;
+          el('subtitulo').textContent = 'Escolha uma senha nova que você não usa em outro lugar.';
+        }
+        mostrar('passoForm');
+        el('senha').focus();
+      } catch (e) {
+        limparUrl();
+        el('invalidoTexto').textContent = 'Não conseguimos verificar o link agora. Tente de novo em instantes.';
+        mostrar('passoInvalido');
+      }
+    }
+
+    const senha = el('senha');
+    const senha2 = el('senha2');
+    const btn = el('btnSalvar');
+    const msg = el('msg');
+
+    function conferir() {
+      const tamOk = senha.value.length >= 8;
+      const igualOk = senha.value.length > 0 && senha.value === senha2.value;
+      el('r-tam').classList.toggle('ok', tamOk);
+      el('r-igual').classList.toggle('ok', igualOk);
+      btn.disabled = !(tamOk && igualOk);
+      return tamOk && igualOk;
+    }
+
+    async function salvar() {
+      if (!conferir()) return;
+
+      btn.disabled = true;
+      btn.textContent = 'Salvando...';
+      msg.textContent = '';
+      msg.className = 'msg';
+
+      try {
+        const r = await fetch('/api/v1/interno/auth/senha/redefinir', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: TOKEN, senha: senha.value }),
+        });
+        const d = await r.json();
+
+        if (!d.success) {
+          // Token que expirou enquanto a pessoa digitava cai aqui.
+          if (d.errors?.[0]?.code === 'TOKEN_INVALIDO') { mostrar('passoInvalido'); return; }
+          msg.textContent = d.errors?.[0]?.message || d.message || 'Não foi possível salvar.';
+          msg.className = 'msg erro';
+          return;
+        }
+
+        if (d.data?.destino) { DESTINO = d.data.destino; el('linkEntrar').href = DESTINO; }
+        senha.value = senha2.value = '';
+        mostrar('passoPronto');
+      } catch (e) {
+        msg.textContent = 'Falha de conexão. Tente de novo.';
+        msg.className = 'msg erro';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Salvar senha nova';
+      }
+    }
+
+    senha.addEventListener('input', conferir);
+    senha2.addEventListener('input', conferir);
+    senha2.addEventListener('keydown', (e) => { if (e.key === 'Enter') salvar(); });
+    btn.addEventListener('click', salvar);
+
+    validar();
+  </script>
+</body>
+</html>

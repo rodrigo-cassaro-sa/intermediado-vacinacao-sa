@@ -16,6 +16,11 @@ return [
     'POST /api/v1/interno/auth/logout' => ['arquivo' => 'interno/auth.php', 'funcao' => 'rota_logout'],
     'GET  /api/v1/interno/auth/eu'     => ['arquivo' => 'interno/auth.php', 'funcao' => 'rota_eu'],
 
+    // --- Redefinicao de senha (PUBLICAS: quem esqueceu a senha nao autentica) ---
+    'POST /api/v1/interno/auth/senha/esqueci'   => ['arquivo' => 'interno/senha.php', 'funcao' => 'rota_senha_esqueci'],
+    'GET  /api/v1/interno/auth/senha/validar'   => ['arquivo' => 'interno/senha.php', 'funcao' => 'rota_senha_validar'],
+    'POST /api/v1/interno/auth/senha/redefinir' => ['arquivo' => 'interno/senha.php', 'funcao' => 'rota_senha_redefinir'],
+
     // --- Dashboard admin: visão geral consolidada do escopo ---
     'GET  /api/v1/interno/dashboard' => ['arquivo' => 'interno/dashboard.php', 'funcao' => 'rota_dashboard_visao_geral'],
 

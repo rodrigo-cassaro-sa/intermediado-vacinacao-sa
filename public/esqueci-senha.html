@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Esqueci minha senha — S&amp;A Imunizações</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+  <link rel="stylesheet" href="/assets/marca.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/senha.css" />
+</head>
+<body>
+  <main class="box">
+    <div class="marca">
+      <div class="logo"><svg width="26" height="26" viewBox="0 0 32 32"><path d="M13.5 7h5v6.5H25v5h-6.5V25h-5v-6.5H7v-5h6.5z" fill="#fff"/></svg></div>
+      <div>
+        <div class="nome">S&amp;A <b>Imunizações</b></div>
+        <div class="tag" id="tagOrigem">Portal do cliente</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <!-- Passo 1: pedir o e-mail -->
+      <div id="passoPedir">
+        <h1>Esqueci minha senha</h1>
+        <p class="sub">Informe o e-mail da sua conta. Enviaremos um link para você criar uma senha nova.</p>
+
+        <label for="email">E-mail</label>
+        <input id="email" type="email" autocomplete="username" placeholder="voce@empresa.com.br" />
+
+        <div class="msg" id="msg"></div>
+
+        <button class="btn" id="btnEnviar">Enviar link de redefinição</button>
+        <a class="voltar" id="linkVoltar" href="/portal/">Voltar para o acesso</a>
+      </div>
+
+      <!-- Passo 2: confirmação (mesma tela para e-mail existente ou não) -->
+      <div id="passoPronto" class="hide">
+        <div class="ok-ico">✓</div>
+        <h1>Verifique seu e-mail</h1>
+        <p class="sub" id="prontoTexto"></p>
+        <p class="sub small">
+          Não chegou? Confira a caixa de spam. Se o endereço não estiver cadastrado,
+          nenhum e-mail é enviado — por segurança, não informamos quais endereços existem.
+        </p>
+        <a class="btn linkbtn" id="linkVoltar2" href="/portal/">Voltar para o acesso</a>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const ORIGEM = params.get('origem') === 'admin' ? 'admin' : 'portal';
+    const DESTINO = ORIGEM === 'admin' ? '/admin/' : '/portal/';
+
+    document.getElementById('tagOrigem').textContent =
+      ORIGEM === 'admin' ? 'Acesso interno' : 'Portal do cliente';
+    document.getElementById('linkVoltar').href = DESTINO;
+    document.getElementById('linkVoltar2').href = DESTINO;
+
+    const email = document.getElementById('email');
+    const msg = document.getElementById('msg');
+    const btn = document.getElementById('btnEnviar');
+
+    // Pré-preenche se a tela de login mandou o e-mail já digitado.
+    if (params.get('email')) email.value = params.get('email');
+
+    function erro(texto) {
+      msg.textContent = texto;
+      msg.className = 'msg erro';
+    }
+
+    async function enviar() {
+      const valor = email.value.trim();
+      if (!valor) { erro('Informe o e-mail da sua conta.'); email.focus(); return; }
+
+      btn.disabled = true;
+      btn.textContent = 'Enviando...';
+      msg.textContent = '';
+      msg.className = 'msg';
+
+      try {
+        const r = await fetch('/api/v1/interno/auth/senha/esqueci', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: valor, origem: ORIGEM }),
+        });
+        const d = await r.json();
+
+        if (!d.success) {
+          // 429 e e-mail malformado são os únicos erros que chegam aqui.
+          erro(d.errors?.[0]?.message || d.message || 'Não foi possível enviar agora.');
+          return;
+        }
+
+        const min = d.data?.validade_minutos || 60;
+        document.getElementById('prontoTexto').textContent =
+          `Se houver uma conta com ${valor}, o link de redefinição já está a caminho. Ele vale por ${min} minutos e só pode ser usado uma vez.`;
+        document.getElementById('passoPedir').classList.add('hide');
+        document.getElementById('passoPronto').classList.remove('hide');
+      } catch (e) {
+        erro('Falha de conexão. Verifique sua internet e tente de novo.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Enviar link de redefinição';
+      }
+    }
+
+    btn.addEventListener('click', enviar);
+    email.addEventListener('keydown', (e) => { if (e.key === 'Enter') enviar(); });
+    email.focus();
+  </script>
+</body>
+</html>

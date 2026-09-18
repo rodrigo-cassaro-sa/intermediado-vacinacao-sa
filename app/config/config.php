@@ -6,7 +6,11 @@
 // ============================================================================
 
 // Diretório raiz do projeto (um nível acima de /app).
-define('BASE_PATH', dirname(__DIR__, 2));
+// O guard existe porque os scripts de CLI (scripts/testar_*.php) definem
+// BASE_PATH antes de carregar o config — sem ele, cada um solta um warning.
+if (!defined('BASE_PATH')) {
+    define('BASE_PATH', dirname(__DIR__, 2));
+}
 
 /**
  * Carrega variáveis de um arquivo .env simples (CHAVE=valor) para getenv()/$_ENV.

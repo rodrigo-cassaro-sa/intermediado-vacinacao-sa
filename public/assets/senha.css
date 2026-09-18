@@ -1,0 +1,79 @@
+/* ==========================================================================
+   S&A Imunizações — telas públicas de senha (esqueci / redefinir).
+   Depende de marca.css (tokens). Compartilhado pelas duas páginas para a
+   experiência não divergir entre pedir o link e usar o link.
+   ========================================================================== */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0; padding: 24px;
+  font-family: 'Inter', system-ui, Segoe UI, Roboto, sans-serif;
+  background: var(--bg); color: var(--txt); font-size: 14px;
+  min-height: 100vh; display: grid; place-items: center;
+}
+
+.hide { display: none !important; }
+
+.box { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 20px; }
+
+.marca { justify-content: center; }
+.marca .logo { width: 46px; height: 46px; border-radius: 13px; }
+.marca .nome { font-size: 20px; }
+
+.card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--raio); box-shadow: var(--sombra); padding: 28px;
+}
+
+h1 { margin: 0 0 6px; font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
+.sub { margin: 0 0 20px; color: var(--muted); line-height: 1.55; }
+.sub.small { font-size: 12.5px; margin-top: 14px; }
+
+label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 6px; }
+
+input {
+  width: 100%; padding: 11px 12px; font: inherit;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: var(--surface-2); color: var(--txt);
+}
+input:focus { outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(22,102,196,.15); }
+input + label { margin-top: 16px; }
+
+.btn {
+  width: 100%; margin-top: 20px; padding: 12px 16px;
+  font: inherit; font-weight: 600; color: #fff; cursor: pointer;
+  background: linear-gradient(135deg, var(--pri) 0%, var(--pri2) 100%);
+  border: 0; border-radius: 8px;
+  transition: filter .15s, opacity .15s;
+}
+.btn:hover:not(:disabled) { filter: brightness(1.07); }
+.btn:disabled { opacity: .6; cursor: default; }
+.btn.linkbtn { display: block; text-align: center; text-decoration: none; }
+
+.voltar {
+  display: block; text-align: center; margin-top: 16px;
+  color: var(--muted); font-size: 13px; text-decoration: none;
+}
+.voltar:hover { color: var(--pri); }
+
+/* Mensagem de estado do formulário. Vazia não ocupa espaço. */
+.msg { margin-top: 12px; font-size: 13px; line-height: 1.5; }
+.msg:empty { display: none; }
+.msg.erro { color: var(--err); }
+.msg.ok   { color: var(--ok); }
+
+/* Selo de confirmação / falha */
+.ok-ico, .falha-ico {
+  width: 46px; height: 46px; border-radius: 50%;
+  display: grid; place-items: center; margin-bottom: 16px;
+  font-size: 24px; font-weight: 700; color: #fff;
+}
+.ok-ico    { background: linear-gradient(135deg, var(--acc) 0%, var(--acc2) 100%); }
+.falha-ico { background: var(--err); }
+
+/* Medidor de requisitos da senha nova */
+.regras { margin: 14px 0 0; padding: 0; list-style: none; font-size: 13px; }
+.regras li { display: flex; align-items: center; gap: 8px; color: var(--muted); padding: 3px 0; }
+.regras li::before { content: '○'; font-size: 12px; }
+.regras li.ok { color: var(--ok); }
+.regras li.ok::before { content: '●'; }
