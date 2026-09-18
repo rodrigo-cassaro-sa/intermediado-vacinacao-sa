@@ -3,6 +3,10 @@
 # Roteia toda requisição que não seja arquivo/pasta real para o front controller.
 # Assim /api/v1/... cai em public/index.php. Base: docs/05.
 # ============================================================================
+# A raiz do site serve a pagina de entrada (index.html), nao o front controller.
+# Sem isto o DirectoryIndex cai em index.php e / responde o 404 JSON da API.
+DirectoryIndex index.html index.php
+
 <IfModule mod_rewrite.c>
     RewriteEngine On
 

@@ -56,15 +56,30 @@ Domínio com SSL. Sem framework e sem OO por padrão.
 # 3. Etapa atual
 
 ```txt
-ESTADO DO DEPLOY (verificado em 2026-08-07 pelo /health e pelos assets servidos):
-homologação está com TUDO até o commit 3a89b3b (BUG-007). Migrations 031 e 032 APLICADAS.
-Confirmado no ar: /assets/mensagens.js responde 200, /interno/importacoes-vacinados dá 401
-(rota existe) e o csv.js servido já bloqueia cabeçalho não reconhecido.
-NÃO está no ar: TL-205 (commit 56445a8) — /interno/elegiveis/vacinacao ainda dá 404.
-Pendência de rastreabilidade: APP_VERSION não está configurada no painel, então o /health
-responde "versao: dev" e não dá para saber qual commit está rodando sem sondar rotas.
+ESTADO DO DEPLOY (resondado em 2026-09-18 em https://imu.saimunizacoes.com.br):
+/api/v1/health responde app:ok, banco:ok, ambiente:homologacao, banco_ms:2.
+/api/v1/interno/elegiveis/vacinacao responde 401 -> a rota EXISTE, logo a TL-205 (56445a8)
+JA ESTA NO AR, ao contrario do que este arquivo dizia. Houve redeploy depois de 07/08 e o
+checkpoint nao foi atualizado; como 69014a0 (RN-018 revista) e o HEAD da main e o deploy sai
+da main, o mais provavel e que os dois commits tenham subido juntos.
+LICAO: sem APP_VERSION o checkpoint envelhece em silencio e passa a mentir. APP_VERSION
+continua NAO configurada (o /health diz "versao: dev"), entao a unica forma de saber o que
+esta publicado e sondar rota por rota. Resolver isso no painel e barato e para de custar caro.
 
-Etapa atual (2026-08-07): RN-018 revista — codigo_lotacao e codigo_rh (matrícula) passaram a
+Etapa atual (2026-09-18): BUG-008 - a raiz do dominio devolvia o 404 JSON da API.
+Quem digitava https://imu.saimunizacoes.com.br/ recebia
+{"success":false,"message":"Rota nao encontrada."...} em vez de uma pagina. Causa: public/
+index.php e o front controller E era o DirectoryIndex da pasta public/; ele so trata caminhos
+que comecam com /api/, entao a raiz caia nele e era recusada. Nunca existiu pagina na raiz -
+o doc 07 (mapa de telas) tambem nao previa nenhuma. Correcao: public/index.html (pagina de
+entrada com as duas portas, portal do cliente e acesso interno, usando marca.css) +
+DirectoryIndex explicito no public/.htaccess, para nao depender da ordem padrao da imagem
+php:8.3-apache. O front controller nao mudou de comportamento: /api/v1/... continua chegando
+nele pelo RewriteRule, que e explicito e independe do DirectoryIndex.
+Evidencia antes da correcao: / = 404 JSON, /admin/ = 200 HTML, /portal/ = 200 HTML.
+FALTA VALIDAR: sondar / depois do redeploy e conferir que responde 200 text/html.
+
+Etapa anterior (2026-08-07): RN-018 revista — codigo_lotacao e codigo_rh (matrícula) passaram a
 ser OPCIONAIS na ingestão de elegíveis (decisão do usuário). Campo ausente grava NULL, não
 string vazia. O identificador já era opcional (a regra é CPF OU identificador, RN-028) e foi
 mantida. Corrigida de quebra uma contradição no doc 02: a RN-016 dizia que data de nascimento
@@ -293,6 +308,7 @@ configurar variáveis (doc 13 §3), volumes (§6), domínio+SSL (§7); (3) deplo
 | BUG-001 | CSV: 1ª linha = cabeçalho e mapeamento por nome da coluna em todas as importações (leitor único csv.php/csv.js) | QA/backend/frontend | alta | feito e NO AR |
 | BUG-002 | Campanha identificada pelo `codigo` no console e nos endpoints de carteira/resumo/faturamento | QA/frontend/backend | média | feito e NO AR |
 | BUG-003 | Worker da fila embutido no container + progresso da importação na tela (listas de 20k–30k) | deploy/backend/frontend | alta | feito e NO AR — confirmar que storage/uploads é volume persistente |
+| BUG-008 | Raiz do domínio devolvia o 404 JSON da API: página de entrada em `public/index.html` + `DirectoryIndex` explícito no `.htaccess` | frontend/deploy | alta | feito — falta redeploy e sondar `GET /` |
 | V2 | Autoadesão B2C (consentimento) + venda de voucher (pagamento) | — | baixa | pendente |
 | RN-031 | Vacinar pelo portal/admin + importar vacinados em massa (simulação obrigatória, estorno de lote) | backend/frontend/QA | alta | feito e NO AR (migration 031 aplicada) — falta validar nas telas |
 | Banco: migrations até 032 | — | — | — | **031 e 032 APLICADAS em homologação (2026-08-07)**. 026 código de campanha · 027..030 · 031 importação de vacinados em massa · 032 normaliza unidade.status |
@@ -460,12 +476,22 @@ Status do deploy: preparado (Docker + docs/13), aguardando push e configuração
 # 13. Último checkpoint
 
 ```txt
-DEPLOY: homologação está no commit 3a89b3b (BUG-007), com as migrations 031 e 032 já
-aplicadas. Só a TL-205 (56445a8) ainda não subiu. Verificação feita por sondagem de rotas e
-assets porque APP_VERSION não está configurada — configure-a no painel para o /health passar
-a dizer o commit publicado (rastreabilidade de produção, orquestrador §10).
+DEPLOY (resondado em 2026-09-18): homologação responde /api/v1/health com app:ok e
+banco:ok. A afirmação anterior deste checkpoint — "só a TL-205 não subiu" — está REFUTADA:
+/api/v1/interno/elegiveis/vacinacao devolve 401, ou seja a rota existe e a TL-205 está no ar.
+Houve redeploy depois de 07/08 sem atualizar este arquivo. APP_VERSION continua ausente
+(/health diz "versao: dev"), então o commit publicado segue sem ser identificável a não ser
+sondando rotas — configure-a no painel (rastreabilidade, orquestrador §10).
 
-Última coisa feita (2026-08-07): RN-018 revista — lotação e matrícula opcionais.
+Última coisa feita (2026-09-18): BUG-008 — a raiz do domínio devolvia o 404 JSON da API para
+um visitante humano. public/index.php acumulava dois papéis (front controller da API e
+DirectoryIndex da pasta public/) e recusa tudo que não comece com /api/. Agora existe
+public/index.html — página de entrada com as duas portas (portal do cliente e acesso interno)
+no padrão da marca — e um DirectoryIndex explícito no public/.htaccess, para não depender da
+ordem padrão do dir.conf da imagem php:8.3-apache. Nenhuma rota de API mudou.
+FALTA VALIDAR depois do redeploy: GET / deve responder 200 text/html.
+
+Coisa feita antes (2026-08-07): RN-018 revista — lotação e matrícula opcionais.
 
 Coisa feita antes (2026-08-07): TL-205 — vacinação individual. Popup de atendimento nas
 telas de vacinados do admin e do portal: digita CPF/voucher/matrícula/nome, o sistema acha a

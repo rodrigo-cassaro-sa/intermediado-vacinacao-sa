@@ -12,6 +12,9 @@ $caminho = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 $caminho = rtrim($caminho, '/') ?: '/';
 
 // Só tratamos /api aqui; páginas HTML (admin/portal/app) são servidas estáticas.
+// A raiz do site NÃO passa por aqui: o DirectoryIndex do .htaccess entrega
+// public/index.html (página de entrada). Sem aquela linha, / cairia neste
+// arquivo e responderia o 404 JSON da API para um visitante humano (BUG-008).
 if (strpos($caminho, '/api/') !== 0) {
     responder_erro('Rota não encontrada.', 404, [
         ['field' => null, 'code' => 'ROTA_NAO_ENCONTRADA', 'message' => 'Recurso inexistente.'],

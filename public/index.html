@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>S&amp;A Imunizações</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+  <link rel="stylesheet" href="/assets/marca.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: 'Inter', system-ui, Segoe UI, Roboto, sans-serif;
+      background: var(--bg); color: var(--txt); font-size: 14px;
+      min-height: 100vh; display: grid; place-items: center; padding: 24px;
+    }
+    .material-symbols-outlined { font-family: 'Material Symbols Outlined'; font-size: 22px; line-height: 1; }
+
+    .box { width: 100%; max-width: 620px; display: flex; flex-direction: column; gap: 24px; }
+
+    .marca { justify-content: center; }
+    .marca .logo { width: 52px; height: 52px; border-radius: 14px; }
+    .marca .nome { font-size: 24px; }
+    .marca .tag { font-size: 13px; }
+
+    .portas { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 560px) { .portas { grid-template-columns: 1fr; } }
+
+    .porta {
+      background: var(--card); border: 1px solid var(--line); border-radius: var(--raio);
+      box-shadow: var(--sombra); padding: 24px; text-decoration: none; color: inherit;
+      display: flex; flex-direction: column; gap: 10px;
+      transition: border-color .15s, box-shadow .15s, transform .15s;
+    }
+    .porta:hover { border-color: var(--pri); box-shadow: 0 6px 24px rgba(18,35,59,.12); transform: translateY(-2px); }
+    .porta .ico {
+      width: 42px; height: 42px; border-radius: 11px; display: grid; place-items: center;
+      background: var(--surface-2); color: var(--pri);
+    }
+    .porta.interno .ico { color: var(--acc); }
+    .porta h2 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
+    .porta p { margin: 0; color: var(--muted); line-height: 1.5; }
+    .porta .ir { margin-top: 4px; color: var(--pri); font-weight: 600; display: flex; align-items: center; gap: 4px; }
+    .porta.interno .ir { color: var(--acc); }
+    .porta .ir .material-symbols-outlined { font-size: 18px; }
+
+    .rodape { text-align: center; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .rodape a { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <main class="box">
+    <div class="marca">
+      <div class="logo"><svg width="28" height="28" viewBox="0 0 32 32"><path d="M13.5 7h5v6.5H25v5h-6.5V25h-5v-6.5H7v-5h6.5z" fill="#fff"/></svg></div>
+      <div>
+        <div class="nome">S&amp;A <b>Imunizações</b></div>
+        <div class="tag">Plataforma de gestão de imunização corporativa</div>
+      </div>
+    </div>
+
+    <div class="portas">
+      <a class="porta" href="/portal/">
+        <div class="ico"><span class="material-symbols-outlined">apartment</span></div>
+        <h2>Portal do cliente</h2>
+        <p>Acompanhe suas campanhas, envie a lista de elegíveis e consulte quem já foi vacinado.</p>
+        <span class="ir">Entrar <span class="material-symbols-outlined">arrow_forward</span></span>
+      </a>
+
+      <a class="porta interno" href="/admin/">
+        <div class="ico"><span class="material-symbols-outlined">shield_person</span></div>
+        <h2>Acesso interno</h2>
+        <p>Equipe S&amp;A: gestão de clientes, campanhas, rede credenciada e faturamento.</p>
+        <span class="ir">Entrar <span class="material-symbols-outlined">arrow_forward</span></span>
+      </a>
+    </div>
+
+    <p class="rodape">
+      Dados de saúde são tratados conforme a LGPD, com acesso registrado em auditoria.<br />
+      Problemas de acesso? Fale com o responsável pela campanha na sua empresa.
+    </p>
+  </main>
+</body>
+</html>
